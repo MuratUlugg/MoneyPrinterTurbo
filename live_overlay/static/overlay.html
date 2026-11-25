@@ -37,6 +37,7 @@ html.live body { background: transparent; } /* OBS / Live Studio: şeffaf zemin 
   <button type="button" data-mode="tug">Çay mı Kahve mi</button>
   <button type="button" data-mode="karpuz">Karpuz</button>
   <button type="button" class="go" id="burst">Hediye yağdır</button>
+  <button type="button" id="ses" aria-pressed="false">Ses</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -59,6 +60,7 @@ const CFG = {
   karpuzMin: num('karpuzMin', 120), karpuzMax: num('karpuzMax', 450),
   orta: num('orta', 100),        // halay: tek hediyede bu kadar jeton 'ortaya çıkarır'
   hedef: num('hedef', 2000),     // yayın hedefi (toplam jeton); dolunca ikiye katlanır
+  konuk: Math.round(num('konuk', 6)), // salonda hazır oturan adsız konuk sayısı (en çok 16)
   buyuk: num('buyuk', 100),      // bu kadar jetonluk tek hediye 'büyük hediye' gösterisi açar
 };
 const C = { panel: 'rgba(20,15,46,.78)', ink: '#fff', dim: 'rgba(255,255,255,.7)', pink: '#ff3d7f',
@@ -151,8 +153,17 @@ function drawParts(dt) {
   ctx.globalAlpha = 1;
 }
 
+const snd = { on: qs.get('ses') === '1', ctx: null,
+  ac() { if (!this.on) return null; try { this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); } catch (e) { this.on = false; } return this.ctx; },
+  tone(f0, f1, dur, vol, type = 'sine') { const c = this.ac(); if (!c) return; const o = c.createOscillator(), g = c.createGain(), t = c.currentTime;
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur); o.connect(g).connect(c.destination); o.start(t); o.stop(t + dur); },
+  noise(dur, vol, freq) { const c = this.ac(); if (!c) return; const n = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 1.5) * (.6 + .4 * Math.sin(i / 900));
+    const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; g.gain.value = vol; src.connect(f).connect(g).connect(c.destination); src.start(); },
+  dum() { this.tone(110, 45, .28, .9); }, tek() { this.noise(.07, .5, 3200); }, coin() { this.tone(1900, 2600, .25, .25, 'triangle'); }, clap() { this.noise(1.6, .5, 1800); },
+};
 function after(sec, fn) { timers.push({ t: sec, fn }); }
-function celebrate(title, p, sub) { cel = { title, p, sub, t: 0 }; champion = p || champion; confetti(); }
+function celebrate(title, p, sub) { cel = { title, p, sub, t: 0 }; champion = p || champion; hall.cheer = 1.5; snd.clap(); confetti(); }
 function drawCelebration(dt) {
   if (!cel) return;
   cel.t += dt; if (cel.t > 5.5) { cel = null; return; }
@@ -336,27 +347,112 @@ function dispose(scene, a) { if (a) scene.remove(a.root || a.m); }
 function arm(a, side, raise, fwd) { P(a, side + 'Arm', -raise, 0, side === 'Left' ? fwd : -fwd); }
 
 // =====================================================================
+// DÜĞÜN SALONU — halay ve takı töreninin ortak mekânı
+// Pist, sahne, gelin-damat, masalar ve masalarda oturan misafirler.
+// Yorum yazan / beğenen / takip eden izleyici bir masaya oturur; hediye gönderen kalkıp piste çıkar.
+// =====================================================================
+const hall = {
+  scene: null, seats: [], cheer: 0, nod: [0, 0],
+  get() { if (!this.scene) this.build(); return this; },
+  build() {
+    const { s } = baseScene('#1d1030', '#4a2748', { amb: .62, sky: 0xffe6cc, ground: 0x5a3a4a, sun: .95, sunColor: 0xffe2bd, range: 11 });
+    this.scene = s;
+    const ivory = std('#fbf6ec', { roughness: .8 }), gold = std('#e0b655', { metalness: .7, roughness: .3, emissive: '#5a3d00', emissiveIntensity: .35 });
+    // zemin: halı + parke pist
+    const carpet = mesh(new THREE.PlaneGeometry(40, 40), std('#fff', { map: speckTex('#6e1736', ['#82203f', '#5c102c', '#8f2a4a'], 700, 12, 12), roughness: .95 }), 0, 0, 0, false); carpet.rotation.x = -Math.PI / 2; s.add(carpet);
+    const parke = canvasTex(256, 256, (g, w) => { for (let i = 0; i < 8; i++) for (let j = 0; j < 5; j++) { g.fillStyle = ['#c79a63', '#b98a55', '#d2a770'][(i * 3 + j) % 3]; g.fillRect(j * 64 + (i % 2) * 32 - 32, i * 32, 64, 32); g.strokeStyle = 'rgba(60,30,10,.35)'; g.strokeRect(j * 64 + (i % 2) * 32 - 32, i * 32, 64, 32); } }, 5, 5);
+    const pist = mesh(new THREE.CircleGeometry(3.5, 56), std('#fff', { map: parke, roughness: .35 }), 0, .012, 0, false); pist.rotation.x = -Math.PI / 2; s.add(pist);
+    const rim = mesh(new THREE.RingGeometry(3.5, 3.64, 56), gold, 0, .014, 0, false); rim.rotation.x = -Math.PI / 2; s.add(rim);
+    // duvarlar: fildişi perdeler + sıcak ışık sütunları
+    const drape = canvasTex(256, 64, (g, w, h) => { for (let x = 0; x < w; x++) { const v = 205 + Math.sin(x / w * TAU * 10) * 40; g.fillStyle = `rgb(${v},${v * .93},${v * .84})`; g.fillRect(x, 0, 1, h); } }, 5, 1);
+    const wallM = std('#c9b29c', { map: drape, roughness: .9 });
+    s.add(mesh(new THREE.PlaneGeometry(30, 9), wallM, 0, 4.5, -9.2, false));
+    for (const d of [-1, 1]) { const w = mesh(new THREE.PlaneGeometry(26, 9), wallM, d * 9.5, 4.5, 0, false); w.rotation.y = -d * Math.PI / 2; s.add(w);
+      for (let i = 0; i < 4; i++) s.add(mesh(new THREE.PlaneGeometry(.5, 6.5), new THREE.MeshBasicMaterial({ color: [0xff7ab0, 0xffc46b][i % 2], transparent: true, opacity: .28 }), d * (3.4 + i * 1.7), 3.25, -9.1, false)); }
+    // sahne + pankart + balon takı
+    s.add(mesh(new THREE.BoxGeometry(8.4, .4, 2.8), ivory, 0, .2, -6.9));
+    s.add(mesh(new THREE.BoxGeometry(8.5, .06, 2.9), gold, 0, .41, -6.9));
+    const label = (qs.get('cift') || 'MUTLULUKLAR').slice(0, 28);
+    const pank = canvasTex(1024, 180, (g, w, h) => { g.fillStyle = '#fbf6ec'; g.fillRect(0, 0, w, h); g.strokeStyle = '#c9982f'; g.lineWidth = 10; g.strokeRect(10, 10, w - 20, h - 20);
+      g.fillStyle = '#a3761a'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '800 96px ' + FONT; let fs = 96; while (g.measureText('♥ ' + label + ' ♥').width > w - 80 && fs > 40) { fs -= 6; g.font = `800 ${fs}px ${FONT}`; } g.fillText('♥ ' + label + ' ♥', w / 2, h / 2 + 6); });
+    s.add(mesh(new THREE.PlaneGeometry(5, .88), std('#fff', { map: pank, roughness: .7 }), 0, 4.9, -9.1, false));
+    const bCols = ['#ffffff', '#f6c1d5', '#e0b655', '#ffe9f1'], bGeo = new THREE.SphereGeometry(.24, 14, 10);
+    for (let i = 0; i <= 34; i++) { const t = i / 34 * Math.PI, m = mesh(bGeo, std(bCols[i % 4], { roughness: .25 }), Math.cos(t) * 3.3 + Math.sin(i * 7) * .08, .5 + Math.sin(t) * 3.5, -8.2 + Math.cos(i * 5) * .12); m.scale.setScalar(.85 + (i * 37 % 10) / 28); s.add(m); }
+    // gelin + damat sahnede
+    const groom = this.groom = makeBot('#34343f', { bottom: '#34343f' }); groom.root.position.set(-.55, .43, -6.4); groom.root.rotation.y = .16; s.add(groom.root);
+    const bride = this.bride = assets.bride.scene.clone(); bride.traverse(o => { if (o.isMesh) { o.castShadow = o.material.name !== 'Veil'; o.receiveShadow = true; } });
+    bride.position.set(.6, .43, -6.4); bride.rotation.y = -.2; s.add(bride);
+    // düğün pastası
+    s.add(mesh(new THREE.CylinderGeometry(.5, .55, .8, 24), ivory, 2.9, .83, -6.6));
+    [[.38, .26, 1.36], [.28, .24, 1.61], [.18, .22, 1.84]].forEach(([r, h, y], i) => { s.add(mesh(new THREE.CylinderGeometry(r, r, h, 28), std('#fffdf8', { roughness: .5 }), 2.9, y, -6.6)); const band = mesh(new THREE.TorusGeometry(r, .022, 8, 28), std('#f29bb8'), 2.9, y - h / 2 + .02, -6.6); band.rotation.x = Math.PI / 2; s.add(band); });
+    s.add(mesh(new THREE.SphereGeometry(.07, 12, 10), std('#e8436e'), 2.9, 2.0, -6.6));
+    // avizeler + ışık dizileri
+    this.bulbs = [...lights(s, -8, 0, 6.2, -3, 14, .9), ...lights(s, 0, 8, 6.2, -3, 14, .9), ...lights(s, -8, 0, 6.4, 2.5, 14, .9), ...lights(s, 0, 8, 6.4, 2.5, 14, .9)];
+    for (const [x, z] of [[0, -1], [-4.2, -3.6], [4.2, -3.6]]) { const g = new THREE.Group(); g.position.set(x, 5.1, z);
+      g.add(mesh(new THREE.CylinderGeometry(.02, .02, 1.4, 6), gold, 0, .9, 0, false)); const hoop = mesh(new THREE.TorusGeometry(.5, .03, 8, 24), gold, 0, 0, 0, false); hoop.rotation.x = Math.PI / 2; g.add(hoop);
+      for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; g.add(mesh(new THREE.SphereGeometry(.075, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff1c4 }), Math.cos(a) * .5, 0, Math.sin(a) * .5, false)); }
+      s.add(g); const pl = new THREE.PointLight(0xffd9a0, x ? .55 : .9, 13); pl.position.set(x, 4.8, z); s.add(pl); }
+    // masalar, sandalyeler, masa süsleri
+    const seatG = new THREE.BoxGeometry(.42, .05, .42), backG = new THREE.BoxGeometry(.42, .52, .04), legG = new THREE.BoxGeometry(.04, .46, .04);
+    for (const [tx, tz] of [[-4.4, -1.7], [4.4, -1.7], [-3.5, -4.5], [3.5, -4.5]]) {
+      s.add(mesh(new THREE.CylinderGeometry(.98, 1.06, .76, 30), ivory, tx, .38, tz)); s.add(mesh(new THREE.CylinderGeometry(1.0, 1.0, .03, 30), std('#f3e3c4', { roughness: .6 }), tx, .775, tz));
+      s.add(mesh(new THREE.CylinderGeometry(.05, .09, .26, 12), gold, tx, .92, tz));
+      for (let i = 0; i < 7; i++) { const a = i / 6 * TAU; s.add(mesh(new THREE.SphereGeometry(.085, 10, 8), std(['#f29bb8', '#ffffff', '#e8436e'][i % 3], { roughness: .7 }), tx + (i ? Math.cos(a) * .1 : 0), 1.1 + (i ? 0 : .06), tz + (i ? Math.sin(a) * .1 : 0))); }
+      for (const a0 of [205, 250, 290, 335]) { const a = a0 / 180 * Math.PI, sx = tx + Math.cos(a) * 1.32, sz = tz + Math.sin(a) * 1.32, face = Math.atan2(tx - sx, tz - sz), ch = new THREE.Group();
+        ch.add(mesh(seatG, gold, 0, .47, 0)); ch.add(mesh(backG, gold, 0, .73, -.2)); for (const [lx, lz] of [[-.18, -.18], [.18, -.18], [-.18, .18], [.18, .18]]) ch.add(mesh(legG, gold, lx, .23, lz, false));
+        ch.position.set(sx, 0, sz); ch.rotation.y = face; s.add(ch);
+        s.add(mesh(new THREE.CylinderGeometry(.13, .13, .012, 16), std("#ffffff", { roughness: .3 }), tx + Math.cos(a) * .68, .795, tz + Math.sin(a) * .68));
+        this.seats.push({ x: sx, z: sz, face, g: null }); }
+    }
+    this.seats.sort((a, b) => hash(a.x + ':' + a.z) % 97 - hash(b.x + ':' + b.z) % 97); // masalara dağılarak dolsun
+    // davulcu + zurnacı pistin ortasında
+    const dv = this.davulcu = makeBot('#b05050', { bottom: '#5a5a66', head: 'kasket' }); dv.root.position.set(-.5, 0, -.25); dv.root.rotation.y = .25; s.add(dv.root);
+    const drum = new THREE.Group(); drum.add(mesh(new THREE.CylinderGeometry(.34, .34, .3, 28), std('#b3261e', { roughness: .5 })));
+    for (const y of [-.155, .155]) drum.add(mesh(new THREE.CylinderGeometry(.33, .33, .015, 28), std('#f3e6cf'), 0, y, 0));
+    drum.rotation.z = Math.PI / 2; drum.position.set(0, .1, .38); dv.b.Hips.add(drum);
+    const zr = this.zurnaci = makeBot('#5a6fb0', { bottom: '#5a5a66', head: 'fes', must: true }); zr.root.position.set(.5, 0, -.25); zr.root.rotation.y = -.25; s.add(zr.root);
+    const zurna = mesh(new THREE.CylinderGeometry(.02, .09, .46, 14), std('#7a4a22', { roughness: .45 })); zurna.rotation.x = -Math.PI / 2 + .35; zurna.position.set(0, 0, .32); zr.b.Head.add(zurna);
+    this.seed();
+  },
+  seed() { for (let i = 0; i < CFG.konuk; i++) this.sit(null); }, // salon boş görünmesin diye adsız konuklar; izleyici gelince yerlerini ona bırakırlar
+  sit(p) {
+    if (!this.scene || (p && this.seats.some(s => s.g && s.g.p === p))) return;
+    const seat = this.seats.find(s => !s.g) || this.seats.find(s => s.g && !s.g.p) || this.seats.filter(s => s.g).sort((a, b) => a.g.t - b.g.t)[0];
+    if (!seat || (!p && seat.g)) return;
+    if (seat.g) this.scene.remove(seat.g.a.root);
+    const id = p ? p.id : 'konuk' + this.seats.indexOf(seat), a = makeBot(`hsl(${p ? p.hue : hash(id) % 360},${p ? 70 : 35}%,${p ? 60 : 55}%)`, lookOf(id));
+    a.root.position.set(seat.x, -.46 * a.root.scale.y, seat.z); a.root.rotation.y = seat.face;
+    P(a, 'LeftUpLeg', -1.5, 0, -.08); P(a, 'RightUpLeg', -1.5, 0, .08); P(a, 'LeftLeg', 1.5, 0, 0); P(a, 'RightLeg', 1.5, 0, 0);
+    seat.g = { p, a, t: T, ph: rand(TAU) }; this.scene.add(a.root);
+  },
+  leave(id) { for (const s of this.seats) if (s.g && s.g.p && s.g.p.id === id) { this.scene.remove(s.g.a.root); s.g = null; } },
+  clear() { if (!this.scene) return; for (const s of this.seats) if (s.g) { this.scene.remove(s.g.a.root); s.g = null; } this.seed(); },
+  update(dt, ph, dance) {
+    this.cheer = Math.max(0, this.cheer - dt * .5); this.nod = this.nod.map(v => Math.max(0, v - dt * 1.4));
+    const clap = Math.sin(T * 15) * .13;
+    for (const s of this.seats) { if (!s.g) continue; const a = s.g.a, c = this.cheer > 0 || (dance && Math.sin(T * .6 + s.g.ph) > .55); // alkış: büyük anlarda herkes, halayda ara ara
+      P(a, 'Spine', .1 + Math.sin(T * 1.3 + s.g.ph) * .03, Math.sin(T * .45 + s.g.ph) * .18, 0); P(a, 'Head', 0, Math.sin(T * .6 + s.g.ph * 2) * .3, 0);
+      if (c) { arm(a, 'Left', .25, 1.0 + clap); arm(a, 'Right', .25, 1.0 + clap); } else { arm(a, 'Left', -.35, .55); arm(a, 'Right', -.35, .55); } }
+    const hit = Math.max(0, Math.sin(ph)), dv = this.davulcu, zr = this.zurnaci, g = this.groom, br = this.bride;
+    arm(dv, 'Right', .25 + hit * .5, .7 - hit * .5); arm(dv, 'Left', .1, .8 + Math.max(0, -Math.sin(ph)) * .3);
+    dv.root.position.y = hit * .03; P(dv, 'Spine', -.08, 0, Math.sin(ph * .5) * .08);
+    arm(zr, 'Right', .55, 1.15); arm(zr, 'Left', .55, 1.15); P(zr, 'Spine', -.1 + Math.sin(ph) * .05, 0, 0); P(zr, 'Head', -.15, Math.sin(ph * .5) * .15, 0);
+    P(g, 'Spine', Math.sin(T * 1.7) * .015, 0, Math.sin(T * .8) * .03); P(g, 'Head', Math.sin(this.nod[0] * Math.PI * 3) * .22 * this.nod[0], Math.sin(T * .5) * .12, 0);
+    if (dance) { arm(g, 'Left', .2, 1.0 + Math.sin(ph * 2) * .13); arm(g, 'Right', .2, 1.0 + Math.sin(ph * 2) * .13); } else { arm(g, 'Left', -.6, .05); arm(g, 'Right', -.6, .05); }
+    br.rotation.y = -.2 + Math.sin(T * .7) * .06; br.position.y = .43 + Math.abs(Math.sin(this.nod[1] * Math.PI * 2)) * .03 * this.nod[1];
+    this.bulbs.forEach((m, i) => m.scale.setScalar((i + Math.floor(T * 2.5)) % 3 ? 1.2 : .7));
+  },
+  draw(cam) { for (const s of this.seats) if (s.g && s.g.p) { const [x, y] = proj(cam, s.x, 1.5, s.z); avatar(s.g.p, x, y, 17); } },
+};
+
+// =====================================================================
 // MOD 1 — DÜĞÜN HALAYI (dairesel; ortada davul zurna)
 // =====================================================================
 const halay = {
   title: 'DÜĞÜN HALAYI',
-  hints: ['🌹 Tek bir Gül at, halaya gir!', `💸 ${CFG.orta}+ 💎 at: ortaya çık, üstüne para saçılsın!`, 'En cömert, mendili sallayan halay başı olur', 'Coşku dolunca halay başı ilan edilir 🔥'],
+  hints: ['💬 Yorum yaz, düğünde masana otur', '🌹 Tek bir Gül at, masadan kalk halaya gir!', `💸 ${CFG.orta}+ 💎 at: ortaya çık, üstüne para saçılsın!`, 'En cömert, mendili sallayan halay başı olur', 'Coşku dolunca halay başı ilan edilir 🔥'],
   build() {
-    const { s } = baseScene('#070a22', '#3a2460', { amb: .6, sky: 0x9aa8ff, ground: 0x40304a, sun: 1.25, sunColor: 0xffd9a8, range: 7 });
-    this.scene = s; this.cam = camera(34, 0, 4.6, 9.5, 0, .9, 0);
-    const floor = canvasTex(256, 256, (g, w) => { for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { g.fillStyle = (i + j) % 2 ? '#b08a5e' : '#9b744c'; g.fillRect(i * 64, j * 64, 64, 64); }
-      g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 2; for (let i = 0; i <= 4; i++) { g.beginPath(); g.moveTo(i * 64, 0); g.lineTo(i * 64, w); g.moveTo(0, i * 64); g.lineTo(w, i * 64); g.stroke(); } }, 8, 8);
-    const f = mesh(new THREE.PlaneGeometry(40, 40), std('#fff', { map: floor, roughness: .6 }), 0, 0, 0, false); f.rotation.x = -Math.PI / 2; s.add(f);
-    this.bulbs = [...lights(s, -7, 0, 5.4, -5, 12, .8), ...lights(s, 0, 7, 5.4, -5, 12, .8)];
-    for (const x of [-7, 0, 7]) s.add(mesh(new THREE.CylinderGeometry(.05, .05, 5.5, 8), std('#3b2a20'), x, 2.75, -5));
-    const warm = new THREE.PointLight(0xffb060, 1.0, 12); warm.position.set(0, 3.5, 0); s.add(warm);
-    // davulcu + zurnacı dairenin ortasında
-    const dv = this.davulcu = makeBot('#b05050', { bottom: '#5a5a66', head: 'kasket' }); dv.root.position.set(-.5, 0, -.25); dv.root.rotation.y = .25; s.add(dv.root);
-    const drum = new THREE.Group(); drum.add(mesh(new THREE.CylinderGeometry(34, 34, 30, 28), std('#b3261e', { roughness: .5 })));
-    for (const y of [-15.5, 15.5]) drum.add(mesh(new THREE.CylinderGeometry(33, 33, 1.5, 28), std('#f3e6cf'), 0, y, 0));
-    drum.rotation.z = Math.PI / 2; drum.scale.setScalar(.01); drum.position.set(0, .1, .38); dv.b.Hips.add(drum);
-    const zr = this.zurnaci = makeBot('#5a6fb0', { bottom: '#5a5a66', head: 'fes', must: true }); zr.root.position.set(.5, 0, -.25); zr.root.rotation.y = -.25; s.add(zr.root);
-    const zurna = mesh(new THREE.CylinderGeometry(2, 9, 46, 14), std('#7a4a22', { roughness: .45 })); zurna.rotation.x = -Math.PI / 2 + .35; zurna.scale.setScalar(.01); zurna.position.set(0, 0, .32); zr.b.Head.add(zurna);
+    this.hall = hall.get(); this.scene = this.hall.scene; this.cam = camera(38, 0, 4.6, 10.5, 0, 1.1, -1.2);
     this.mendil = mesh(new THREE.PlaneGeometry(.26, .26), std('#ffffff', { side: THREE.DoubleSide, roughness: .9 }));
     this.acts = new Map();
   },
@@ -366,8 +462,9 @@ const halay = {
   },
   gift(p, a, raw) {
     let d = this.d.get(p.id);
-    if (!d) { d = { p, v: 0, ang: null, pos: [0, 0] }; this.d.set(p.id, d); }
-    d.v += a; d.plus = { a, t: 0 };
+    if (!d) { d = { p, v: 0, ang: null, pos: [0, 0] }; this.d.set(p.id, d); hall.leave(p.id); } // masadan kalkıp piste çıkar
+    d.v += raw; d.plus = { a: raw, t: 0 };
+    if (raw >= CFG.orta) hall.cheer = 1;
     if (raw >= CFG.orta && !this.soloQ.includes(p.id) && !(this.solo && this.solo.id === p.id)) this.soloQ.push(p.id);
     this.cosku = Math.min(100, this.cosku + a / CFG.halay * 100);
     if (this.cosku >= 100) {
@@ -394,7 +491,7 @@ const halay = {
     const so = this.solo && this.d.get(this.solo.id);
     if (so) { so.ang = null; so.slot = -1; so.pos = [ease(so.pos[0], 0, dt, 4), ease(so.pos[1], .95, dt, 4)]; so.face = 0; so.k = Math.sin(this.ph * 1.3); this.vis.push(so); }
     this.list.forEach(d => { if (d.plus && (d.plus.t += dt) > 1) d.plus = null; });
-    if (n && Math.floor(this.ph / Math.PI) !== this.beat) { this.beat = Math.floor(this.ph / Math.PI);
+    if (n && Math.floor(this.ph / Math.PI) !== this.beat) { this.beat = Math.floor(this.ph / Math.PI); this.beat % 2 ? snd.tek() : snd.dum();
       spawn({ kind: 'text', text: this.beat % 2 ? '♪' : '♫', x: rand(460, 620), y: 720, vx: rand(-60, 60), vy: -130, life: 1.4, size: 54, color: [C.yellow, C.cyan, '#fff'][this.beat % 3] }); }
     if (!this.built) return;
     const ids = new Set(this.vis.map(d => d.p.id));
@@ -414,17 +511,13 @@ const halay = {
         } else arm(a, 'Right', .15 + Math.abs(k) * .08, 0); }
     }
     if (!n && this.mendil.parent) this.mendil.parent.remove(this.mendil);
-    const hit = Math.max(0, Math.sin(this.ph)), dv = this.davulcu, zr = this.zurnaci;
-    arm(dv, 'Right', .25 + hit * .5, .7 - hit * .5); arm(dv, 'Left', .1, .8 + Math.max(0, -Math.sin(this.ph)) * .3);
-    dv.root.position.y = hit * .03; P(dv, 'Spine', -.08, 0, Math.sin(this.ph * .5) * .08);
-    arm(zr, 'Right', .55, 1.15); arm(zr, 'Left', .55, 1.15);
-    P(zr, 'Spine', -.1 + Math.sin(this.ph) * .05, 0, 0); P(zr, 'Head', -.15, Math.sin(this.ph * .5) * .15, 0);
-    this.bulbs.forEach((m, i) => m.scale.setScalar((i + Math.floor(T * 2.5)) % 3 ? 1.2 : .7));
+    this.hall.update(dt, this.ph, true);
     this.zoom = ease(this.zoom || 2, R, dt, 2);
-    this.cam.position.set(Math.sin(T * .2) * .8, 2.3 + this.zoom * .8, 4.4 + this.zoom * 2.5); this.cam.lookAt(0, .9, 0);
+    this.cam.position.set(Math.sin(T * .2) * 1.1, 2.9 + this.zoom * .8, 6.2 + this.zoom * 2.5); this.cam.lookAt(0, .75, -1.0);
   },
   draw() {
     if (!this.list.length) bar(140, 452, 800, 70, 0, C.cyan, C.pink, 'İlk hediyeyle halayı sen başlat! 🥁');
+    if (this.built) this.hall.draw(this.cam);
     if (this.built) [...(this.vis || [])].sort((a, b) => a.pos[1] - b.pos[1]).forEach(d => {
       const [x, y] = proj(this.cam, d.pos[0], 2.12, d.pos[1]), lead = d.slot === 0, solo = d.slot < 0;
       avatar(d.p, x, y, solo ? 40 : 27, lead || solo ? C.yellow : '#fff');
@@ -458,8 +551,17 @@ const race = {
       const posts = new THREE.InstancedMesh(new THREE.BoxGeometry(.09, 1, .09), white, 100), m = new THREE.Matrix4();
       for (let i = 0; i < 100; i++) { m.setPosition((i - 50) * 4, .5, z); posts.setMatrixAt(i, m); } posts.castShadow = true; w.add(posts); }
     w.add(mesh(new THREE.BoxGeometry(400, 1.6, 1.2), std('#1f6b2c', { roughness: 1 }), 0, .8, -9));
+    // tribün: basamaklar ve seyirciler (renkler 8 birimde bir tekrarlar, zemin kayarken sıçrama görünmez)
+    const ROWS = 5, PER = 240, heads = new THREE.InstancedMesh(new THREE.SphereGeometry(.2, 8, 6), std('#fff', { roughness: .9 }), ROWS * PER), bodies = new THREE.InstancedMesh(new THREE.BoxGeometry(.42, .55, .3), std('#fff', { roughness: .9 }), ROWS * PER);
+    const mm = new THREE.Matrix4(), cc = new THREE.Color(), shirts = ['#e5484d', '#3b82f6', '#f5c542', '#ffffff', '#22c55e', '#f97316', '#a855f7', '#111827'], skins = ['#f1c9a5', '#d9a577', '#b98b68'];
+    for (let r = 0; r < ROWS; r++) { w.add(mesh(new THREE.BoxGeometry(400, .6, 1.0), std('#c9ced6', { roughness: .8 }), 0, 1.3 + r * .6, -10.6 - r));
+      for (let i = 0; i < PER; i++) { const k = r * PER + i, x = (i - PER / 2) * .5 + (r % 2) * .25, y = 1.6 + r * .6, z = -10.6 - r, h = hash(r + ':' + (i % 16));
+        mm.setPosition(x, y + .28, z); bodies.setMatrixAt(k, mm); bodies.setColorAt(k, cc.set(shirts[h % 8]));
+        mm.setPosition(x, y + .72, z); heads.setMatrixAt(k, mm); heads.setColorAt(k, cc.set(skins[(h >>> 4) % 3])); } }
+    w.add(bodies); w.add(heads);
+    w.add(mesh(new THREE.BoxGeometry(400, .25, 6.4), std('#e8eaee', { roughness: .6 }), 0, 6.2, -13));
     const trees = new THREE.InstancedMesh(new THREE.SphereGeometry(2.4, 20, 14), std('#2a7030', { roughness: 1 }), 50), tm = new THREE.Matrix4();
-    for (let i = 0; i < 50; i++) { tm.makeScale(1, rand(1, 1.6), 1); tm.setPosition((i - 25) * 8, 3.0, -15 - (i % 3) * 4); trees.setMatrixAt(i, tm); } w.add(trees);
+    for (let i = 0; i < 50; i++) { tm.makeScale(1, rand(1, 1.6), 1); tm.setPosition((i - 25) * 8, 3.0, -24 - (i % 3) * 4); trees.setMatrixAt(i, tm); } w.add(trees);
     const arch = this.arch = new THREE.Group(), red = std('#d62839', { roughness: .5 });
     arch.add(mesh(new THREE.CylinderGeometry(.16, .16, 5, 12), red, 0, 2.5, -5.5)); arch.add(mesh(new THREE.CylinderGeometry(.16, .16, 5, 12), red, 0, 2.5, 5.5));
     const banner = canvasTex(1024, 128, (g, cw, ch) => { for (let i = 0; i < 32; i++) for (let j = 0; j < 4; j++) { g.fillStyle = (i + j) % 2 ? '#fff' : '#111'; g.fillRect(i * 32, j * 32, 32, 32); }
@@ -514,7 +616,7 @@ const race = {
   draw() {
     const shown = this.list.filter(r => r.act), lead = this.list[0];
     if (!lead) bar(140, 452, 800, 70, 0, C.cyan, C.pink, 'İlk hediyeyi gönder, atını piste çıkar! 🏇');
-    else bar(140, 452, 800, 70, lead.shown / CFG.goal, C.yellow, C.pink, this.locked ? '🏁 FİNİŞ!' : `🏁 ${fit(lead.p.name, 260, 34)} önde · finişe 💎 ${fmt(CFG.goal - lead.prog)}`);
+    else bar(140, 452, 800, 70, lead.shown / CFG.goal, C.yellow, C.pink, this.locked ? '🏁 FİNİŞ!' : `🏁 ${fit(lead.p.name, 300, 34)} önde · finişe %${Math.max(1, Math.ceil((1 - lead.prog / CFG.goal) * 100))} kaldı`);
     if (!this.built) return;
     shown.forEach(r => {
       const i = this.list.indexOf(r), [x, y0] = proj(this.cam, r.x, 3.0, r.z), y = y0 - (r.lane % 4) * 34;
@@ -531,23 +633,14 @@ const race = {
 const TAKI = [[1000, 'beşi bir yerde'], [200, 'bilezik'], [50, 'tam altın'], [10, 'yarım altın'], [0, 'çeyrek altın']];
 const taki = {
   title: 'TAKI TÖRENİ',
-  hints: ['Hediyen altın olur, gelinle damada takılır', '🌹 Gül = çeyrek · 10+ yarım · 50+ tam altın', '200+ 💎 bilezik · 1000+ beşi bir yerde!', 'Sandık dolunca düğünün en cömerdi ilan edilir'],
+  hints: ['💬 Yorum yaz, düğünde masana otur', 'Hediyen altın olur, gelinle damada takılır', '🌹 Gül = çeyrek · 10+ yarım · 50+ tam altın', '200+ 💎 bilezik · 1000+ beşi bir yerde!', 'Sandık dolunca düğünün en cömerdi ilan edilir'],
   no: 1,
   build() {
-    const { s } = baseScene('#3a0a1c', '#7a1634', { amb: .8, sun: 1.3, sunColor: 0xfff0d8, range: 5 });
-    this.scene = s; this.cam = camera(30, 0, 1.4, 5.4, 0, 1.0, 0);
-    const carpet = mesh(new THREE.PlaneGeometry(30, 30), std('#fff', { map: speckTex('#8e1230', ['#a31a3c', '#7a0e28'], 500, 10, 10), roughness: .9 }), 0, 0, 0, false); carpet.rotation.x = -Math.PI / 2; s.add(carpet);
-    const curtain = canvasTex(256, 64, (g, w, h) => { for (let x = 0; x < w; x++) { const v = 150 + Math.sin(x / w * TAU * 8) * 60; g.fillStyle = `rgb(${v},${v * .14},${v * .28})`; g.fillRect(x, 0, 1, h); } }, 3, 1);
-    s.add(mesh(new THREE.PlaneGeometry(26, 9), std('#fff', { map: curtain, roughness: .85 }), 0, 4.5, -3.2, false));
-    this.bulbs = lights(s, -4.5, 4.5, 3.25, -2.6, 20, .5);
+    this.hall = hall.get(); this.scene = this.hall.scene; this.cam = camera(30, 0, 2.0, -.9, 0, 1.45, -6.4);
     this.gold = std('#ffcf3a', { metalness: .85, roughness: .28, emissive: '#7a5200', emissiveIntensity: .55 });
     this.coinGeo = new THREE.CylinderGeometry(1, 1, .22, 24); this.coinGeo.rotateX(Math.PI / 2);
     this.ringGeo = new THREE.TorusGeometry(1, .22, 10, 28);
-    const groom = makeBot('#3b3b48', { bottom: '#3b3b48' }); groom.root.position.set(-.55, 0, 0); groom.root.rotation.y = .16; s.add(groom.root);
-    const bride = assets.bride.scene.clone(); bride.traverse(o => { if (o.isMesh) { o.castShadow = o.material.name !== 'Veil'; o.receiveShadow = true; } });
-    bride.position.set(.62, 0, 0); bride.rotation.y = -.2; s.add(bride);
-    this.target = [groom.b.Spine2, bride]; this.nod = [0, 0];
-    this.pair = [groom, bride]; this.coins = [];
+    this.target = [this.hall.groom.b.Spine2, this.hall.bride]; this.coins = [];
   },
   clear3d() { if (!this.built) return; for (const c of this.coins) c.parent && c.parent.remove(c); this.coins = []; for (const s of this.shots) if (s.m) this.scene.remove(s.m); },
   reset(keep) {
@@ -557,16 +650,16 @@ const taki = {
     this.sum = this.shown = 0; this.g = new Map(); this.shots = []; this.say = null; this.locked = false;
   },
   gift(p, a, raw) { const side = Math.random() < .5 ? 0 : 1, off = side ? [rand(-.1, .1), rand(1.1, 1.34), .14] : [rand(-.12, .12), rand(-.06, .16), .15];
-    this.shots.push({ p, a, raw: raw || a, t: 0, side, off, from: [rand(-2.2, 2.2), .1, 4.6], m: null }); },
+    this.shots.push({ p, a, raw: raw || a, t: 0, side, off, from: [rand(-1.6, 1.6), .9, -1.6], m: null }); hall.sit(p); },
   land(s) {
     const kind = TAKI.find(k => s.raw >= k[0]);
-    this.sum += s.a; this.g.set(s.p.id, { p: s.p, v: (this.g.get(s.p.id)?.v || 0) + s.a });
+    this.sum += s.raw; this.g.set(s.p.id, { p: s.p, v: (this.g.get(s.p.id)?.v || 0) + s.raw }); // takıda kombo yok: sayılan gerçek jeton
     this.say = { p: s.p, line: `${kind[1]} taktı!`, t: 0 };
     if (this.built) {
-      this.nod[s.side] = 1;
+      this.hall.nod[s.side] = 1; if (s.raw >= 50) this.hall.cheer = 1; snd.coin();
       if (s.m) { this.target[s.side].add(s.m); s.m.position.set(s.off[0], s.off[1], s.off[2]); s.m.rotation.set(0, 0, rand(TAU));
         this.coins.push(s.m); if (this.coins.length > 70) { const old = this.coins.shift(); old.parent && old.parent.remove(old); } }
-      const [x, y] = proj(this.cam, s.side ? .62 : -.62, 1.3, .2); burst(x, y, C.yellow, 12, 380);
+      const [x, y] = proj(this.cam, s.side ? .6 : -.55, 1.75, -6.2); burst(x, y, C.yellow, 12, 380);
     }
     if (!this.locked && this.sum >= this.max) {
       this.locked = true; confetti(60);
@@ -577,10 +670,7 @@ const taki = {
   update(dt) {
     this.shown = ease(this.shown, this.sum, dt, 6);
     if (this.say && (this.say.t += dt) > 2.6) this.say = null;
-    if (this.built) { const [g, br] = this.pair; this.nod = this.nod.map(v => Math.max(0, v - dt * 1.4));
-      P(g, 'Spine', Math.sin(T * 1.7) * .015, 0, Math.sin(T * .8) * .02); arm(g, 'Left', -.6, .05); arm(g, 'Right', -.6, .05); P(g, 'Head', Math.sin(this.nod[0] * Math.PI * 3) * .22 * this.nod[0], Math.sin(T * .5) * .12, 0);
-      br.rotation.y = -.2 + Math.sin(T * .7) * .06; br.position.y = Math.abs(Math.sin(this.nod[1] * Math.PI * 2)) * .03 * this.nod[1];
-      this.bulbs.forEach((m, i) => m.scale.setScalar((i + Math.floor(T * 2.5)) % 3 ? 1.2 : .7)); }
+    if (this.built) { this.hall.update(dt, T * 3.2, false); this.cam.position.x = Math.sin(T * .3) * .35; this.cam.lookAt(0, 1.45, -6.4); }
     this.shots = this.shots.filter(s => {
       s.t += dt * 1.7;
       if (this.built) {
@@ -594,6 +684,7 @@ const taki = {
     });
   },
   draw() {
+    if (this.built) this.hall.draw(this.cam);
     bar(120, 452, 840, 66, this.shown / this.max, '#c98a12', C.yellow, `${this.no}. DÜĞÜN  ·  TAKI 💎 ${fmt(this.shown)} / ${fmt(this.max)}`);
     if (this.say) { ctx.globalAlpha = clamp(Math.min(this.say.t * 6, (2.6 - this.say.t) * 4), 0, 1);
       panel(170, 538, 740, 84, 42, '#fff'); avatar(this.say.p, 214, 580, 32, C.yellow);
@@ -645,12 +736,12 @@ const tug = {
     s = s.toLocaleLowerCase('tr-TR').trim();
     if (s === '1' || /[çc]ay/.test(s)) this.join(p, 0); else if (s === '2' || s.includes('kahve')) this.join(p, 1);
   },
-  gift(p, a) {
+  gift(p, a, raw) {
     let t = this.member.get(p.id);
     if (t === undefined) { t = this.tot[0] <= this.tot[1] ? 0 : 1; this.member.set(p.id, t); } // seçmeyen zayıf takıma
-    this.team[t].set(p.id, { p, v: (this.team[t].get(p.id)?.v || 0) + a });
-    this.tot[t] += a; this.pos = clamp(this.pos + (t ? 1 : -1) * a / CFG.tug, -1, 1); this.tugT = 1; this.tugDir = t ? 1 : -1;
-    floater('+' + fmt(a), t ? 800 : 280, 700, this.cols[t]);
+    this.team[t].set(p.id, { p, v: (this.team[t].get(p.id)?.v || 0) + raw });
+    this.tot[t] += raw; this.pos = clamp(this.pos + (t ? 1 : -1) * a / CFG.tug, -1, 1); this.tugT = 1; this.tugDir = t ? 1 : -1;
+    floater('+' + fmt(raw), t ? 800 : 280, 700, this.cols[t]);
     if (Math.abs(this.pos) >= 1) {
       this.locked = true;
       const mvp = [...this.team[t].values()].sort((x, y) => y.v - x.v)[0];
@@ -667,7 +758,7 @@ const tug = {
     this.vis.forEach((list, t) => list.forEach((m, i) => {
       let a = this.acts.get(m.p.id);
       if (!a) { a = makeBot(this.tint[t], lookOf(m.p.id)); this.acts.set(m.p.id, a); this.scene.add(a.root); }
-      const d = t ? 1 : -1, pull = (this.tugDir === d ? this.tugT : -this.tugT * .5), w = Math.sin(T * 7 + i * 2 + t), lean = .32 + pull * .18 + w * .03;
+      const d = t ? 1 : -1, pull = (this.tugDir === d ? this.tugT : -this.tugT * .5), w = Math.sin(T * 7 + i * 2 + t), lean = .2 + pull * .14 + w * .03;
       m.x = mx + d * (.9 + i * .82); a.root.position.set(m.x, 0, .12); a.root.rotation.y = -d * Math.PI / 2; // rakibe dönük
       P(a, 'Hips', -lean, 0, 0); P(a, 'Spine', -.1, 0, 0);
       P(a, 'LeftUpLeg', -.22 + lean - w * .1, 0, 0); P(a, 'LeftLeg', .25, 0, 0); P(a, 'RightUpLeg', .1 + lean + w * .1, 0, 0); P(a, 'RightLeg', .35, 0, 0);
@@ -729,7 +820,7 @@ const karpuz = {
             const an = rand(TAU), sp = rand(1.5, 6); this.chunks.push({ m, v: [Math.cos(an) * sp, rand(2, 8), Math.sin(an) * sp * .8 + 1], w: [rand(-9, 9), rand(-9, 9), rand(-9, 9)] }); this.scene.add(m); } }
         for (let i = 0; i < 6; i++) burst(540 + rand(-150, 150), 880 + rand(-150, 150), ['#ff3b4f', '#ff6b7a', '#2f9e44'][i % 3], 30, 1100);
         floater('ÇAT!', 540, 860, C.yellow, 160);
-        after(1.3, () => { celebrate('KARPUZU PATLATTI!', p, `${this.bands} lastik · ${this.n.size} kişi · 💎 ${fmt(this.size)}`); this.reset(); });
+        after(1.3, () => { celebrate('KARPUZU PATLATTI!', p, `${this.bands} lastik · ${this.n.size} kişi birlikte sıktı`); this.reset(); });
       });
     }
   },
@@ -751,8 +842,8 @@ const karpuz = {
   },
   draw() {
     const danger = this.size >= CFG.karpuzMin;
-    bar(140, 452, 800, 66, 0, C.cyan, C.pink, danger && !this.gone ? '⚠ HER AN PATLAYABİLİR!' : `${this.bands} LASTİK  ·  💎 ${fmt(this.shown)}`);
-    if (danger && !this.gone) text(`${this.bands} LASTİK  ·  💎 ${fmt(this.shown)}`, 540, 560, 40, '#fff', 'center', 9);
+    bar(140, 452, 800, 66, 0, C.cyan, C.pink, danger && !this.gone ? '⚠ HER AN PATLAYABİLİR!' : `${this.bands} LASTİK TAKILDI`);
+    if (danger && !this.gone) text(`${this.bands} LASTİK`, 540, 560, 40, '#fff', 'center', 9);
     if (this.last) { panel(220, 1232, 640, 78, 39, 'rgba(10,6,30,.66)'); avatar(this.last, 266, 1271, 30, C.yellow);
       text('Son lastik: ' + fit(this.last.name, 380, 32), 312, 1271, 32, '#fff', 'left'); }
     else text('İlk lastiği sen tak!', 540, 1271, 44, '#fff', 'center', 9);
@@ -766,6 +857,7 @@ const MODES = { halay, race, taki, tug, karpuz };
 // =====================================================================
 function setMode(name) {
   if (!MODES[name] || name === modeName) return;
+  if (mode) mode.reset(); // eski modun sahnedeki oyuncularını kaldır
   modeName = name; mode = MODES[name]; timers = []; pending = []; cel = null; parts = []; mode.reset();
   document.querySelectorAll('#bar [data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === name)));
 }
@@ -773,8 +865,9 @@ function giveToMode(p, a, raw) { if (mode.locked) pending.push([p, a, raw]); els
 function onEvent(ev) {
   if (!ev || typeof ev !== 'object') return;
   if (ev.type === 'state') return setMode(qs.get('mode') || ev.mode);
-  if (ev.type === 'reset') { timers = []; pending = []; cel = null; players.clear(); session = 0; goal = CFG.hedef; champion = null; combo.n = combo.t = 0; bigs.length = 0; mode.reset(); return; }
+  if (ev.type === 'reset') { timers = []; pending = []; cel = null; players.clear(); session = 0; goal = CFG.hedef; champion = null; combo.n = combo.t = 0; bigs.length = 0; hall.clear(); mode.reset(); return; }
   const p = player(ev.user);
+  if (ev.type !== 'gift' && mode.hall && !(mode === halay && halay.d.has(p.id))) hall.sit(p);
   if (ev.type === 'gift') {
     const g = ev.gift || {}, count = Math.max(1, g.count | 0), amount = Math.max(1, Number(ev.total) || (g.diamonds || 1) * count);
     const before = tierOf(p.total), leaderBefore = leader();
@@ -784,7 +877,7 @@ function onEvent(ev) {
     combo.n = combo.t > 0 ? combo.n + 1 : 1; combo.t = 8;
     pushAlert(p, `${count > 1 ? count + '× ' : ''}${g.name || 'Hediye'} gönderdi  💎${fmt(amount)}`, next ? `${next.name} seviyesine 💎 ${fmt(next.min - p.total)} kaldı` : 'En üst seviye: Elmas 💎');
     if (tier !== before && tier.min >= 100) { floater(`${p.name}: ${tier.name} seviye!`, 540, 1100, tier.color, 50); }
-    if (amount >= CFG.buyuk) bigs.push({ p, amount, name: g.name || 'Hediye', t: 0 });
+    if (amount >= CFG.buyuk) { bigs.push({ p, amount, name: g.name || 'Hediye', t: 0 }); hall.cheer = 1.5; }
     const lead = leader(); if (leaderBefore && lead !== leaderBefore && lead === p) pushAlert(p, '👑 Liderliği kaptı!', `${leaderBefore.name} geri almak için 💎 ${fmt(p.total - leaderBefore.total + 1)}`);
     if (session >= goal) { floater('YAYIN HEDEFİ TAMAM! 🎉', 540, 600, C.yellow, 70); confetti(120); goal *= 2; }
     giveToMode(p, amount * comboMult(), amount);
@@ -843,6 +936,7 @@ if (DEMO) {
   const barEl = document.getElementById('bar'); barEl.hidden = false;
   barEl.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.id === 'ses') { snd.on = !snd.on; b.setAttribute('aria-pressed', String(snd.on)); snd.dum(); return; }
     if (b.dataset.mode) setMode(b.dataset.mode);
     for (let i = 0; i < (b.dataset.mode ? 5 : 8); i++) demoGift(); // mod değişince sahne boş kalmasın
   });

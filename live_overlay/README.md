@@ -2,6 +2,18 @@
 
 İzleyicilerin hediye (bağış) göndererek katıldığı, yayına overlay olarak eklenen, Türk düğünü ve kültürü temalı beş etkileşimli **3B** animasyon. Sahneler Three.js ile gerçek zamanlı çizilir: ışık, gölge, yüzlü ve kıyafetli insan modelleri, jokeyli atlar.
 
+## Düğün salonu
+
+Halay ve takı töreni aynı salonda geçer: parke pist, sahnede balon takının altında gelinle damat, pankart, düğün pastası, avizeler, ışık dizileri ve pistin çevresinde örtülü masalar.
+
+- **Masaya oturma:** yorum yazan, beğenen ya da takip eden her izleyici, profil fotoğrafıyla bir masaya oturur. Hediye göndermese de düğündedir.
+- **Piste çıkma:** hediye gönderen masadan kalkar, halaya girer.
+- **Alkış:** büyük hediyelerde ve kazanma anlarında masadakiler alkışlar; halay sürerken damat sahneden tempo tutar.
+- Salon boş görünmesin diye birkaç adsız konuk baştan oturur (`konuk` ayarı); izleyiciler geldikçe yerlerini onlara bırakırlar. Bunların adı, fotoğrafı ya da hediyesi yoktur.
+- Sahnedeki pankarta çiftin adı yazılabilir: `/overlay?cift=Ayşe+%26+Mehmet`.
+
+At yarışında da tribün ve seyirciler vardır.
+
 | Mod | Anahtar | Nasıl oynanır |
 | --- | --- | --- |
 | **Düğün Halayı** | `halay` | Hediye gönderen, ortasında davul zurna çalan dairesel halaya girer. En çok gönderen mendili sallayan halay başı olur. Tek seferde 100+ jeton gönderen ortaya çıkar, üstüne para saçılır. Coşku çubuğu dolunca halay başı ilan edilir. |
@@ -61,17 +73,22 @@ Adrese parametre ekleyin, örnek: `/overlay?goal=500&halay=600`
 | `orta` | 100 | Halayda ortaya çıkmak için tek seferde gereken jeton |
 | `buyuk` | 100 | Büyük hediye gösterisini açan tek seferlik jeton (10 katı "efsane") |
 | `hedef` | 2000 | Yayın hedefi (toplam jeton) |
+| `cift` | MUTLULUKLAR | Sahnedeki pankart yazısı |
+| `konuk` | 6 | Baştan oturan adsız konuk sayısı (en çok 16) |
+| `ses` | kapalı | `ses=1` davul vuruşu, altın şıngırtısı ve alkış sesini açar. Müzik içermez; müziği yayıncı kendi çalar |
 | `mode` | — | Overlay'i tek moda sabitler (tablodaki anahtarlardan biri) |
 
 ## 3B modeller
 
 Modeller `static/models/` klasöründedir ve hepsi [three.js örnek deposundan](https://github.com/mrdoob/three.js/tree/dev/examples/models) alınmıştır:
 
-- `Groom.glb`: takım elbiseli, papyonlu, yüzlü erkek (Ready Player Me avatarı). Damat, halaycılar, davulcu, zurnacı, halat takımları ve jokeyler bu modelden üretilir; ceket ve pantolon rengi kişiye göre değişir, jokeylere kask takılır.
+- `Groom.glb`: takım elbiseli, papyonlu, yüzlü erkek (Ready Player Me avatarı). Damat, halaycılar, masadaki misafirler, davulcu, zurnacı, halat takımları ve jokeyler bu modelden üretilir; ceket ve pantolon rengi kişiye göre değişir, jokeylere kask takılır.
 - `Bride.glb`: yüzlü kadın modeli (three.js `female02`). Elbisesi beyaza çevrilmiş, üzerine uzun etek, duvak ve buket eklenmiştir. İskeleti yoktur, yerinde durur.
 - `Horse.glb`: dörtnala koşan at (Mirada, ro.me).
 
-Her izleyicinin karakteri kimliğinden türetilir ve hep aynı kalır: ceket ve pantolon rengi, fötr / kasket / fes / saç / kel, bıyıklı ya da bıyıksız, ten rengi, boy ve kilo farklıdır. Bilinen sınırlar: hepsi aynı erkek yüz modelinden üretilir ve halayda kadın karakter yoktur (hareket ettirilebilen uygun bir kadın modeli bulunamadı); at modeli düşük poligonludur. Ticari yayında kullanmadan önce modellerin kullanım koşullarını kontrol edin. Kendi modelinizi kullanmak için aynı kemik adlarına (`Hips`, `Spine`, `LeftArm`, `LeftUpLeg`…) sahip bir `.glb` dosyasını `Groom.glb` yerine koyun.
+Her izleyicinin karakteri kimliğinden türetilir ve hep aynı kalır: ceket ve pantolon rengi, fötr / kasket / fes / saç / kel, bıyıklı ya da bıyıksız, ten rengi, boy ve kilo farklıdır. Bilinen sınırlar: hepsi aynı erkek yüz modelinden üretilir ve gelin dışında kadın karakter yoktur (hareket ettirilebilen uygun bir kadın modeli bulunamadı); at modeli düşük poligonludur. Ticari yayında kullanmadan önce modellerin kullanım koşullarını kontrol edin. Kendi modelinizi kullanmak için aynı kemik adlarına (`Hips`, `Spine`, `LeftArm`, `LeftUpLeg`…) sahip bir `.glb` dosyasını `Groom.glb` yerine koyun.
+
+Salon kalabalıkken ekranda 30 kadar hareketli insan modeli olur. Zayıf ekran kartlarında takılma olursa `konuk=0` ile hazır konukları kapatın.
 
 Three.js kütüphanesi CDN'den yüklenir, bu yüzden overlay'in açıldığı bilgisayarda internet gerekir. OBS tarayıcı kaynağında donanım hızlandırma açık olmalıdır.
 
