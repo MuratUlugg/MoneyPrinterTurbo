@@ -24,7 +24,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 STATIC_DIR = Path(__file__).parent / "static"
-MODES = ("race", "boss", "tug", "balloon", "wheel")
+MODES = ("halay", "race", "taki", "tug", "karpuz", "wheel")
 HTML_PREFIX = '<!doctype html><html lang="tr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script>window.LIVE_SERVER=1</script>'
 
 
@@ -33,7 +33,7 @@ class Hub:
 
     def __init__(self) -> None:
         self.clients: set[WebSocket] = set()
-        self.mode: str = "race"
+        self.mode: str = MODES[0]
         self.tiktok_user: str = ""
         self.tiktok_status: str = "disconnected"  # disconnected | connecting | connected | error
         self.tiktok_error: str = ""
@@ -355,7 +355,7 @@ async def ws_endpoint(ws: WebSocket) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="TikTok canlı yayın bağış animasyonları")
     parser.add_argument("--user", default="", help="TikTok kullanıcı adı (yayın açıkken bağlanır)")
-    parser.add_argument("--mode", default="race", choices=MODES, help="Başlangıç animasyon modu")
+    parser.add_argument("--mode", default=MODES[0], choices=MODES, help="Başlangıç animasyon modu")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()

@@ -26,11 +26,12 @@ html.live body { background: transparent; } /* OBS / Live Studio: şeffaf zemin 
 
 <div id="wrap"><canvas id="stage" width="1080" height="1920" aria-label="Canlı yayın bağış animasyonu sahnesi"></canvas></div>
 <div id="bar" hidden>
-  <button type="button" data-mode="race">Yarış</button>
-  <button type="button" data-mode="boss">Boss Savaşı</button>
-  <button type="button" data-mode="tug">Halat Çekme</button>
-  <button type="button" data-mode="balloon">Balon</button>
-  <button type="button" data-mode="wheel">Şans Çarkı</button>
+  <button type="button" data-mode="halay">Halay</button>
+  <button type="button" data-mode="race">At Yarışı</button>
+  <button type="button" data-mode="taki">Takı Töreni</button>
+  <button type="button" data-mode="tug">Çay mı Kahve mi</button>
+  <button type="button" data-mode="karpuz">Karpuz</button>
+  <button type="button" data-mode="wheel">Kısmet Çarkı</button>
   <button type="button" class="go" id="burst">Hediye yağdır</button>
 </div>
 
@@ -41,13 +42,14 @@ const W = 1080, H = 1920, TAU = Math.PI * 2;
 const qs = new URLSearchParams(location.search);
 const DEMO = !window.LIVE_SERVER || qs.get('demo') === '1';
 const num = (k, d) => { const v = parseFloat(qs.get(k)); return v > 0 ? v : d; };
-// Ayarlar URL ile değiştirilebilir: /overlay?goal=500&bossHp=1000&round=60
+// Ayarlar URL ile değiştirilebilir: /overlay?goal=500&taki=1000&round=60
 const CFG = {
-  goal: num('goal', 300),        // yarış: finiş için gereken jeton
-  bossHp: num('bossHp', 500),    // boss: 1. seviye canı
+  goal: num('goal', 300),        // at yarışı: finiş için gereken jeton
+  halay: num('halay', 400),      // halay: coşkuyu doldurmak için gereken jeton
+  taki: num('taki', 500),        // takı töreni: ilk düğünün takı hedefi
   tug: num('tug', 300),          // halat: kazanmak için gereken jeton farkı
   round: num('round', 45),       // çark: tur süresi (sn)
-  balloonMin: num('balloonMin', 120), balloonMax: num('balloonMax', 450),
+  karpuzMin: num('karpuzMin', 120), karpuzMax: num('karpuzMax', 450),
 };
 const C = { panel: 'rgba(20,15,46,.78)', ink: '#fff', dim: 'rgba(255,255,255,.66)', pink: '#ff3d7f',
   cyan: '#2ee6d6', yellow: '#ffd23f', red: '#ff4d5e', blue: '#4d8dff', line: 'rgba(255,255,255,.1)' };
@@ -191,18 +193,129 @@ function drawDonors() {
 }
 
 // =====================================================================
-// MOD 1 — HEDİYE YARIŞI
+// MOD 1 — DÜĞÜN HALAYI
 // =====================================================================
+const halay = {
+  title: 'DÜĞÜN HALAYI', hint: 'Hediye gönder, halaya gir! En cömert halay başı olur',
+  reset() { this.d = new Map(); this.list = []; this.cosku = this.shown = 0; this.ph = 0; this.beat = 0; this.locked = false; },
+  gift(p, a) {
+    let d = this.d.get(p.id);
+    if (!d) { d = { p, v: 0, x: null }; this.d.set(p.id, d); }
+    d.v += a; d.plus = { a, t: 0 };
+    this.cosku = Math.min(100, this.cosku + a / CFG.halay * 100);
+    if (this.cosku >= 100) {
+      this.locked = true; // coşku doldu: son bir hızlı tur, sonra halay başı ilan edilir
+      after(2.4, () => { const b = [...this.d.values()].sort((x, y) => y.v - x.v)[0];
+        celebrate('HALAY BAŞI!', b.p, `${this.d.size} kişi halay çekti · 💎 ${fmt(b.v)}`); this.reset(); });
+    }
+  },
+  like(p, n) { this.cosku = Math.min(99, this.cosku + n * .02); },
+  update(dt) {
+    if (!this.locked) this.cosku = Math.max(0, this.cosku - dt * .5);
+    this.shown = ease(this.shown, this.cosku, dt, 5);
+    this.ph += dt * (3.2 + this.shown / 100 * 5);
+    this.list = [...this.d.values()].sort((a, b) => b.v - a.v);
+    const n = Math.min(8, this.list.length), gap = n > 6 ? 112 : 128, sway = Math.sin(this.ph * .5) * 40;
+    this.gap = gap;
+    this.list.forEach((d, i) => {
+      if (i >= 8) { d.x = null; return; }
+      const tx = 540 + ((n - 1) / 2 - i) * gap + sway; // halay başı en sağda
+      d.x = d.x == null ? tx : ease(d.x, tx, dt, 6);
+      if (d.plus && (d.plus.t += dt) > 1) d.plus = null;
+    });
+    if (n && Math.floor(this.ph / Math.PI) !== this.beat) { this.beat = Math.floor(this.ph / Math.PI);
+      spawn({ kind: 'text', text: this.beat % 2 ? '♪' : '♫', x: rand(600, 760), y: 640, vx: rand(-40, 80), vy: -130, life: 1.4, size: 54, color: [C.yellow, C.cyan, '#fff'][this.beat % 3] }); }
+  },
+  draw() {
+    panel(40, 440, 1000, 880, 40);
+    // düğün ışıkları
+    for (let s = 0; s < 2; s++) {
+      const x0 = 60 + s * 480, x1 = x0 + 480;
+      ctx.beginPath(); ctx.moveTo(x0, 462); ctx.quadraticCurveTo((x0 + x1) / 2, 560, x1, 462); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.stroke();
+      for (let i = 1; i < 9; i++) { const t = i / 9, x = lerp(x0, x1, t), y = 462 + 98 * 2 * t * (1 - t), k = i + s * 9, on = (k + Math.floor(T * 2.5)) % 3 !== 0;
+        ctx.globalAlpha = on ? 1 : .35; ctx.beginPath(); ctx.arc(x, y + 9, 11, 0, TAU); ctx.fillStyle = [C.yellow, C.pink, C.cyan, '#9bff6b'][k % 4]; ctx.fill(); }
+      ctx.globalAlpha = 1;
+    }
+    // davul
+    const hitL = Math.max(0, Math.sin(this.ph)), dx = 400, dy = 690;
+    ctx.beginPath(); ctx.ellipse(dx, dy, 88, 88, 0, 0, TAU); ctx.fillStyle = '#b3261e'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(dx, dy, 66 + hitL * 3, 66 + hitL * 3, 0, 0, TAU); ctx.fillStyle = '#f3e6cf'; ctx.fill();
+    ctx.lineWidth = 5; ctx.strokeStyle = '#f3e6cf'; ctx.beginPath();
+    for (let i = 0; i <= 16; i++) { const a = i / 16 * TAU, r = i % 2 ? 86 : 70; ctx.lineTo(dx + Math.cos(a) * r, dy + Math.sin(a) * r); } ctx.stroke();
+    ctx.lineCap = 'round'; ctx.lineWidth = 12; ctx.strokeStyle = '#6b3d1c';
+    ctx.beginPath(); ctx.moveTo(dx - 130, dy - 90 + hitL * 50); ctx.lineTo(dx - 30, dy - 30 + hitL * 22); ctx.stroke();
+    ctx.beginPath(); ctx.arc(dx - 26, dy - 28 + hitL * 22, 15, 0, TAU); ctx.fillStyle = '#6b3d1c'; ctx.fill();
+    // zurna
+    ctx.save(); ctx.translate(650, 700); ctx.rotate(-.5 + Math.sin(this.ph * 2) * .05);
+    ctx.beginPath(); ctx.moveTo(-110, -9); ctx.lineTo(40, -15); ctx.lineTo(96, -46); ctx.lineTo(96, 46); ctx.lineTo(40, 15); ctx.lineTo(-110, 9); ctx.closePath(); ctx.fillStyle = '#8a5326'; ctx.fill();
+    ctx.fillStyle = '#2a1a0e'; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.arc(-80 + i * 26, 0, 4.5, 0, TAU); ctx.fill(); }
+    ctx.fillStyle = C.yellow; ctx.fillRect(86, -48, 12, 96); ctx.restore();
+
+    const shown = this.list.slice(0, 8), Y = 1110, pose = shown.map((d, i) => {
+      const k = Math.sin(this.ph + i * .6); return { d, i, x: d.x, k, y: Y - Math.abs(k) * 12 }; });
+    if (!shown.length) { text('İlk hediyeyi gönder,', 540, 960, 56, '#fff'); text('halayı sen başlat! 🥁', 540, 1040, 56, C.cyan); }
+    ctx.lineCap = 'round';
+    // kol kola
+    ctx.lineWidth = 11; ctx.strokeStyle = '#f0c39a';
+    for (let i = 0; i + 1 < pose.length; i++) { const a = pose[i], b = pose[i + 1];
+      ctx.beginPath(); ctx.moveTo(a.x - 26, a.y - 138); ctx.quadraticCurveTo((a.x + b.x) / 2, (a.y + b.y) / 2 - 92, b.x + 26, b.y - 138); ctx.stroke(); }
+    if (pose.length) { // halay başının mendili
+      const h = pose[0], hx = h.x + 74, hy = h.y - 232 + Math.sin(this.ph * 2) * 16;
+      ctx.beginPath(); ctx.moveTo(h.x + 26, h.y - 138); ctx.lineTo(hx, hy); ctx.stroke();
+      ctx.save(); ctx.translate(hx, hy); ctx.rotate(Math.sin(this.ph * 2) * .7);
+      ctx.fillStyle = '#fff'; ctx.fillRect(-6, -40, 40, 40); ctx.fillStyle = C.red; ctx.fillRect(-6, -40, 40, 9); ctx.fillRect(25, -40, 9, 40); ctx.restore();
+      const l = pose[pose.length - 1];
+      if (pose.length > 1) { ctx.beginPath(); ctx.moveTo(l.x - 26, l.y - 138); ctx.lineTo(l.x - 52, l.y - 104); ctx.lineTo(l.x - 28, l.y - 84); ctx.stroke(); }
+    }
+    for (const { d, i, x, k, y } of pose) {
+      ctx.lineWidth = 15; ctx.strokeStyle = '#e8e6f5';
+      ctx.beginPath(); ctx.moveTo(x - 12, y - 76); ctx.lineTo(x - 14 + Math.max(0, k) * 28, Y - Math.max(0, k) * 26); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + 12, y - 76); ctx.lineTo(x + 14 + Math.max(0, -k) * 28, Y - Math.max(0, -k) * 26); ctx.stroke();
+      panel(x - 29, y - 160, 58, 94, 18, d.p.color);
+      avatar(d.p, x, y - 198, 38, i ? '#fff' : C.yellow);
+      if (!i) text('👑', x, y - 256, 44);
+      text(fit(d.p.name, this.gap - 8, 22), x, Y + 30, 22, '#fff', 'center', 5);
+      text('💎' + fmt(d.v), x, Y + 58, 20, C.yellow, 'center', 5);
+      if (d.plus) { ctx.globalAlpha = 1 - d.plus.t; text('+' + fmt(d.plus.a), x, y - 270 - d.plus.t * 60, 40, C.cyan, 'center', 8); ctx.globalAlpha = 1; }
+    }
+    if (this.list.length > 8) text(`+${this.list.length - 8} kişi daha halayda`, 540, 1296, 26, C.dim);
+    // coşku
+    panel(120, 1206, 840, 60, 30, 'rgba(0,0,0,.45)');
+    if (this.shown > 1) { const g = ctx.createLinearGradient(126, 0, 954, 0); g.addColorStop(0, C.cyan); g.addColorStop(.6, C.yellow); g.addColorStop(1, C.pink);
+      panel(126, 1212, Math.max(48, 828 * this.shown / 100), 48, 24, g); }
+    text(this.locked ? 'COŞKU TAVAN! 🔥' : `COŞKU  %${Math.floor(this.shown)}`, 540, 1238, 32, '#fff', 'center', 7);
+  },
+};
+
+// =====================================================================
+// MOD 2 — AT YARIŞI
+// =====================================================================
+const COATS = ['#8b4a22', '#5a3418', '#c98a4b', '#3a2c26', '#d9d2c5', '#a9642f'];
+function horse(x, y, coat, ph, p, lead) {
+  ctx.save(); ctx.translate(x, y + Math.sin(ph * 2) * 3); ctx.lineCap = 'round';
+  ctx.strokeStyle = '#1d1512'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(-44, -6); ctx.quadraticCurveTo(-74, -12 + Math.sin(ph) * 8, -78, 14); ctx.stroke();
+  ctx.strokeStyle = coat; ctx.lineWidth = 9;
+  for (const [lx, o] of [[-30, 0], [-22, 3.14], [26, 1.57], [34, 4.71]]) { const a = Math.sin(ph + o) * .8;
+    ctx.beginPath(); ctx.moveTo(lx, 12); ctx.lineTo(lx + Math.sin(a) * 34, 12 + Math.cos(a) * 30); ctx.stroke(); }
+  ctx.fillStyle = coat; ctx.beginPath(); ctx.ellipse(0, 0, 48, 24, 0, 0, TAU); ctx.fill();
+  ctx.lineWidth = 22; ctx.beginPath(); ctx.moveTo(34, -8); ctx.lineTo(58, -42); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(70, -46, 22, 12, .35, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(54, -54); ctx.lineTo(58, -74); ctx.lineTo(68, -56); ctx.fill();
+  ctx.strokeStyle = '#1d1512'; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(34, -18); ctx.lineTo(52, -48); ctx.stroke();
+  ctx.fillStyle = '#1d1512'; ctx.beginPath(); ctx.arc(75, -50, 3.5, 0, TAU); ctx.fill();
+  ctx.restore();
+  avatar(p, x - 4, y - 38 + Math.sin(ph * 2) * 4, 27, lead ? C.yellow : '#fff');
+}
 const race = {
-  title: 'HEDİYE YARIŞI', hint: 'Hediye gönder, yarışa katıl! Her 💎 seni ileri taşır',
+  title: 'AT YARIŞI', hint: 'Hediye gönder, atın koşsun! Her 💎 atını ileri taşır 🏇',
   reset() { this.r = new Map(); this.list = []; this.locked = false; },
   gift(p, a) {
     let r = this.r.get(p.id);
-    if (!r) { r = { p, prog: 0, shown: 0, y: null }; this.r.set(p.id, r); }
+    if (!r) { r = { p, prog: 0, shown: 0, y: null, coat: COATS[hash(p.id) % COATS.length] }; this.r.set(p.id, r); }
     r.prog += a;
     if (r.prog >= CFG.goal) {
       r.prog = CFG.goal; this.locked = true;
-      after(1.1, () => { celebrate('YARIŞI KAZANDI!', p, 'Finişe ilk ulaşan oldu'); this.reset(); });
+      after(1.2, () => { celebrate('YARIŞI KAZANDI!', p, 'Hipodromun şampiyonu 🏆'); this.reset(); });
     }
   },
   like(p, n) { const r = this.r.get(p.id); if (r && !this.locked) r.prog = Math.min(CFG.goal - 1, r.prog + n * .05); },
@@ -210,129 +323,143 @@ const race = {
     this.list = [...this.r.values()].sort((a, b) => b.prog - a.prog);
     this.list.forEach((r, i) => {
       const ty = 522 + Math.min(i, 8) * 104;
-      r.y = r.y == null ? ty : ease(r.y, ty, dt); r.shown = ease(r.shown, r.prog, dt, 5);
+      r.y = r.y == null ? ty : ease(r.y, ty, dt); r.moving = Math.abs(r.prog - r.shown) > .5; r.shown = ease(r.shown, r.prog, dt, 3);
     });
   },
   draw() {
-    panel(40, 440, 1000, 880, 40);
-    for (let i = 0; i < 8; i++) { ctx.fillStyle = C.line; ctx.fillRect(120, 519 + i * 104, 850, 6); }
-    for (let i = 0; i < 28; i++) for (let j = 0; j < 2; j++) { // damalı finiş çizgisi
-      ctx.fillStyle = (i + j) % 2 ? '#fff' : '#1b1638'; ctx.fillRect(950 + j * 15, 470 + i * 30, 15, 30);
-    }
-    text('FİNİŞ', 965, 1290, 26, C.yellow, 'center', 6);
+    panel(40, 440, 1000, 880, 40, 'rgba(22,96,54,.9)');
+    for (let i = 0; i < 8; i++) { ctx.fillStyle = i % 2 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.08)'; ctx.fillRect(40, 470 + i * 104, 1000, 104); }
+    ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.fillRect(40, 466, 1000, 6); ctx.fillRect(40, 1300, 1000, 6);
+    for (let i = 0; i < 28; i++) for (let j = 0; j < 2; j++) { ctx.fillStyle = (i + j) % 2 ? '#fff' : '#1b1638'; ctx.fillRect(950 + j * 15, 472 + i * 29.6, 15, 29.6); }
     const shown = this.list.slice(0, 8);
-    if (!shown.length) { text('İlk hediyeyi gönder,', 520, 820, 56, '#fff'); text('yarışı sen başlat! 🏁', 520, 900, 56, C.cyan); return; }
+    if (!shown.length) { text('İlk hediyeyi gönder,', 500, 820, 56, '#fff', 'center', 10); text('atını piste çıkar! 🏇', 500, 900, 56, C.yellow, 'center', 10); return; }
     shown.forEach((r, i) => {
-      const x = lerp(150, 950, clamp(r.shown / CFG.goal, 0, 1));
-      const g = ctx.createLinearGradient(110, 0, x, 0); g.addColorStop(0, 'transparent'); g.addColorStop(1, r.p.color);
-      ctx.globalAlpha = .7; panel(110, r.y - 10, Math.max(0, x - 110), 20, 10, g); ctx.globalAlpha = 1;
-      text(String(i + 1), 82, r.y, 40, i ? C.dim : C.yellow);
-      avatar(r.p, x, r.y, 40, i ? '#fff' : C.yellow);
-      const label = fit(r.p.name, 300, 30) + '  💎' + fmt(r.prog);
-      if (x < 560) text(label, x + 56, r.y - 22, 30, '#fff', 'left', 6); else text(label, x - 56, r.y - 22, 30, '#fff', 'right', 6);
+      const x = lerp(175, 868, clamp(r.shown / CFG.goal, 0, 1));
+      text(String(i + 1), 70, r.y + 8, 38, i ? '#fff' : C.yellow, 'center', 7);
+      horse(x, r.y + 16, r.coat, r.moving ? T * 16 + i : i, r.p, !i);
+      const label = fit(r.p.name, 260, 28) + ' 💎' + fmt(r.prog);
+      if (x < 520) text(label, x + 104, r.y + 6, 28, '#fff', 'left', 6); else text(label, x - 92, r.y + 6, 28, '#fff', 'right', 6);
     });
-    if (this.list.length > 8) text(`+${this.list.length - 8} yarışçı daha`, 520, 1292, 28, C.dim);
+    if (this.list.length > 8) text(`+${this.list.length - 8} at daha koşuyor`, 500, 1284, 26, '#fff', 'center', 6);
   },
 };
 
 // =====================================================================
-// MOD 2 — BOSS SAVAŞI
+// MOD 3 — TAKI TÖRENİ
 // =====================================================================
-const boss = {
-  title: 'BOSS SAVAŞI', hint: 'Her hediye canavara hasar verir. En çok vuran MVP olur!',
-  level: 1,
-  reset(keepLevel) {
-    if (!keepLevel) this.level = 1;
-    this.max = Math.round(CFG.bossHp * (1 + .5 * (this.level - 1)));
-    this.hp = this.shownHp = this.max; this.dmg = new Map(); this.shots = []; this.hit = 0; this.dead = 0; this.locked = false;
+const TAKI = [[1000, 'beşi bir yerde'], [200, 'bilezik'], [50, 'tam altın'], [10, 'yarım altın'], [0, 'çeyrek altın']];
+function coin(x, y, r, ring) {
+  if (ring) { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.lineWidth = r * .45; ctx.strokeStyle = '#ffd23f'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, r, -2.4, -1.2); ctx.lineWidth = r * .16; ctx.strokeStyle = '#fff6c9'; ctx.stroke(); return; }
+  ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fillStyle = '#ffd23f'; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y, r * .7, 0, TAU); ctx.lineWidth = Math.max(2, r * .14); ctx.strokeStyle = '#c98a12'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(x - r * .3, y - r * .3, r * .2, 0, TAU); ctx.fillStyle = '#fff6c9'; ctx.fill();
+}
+const taki = {
+  title: 'TAKI TÖRENİ', hint: 'Hediyen altın olur, gelinle damada takılır. En cömert kim?',
+  no: 1,
+  reset(keep) {
+    if (!keep) this.no = 1;
+    this.max = Math.round(CFG.taki * (1 + .5 * (this.no - 1)));
+    this.sum = this.shown = 0; this.g = new Map(); this.shots = []; this.pins = []; this.joy = 0; this.say = null; this.locked = false;
   },
-  damage(p, a, x, y) {
-    if (this.locked) return;
-    this.hp -= a; this.hit = 1;
-    if (p) this.dmg.set(p.id, { p, v: (this.dmg.get(p.id)?.v || 0) + a });
-    if (x !== undefined) { floater('-' + fmt(a), x, y - 40, a >= 100 ? C.pink : C.yellow, clamp(44 + Math.sqrt(a) * 3, 44, 110)); burst(x, y, p ? p.color : '#fff', 14); }
-    if (this.hp <= 0) {
-      this.hp = 0; this.locked = true; this.dead = .001;
-      for (let i = 0; i < 6; i++) burst(540 + rand(-160, 160), 800 + rand(-160, 160), [C.pink, C.yellow, C.cyan][i % 3], 30, 900);
-      const mvp = [...this.dmg.values()].sort((a, b) => b.v - a.v)[0];
-      after(1.4, () => {
-        celebrate(`${this.level}. SEVİYE BOSS YENİLDİ!`, mvp && mvp.p, mvp ? `MVP · ${fmt(mvp.v)} hasar` : '');
-        this.level++; this.reset(true);
-      });
+  gift(p, a) { const side = Math.random() < .5 ? 0 : 1;
+    this.shots.push({ p, a, t: 0, sx: rand(140, 940), tx: (side ? 650 : 430) + rand(-42, 42), ty: rand(850, 960) }); },
+  land(s) {
+    const kind = TAKI.find(k => s.a >= k[0]), ring = s.a >= 200 && s.a < 1000;
+    this.sum += s.a; this.joy = 1;
+    this.g.set(s.p.id, { p: s.p, v: (this.g.get(s.p.id)?.v || 0) + s.a });
+    this.pins.push({ x: s.tx, y: s.ty, r: clamp(9 + Math.sqrt(s.a) * 1.2, 10, 30), ring }); if (this.pins.length > 70) this.pins.shift();
+    this.say = { p: s.p, line: `${kind[1]} taktı!`, t: 0 };
+    burst(s.tx, s.ty, C.yellow, 12, 380);
+    if (!this.locked && this.sum >= this.max) {
+      this.locked = true; confetti(60);
+      after(1.8, () => { const top = [...this.g.values()].sort((a, b) => b.v - a.v)[0];
+        celebrate('DÜĞÜNÜN EN CÖMERDİ!', top.p, `${this.no}. düğün · 💎 ${fmt(top.v)} takı taktı`); this.no++; this.reset(true); });
     }
   },
-  gift(p, a) { this.shots.push({ p, a, t: 0, sx: rand(140, 940), tx: 540 + rand(-90, 90), ty: 800 + rand(-90, 90) }); },
-  like(p, n) { this.damage(null, n * .1); },
   update(dt) {
-    this.shownHp = ease(this.shownHp, this.hp, dt, 6); this.hit = Math.max(0, this.hit - dt * 4);
-    if (this.dead) this.dead += dt;
-    this.shots = this.shots.filter(s => { s.t += dt * 2.2; if (s.t >= 1) { this.damage(s.p, s.a, s.tx, s.ty); return false; } return true; });
+    this.shown = ease(this.shown, this.sum, dt, 6); this.joy = Math.max(0, this.joy - dt * 2.5);
+    if (this.say && (this.say.t += dt) > 2.6) this.say = null;
+    this.shots = this.shots.filter(s => { s.t += dt * 2; if (s.t >= 1) { this.land(s); return false; } return true; });
   },
   draw() {
-    const ratio = clamp(this.shownHp / this.max, 0, 1), hue = (285 + (this.level - 1) * 47) % 360;
-    // can barı
-    panel(120, 450, 840, 70, 35);
-    if (ratio > 0) { const g = ctx.createLinearGradient(130, 0, 950, 0); g.addColorStop(0, C.pink); g.addColorStop(1, C.yellow);
-      panel(130, 460, Math.max(50, 820 * ratio), 50, 25, g); }
-    text(`SEVİYE ${this.level}  ·  ${fmt(Math.max(0, this.shownHp))} / ${fmt(this.max)}`, 540, 487, 34, '#fff', 'center', 7);
-    // canavar
-    const sc = this.dead ? Math.max(0, 1 - this.dead * 1.1) : 1 + this.hit * .05;
-    if (sc > 0) {
-      ctx.save();
-      ctx.translate(540 + rand(-1, 1) * this.hit * 18, 800 + Math.sin(T * 2) * 14 + rand(-1, 1) * this.hit * 18);
-      ctx.scale(sc, sc); ctx.rotate(this.dead * 3);
-      ctx.fillStyle = `hsl(${hue} 55% 26%)`;
-      for (const d of [-1, 1]) { ctx.beginPath(); ctx.moveTo(d * 70, -190); ctx.lineTo(d * 215, -330); ctx.lineTo(d * 175, -120); ctx.fill(); }
-      const g = ctx.createRadialGradient(-60, -80, 30, 0, 0, 240); g.addColorStop(0, `hsl(${hue} 85% 66%)`); g.addColorStop(1, `hsl(${hue} 70% 34%)`);
-      ctx.beginPath();
-      for (let a = 0; a <= TAU + .01; a += .1) { const r = 215 + Math.sin(a * 6 + T * 3) * 10; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
-      ctx.fillStyle = g; ctx.fill();
-      const angry = ratio < .35;
-      for (const d of [-1, 1]) {
-        ctx.beginPath(); ctx.ellipse(d * 82, -45, 54, 60, 0, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill();
-        ctx.beginPath(); ctx.arc(d * 82 + Math.sin(T * 1.3) * 14, -38 + Math.cos(T * 1.7) * 8, 24, 0, TAU); ctx.fillStyle = angry ? '#c1002f' : '#14102e'; ctx.fill();
-        ctx.beginPath(); ctx.moveTo(d * 150, -125 - (angry ? 20 : 0)); ctx.lineTo(d * 25, -95 + (angry ? 22 : 0));
-        ctx.lineWidth = 16; ctx.lineCap = 'round'; ctx.strokeStyle = '#14102e'; ctx.stroke();
-      }
-      ctx.beginPath(); ctx.roundRect(-105, 60, 210, 78 + this.hit * 24, 30); ctx.fillStyle = '#14102e'; ctx.fill();
-      ctx.fillStyle = '#fff';
-      for (let i = 0; i < 5; i++) { const x = -95 + i * 42; ctx.beginPath(); ctx.moveTo(x, 60); ctx.lineTo(x + 21, 96); ctx.lineTo(x + 42, 60); ctx.fill(); }
-      if (this.hit > 0) { ctx.globalAlpha = this.hit * .55; ctx.beginPath(); ctx.arc(0, 0, 222, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill(); }
-      ctx.restore(); ctx.globalAlpha = 1;
-    }
-    // atışlar
-    for (const s of this.shots) {
-      const e = s.t * s.t, x = lerp(s.sx, s.tx, e), y = lerp(1340, s.ty, e) - Math.sin(s.t * Math.PI) * 120;
-      const r = clamp(26 + Math.sqrt(s.a) * 2.2, 28, 70);
-      ctx.globalAlpha = .35; ctx.beginPath(); ctx.arc(x, y, r + 14, 0, TAU); ctx.fillStyle = s.p.color; ctx.fill(); ctx.globalAlpha = 1;
-      avatar(s.p, x, y, r, C.yellow);
-    }
-    // hasar sıralaması
-    const top = [...this.dmg.values()].sort((a, b) => b.v - a.v).slice(0, 3);
+    panel(40, 440, 1000, 880, 40, 'rgba(110,18,48,.86)');
+    const ratio = clamp(this.shown / this.max, 0, 1);
+    panel(120, 462, 840, 64, 32, 'rgba(0,0,0,.45)');
+    if (ratio > 0) { const g = ctx.createLinearGradient(126, 0, 954, 0); g.addColorStop(0, '#c98a12'); g.addColorStop(1, C.yellow); panel(126, 468, Math.max(52, 828 * ratio), 52, 26, g); }
+    text(`${this.no}. DÜĞÜN  ·  TAKI 💎 ${fmt(this.shown)} / ${fmt(this.max)}`, 540, 496, 32, '#fff', 'center', 7);
+    if (this.say) { const a = clamp(Math.min(this.say.t * 6, (2.6 - this.say.t) * 4), 0, 1); ctx.globalAlpha = a;
+      panel(170, 556, 740, 84, 42, '#fff'); avatar(this.say.p, 214, 598, 32, C.yellow);
+      text(fit(`${this.say.p.name}: ${this.say.line}`, 620, 36), 262, 600, 36, '#6e1230', 'left'); ctx.globalAlpha = 1; }
+    else if (!this.sum) text('İlk takıyı sen tak! 🎗', 540, 598, 46, '#fff', 'center', 9);
+    const B = 1066 - this.joy * 14 - Math.abs(Math.sin(T * 2)) * 4;
+    // damat
+    let cx = 430;
+    ctx.fillStyle = '#10152c'; ctx.fillRect(cx - 36, B - 96, 30, 96); ctx.fillRect(cx + 6, B - 96, 30, 96);
+    ctx.beginPath(); ctx.moveTo(cx - 70, B - 232); ctx.quadraticCurveTo(cx, B - 262, cx + 70, B - 232); ctx.lineTo(cx + 58, B - 80); ctx.lineTo(cx - 58, B - 80); ctx.closePath(); ctx.fillStyle = '#263566'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx - 22, B - 244); ctx.lineTo(cx + 22, B - 244); ctx.lineTo(cx, B - 176); ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx - 24, B - 236); ctx.lineTo(cx + 24, B - 212); ctx.lineTo(cx + 24, B - 236); ctx.lineTo(cx - 24, B - 212); ctx.fillStyle = C.red; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, B - 300, 54, 0, TAU); ctx.fillStyle = '#f0c39a'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, B - 312, 56, Math.PI * 1.05, Math.PI * 1.95); ctx.lineTo(cx, B - 340); ctx.fillStyle = '#231712'; ctx.fill();
+    ctx.fillStyle = '#231712'; ctx.beginPath(); ctx.arc(cx - 19, B - 304, 5.5, 0, TAU); ctx.arc(cx + 19, B - 304, 5.5, 0, TAU); ctx.fill();
+    ctx.lineCap = 'round'; ctx.lineWidth = 11; ctx.strokeStyle = '#231712'; ctx.beginPath(); ctx.moveTo(cx - 24, B - 276); ctx.quadraticCurveTo(cx, B - 292, cx + 24, B - 276); ctx.stroke(); // bıyık
+    ctx.lineWidth = 5; ctx.strokeStyle = '#8a3b2a'; ctx.beginPath(); ctx.arc(cx, B - 272, 16, .25, Math.PI - .25); ctx.stroke();
+    // gelin
+    cx = 650;
+    ctx.beginPath(); ctx.moveTo(cx - 50, B - 340); ctx.quadraticCurveTo(cx - 150, B - 160, cx - 120, B - 20); ctx.lineTo(cx + 120, B - 20); ctx.quadraticCurveTo(cx + 150, B - 160, cx + 50, B - 340); ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx - 44, B - 240); ctx.quadraticCurveTo(cx - 60, B - 120, cx - 128, B); ctx.lineTo(cx + 128, B); ctx.quadraticCurveTo(cx + 60, B - 120, cx + 44, B - 240); ctx.closePath(); ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, B - 366, 26, 0, TAU); ctx.fillStyle = '#4a2a1a'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, B - 300, 52, 0, TAU); ctx.fillStyle = '#f5cfae'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, B - 308, 54, Math.PI * .98, Math.PI * 2.02); ctx.quadraticCurveTo(cx, B - 338, cx - 54, B - 304); ctx.fillStyle = '#4a2a1a'; ctx.fill();
+    ctx.fillStyle = '#231712'; ctx.beginPath(); ctx.arc(cx - 18, B - 300, 5.5, 0, TAU); ctx.arc(cx + 18, B - 300, 5.5, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(255,90,130,.5)'; ctx.beginPath(); ctx.arc(cx - 32, B - 284, 9, 0, TAU); ctx.arc(cx + 32, B - 284, 9, 0, TAU); ctx.fill();
+    ctx.lineWidth = 5; ctx.strokeStyle = '#c1002f'; ctx.beginPath(); ctx.arc(cx, B - 284, 15, .3, Math.PI - .3); ctx.stroke();
+    // kırmızı kurdeleler + takılan altınlar
+    ctx.lineWidth = 16; ctx.strokeStyle = C.red;
+    ctx.beginPath(); ctx.moveTo(370, B - 226); ctx.lineTo(486, B - 96); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(606, B - 232); ctx.lineTo(700, B - 110); ctx.stroke();
+    for (const c of this.pins) coin(c.x, c.y - (1066 - B), c.r, c.ring);
+    for (const s of this.shots) { const e = s.t * s.t, x = lerp(s.sx, s.tx, e), y = lerp(1360, s.ty, e) - Math.sin(s.t * Math.PI) * 140;
+      coin(x, y, clamp(16 + Math.sqrt(s.a) * 1.6, 18, 46), s.a >= 200 && s.a < 1000); }
+    const top = [...this.g.values()].sort((a, b) => b.v - a.v).slice(0, 3);
     if (top.length) {
-      panel(190, 1080, 700, 30 + top.length * 76, 36);
-      top.forEach((d, i) => {
-        const y = 1133 + i * 76;
-        text(['🥇', '🥈', '🥉'][i], 240, y, 44);
-        avatar(d.p, 318, y, 30);
-        text(fit(d.p.name, 330, 34), 366, y, 34, '#fff', 'left');
-        text('⚔ ' + fmt(d.v), 860, y, 34, C.yellow, 'right');
-      });
-    } else text('İlk darbeyi sen vur! ⚔', 540, 1150, 52, '#fff', 'center', 10);
+      panel(190, 1100, 700, 24 + top.length * 62, 32, 'rgba(0,0,0,.5)');
+      top.forEach((d, i) => { const y = 1143 + i * 62;
+        text(['🥇', '🥈', '🥉'][i], 236, y, 38); avatar(d.p, 306, y, 25);
+        text(fit(d.p.name, 340, 30), 346, y, 30, '#fff', 'left'); text('💎 ' + fmt(d.v), 862, y, 30, C.yellow, 'right'); });
+    }
   },
 };
 
 // =====================================================================
-// MOD 3 — HALAT ÇEKME
+// MOD 4 — ÇAY MI KAHVE Mİ? (halat çekme)
 // =====================================================================
+function cayBardagi(x, y, s) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  ctx.beginPath(); ctx.ellipse(0, 44, 42, 10, 0, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-22, -40); ctx.bezierCurveTo(-30, -10, -8, 0, -12, 10); ctx.bezierCurveTo(-28, 22, -24, 40, -16, 42); ctx.lineTo(16, 42);
+  ctx.bezierCurveTo(24, 40, 28, 22, 12, 10); ctx.bezierCurveTo(8, 0, 30, -10, 22, -40); ctx.closePath();
+  ctx.fillStyle = '#c0281c'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.stroke();
+  ctx.restore();
+}
+function fincan(x, y, s) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  ctx.beginPath(); ctx.ellipse(0, 40, 50, 10, 0, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.beginPath(); ctx.arc(34, 8, 16, -1.2, 1.4); ctx.lineWidth = 8; ctx.strokeStyle = '#fff'; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-32, -22); ctx.lineTo(32, -22); ctx.quadraticCurveTo(30, 36, 0, 38); ctx.quadraticCurveTo(-30, 36, -32, -22); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, -22, 30, 8, 0, 0, TAU); ctx.fillStyle = '#5a3418'; ctx.fill();
+  ctx.fillStyle = C.red; ctx.fillRect(-28, 2, 56, 7);
+  ctx.restore();
+}
 const tug = {
-  title: 'HALAT ÇEKME', hint: 'Yoruma KIRMIZI ya da MAVİ yaz, hediyenle takımını çek!',
-  names: ['KIRMIZI', 'MAVİ'], cols: [C.red, C.blue],
+  title: 'ÇAY MI KAHVE Mİ?', hint: 'Yoruma ÇAY ya da KAHVE yaz, hediyenle takımını çek!',
+  names: ['ÇAY', 'KAHVE'], cols: ['#ff5a4d', '#e0a368'],
   reset() { this.pos = this.shown = 0; this.member = new Map(); this.team = [new Map(), new Map()]; this.tot = [0, 0]; this.locked = false; },
   join(p, t) { if (!this.team[0].has(p.id) && !this.team[1].has(p.id)) this.member.set(p.id, t); },
   comment(p, s) {
     s = s.toLocaleLowerCase('tr-TR').trim();
-    if (s === '1' || /k[ıi]rm[ıi]z[ıi]/.test(s)) this.join(p, 0); else if (s === '2' || s.includes('mavi')) this.join(p, 1);
+    if (s === '1' || /[çc]ay/.test(s)) this.join(p, 0); else if (s === '2' || s.includes('kahve')) this.join(p, 1);
   },
   gift(p, a) {
     let t = this.member.get(p.id);
@@ -343,18 +470,18 @@ const tug = {
     if (Math.abs(this.pos) >= 1) {
       this.locked = true;
       const mvp = [...this.team[t].values()].sort((x, y) => y.v - x.v)[0];
-      after(1.2, () => { celebrate(`${this.names[t]} TAKIM KAZANDI!`, mvp.p, `Takımın yıldızı · 💎 ${fmt(mvp.v)}`); this.reset(); });
+      after(1.2, () => { celebrate(t ? 'KAHVECİLER KAZANDI!' : 'ÇAYCILAR KAZANDI!', mvp.p, `Takımın yıldızı · 💎 ${fmt(mvp.v)}`); this.reset(); });
     }
   },
   update(dt) { this.shown = ease(this.shown, this.pos, dt, 4); },
   draw() {
     ctx.save(); ctx.beginPath(); ctx.roundRect(40, 440, 1000, 880, 40); ctx.clip();
-    ctx.fillStyle = 'rgba(255,77,94,.42)'; ctx.fillRect(40, 440, 500, 880);
-    ctx.fillStyle = 'rgba(77,141,255,.42)'; ctx.fillRect(540, 440, 500, 880);
-    ctx.fillStyle = 'rgba(20,15,46,.45)'; ctx.fillRect(40, 440, 1000, 880);
+    ctx.fillStyle = 'rgba(150,30,24,.85)'; ctx.fillRect(40, 440, 500, 880);
+    ctx.fillStyle = 'rgba(84,50,24,.9)'; ctx.fillRect(540, 440, 500, 880);
     ctx.restore();
+    cayBardagi(120, 540, 1.25); fincan(955, 545, 1.15);
     [0, 1].forEach(t => {
-      const x = t ? 790 : 290;
+      const x = t ? 750 : 320;
       text(this.names[t], x, 510, 64, this.cols[t], 'center', 12);
       text('💎 ' + fmt(this.tot[t]), x, 582, 44, '#fff', 'center', 8);
       const wx = t ? 920 : 160; // kazanma çizgisi
@@ -376,63 +503,69 @@ const tug = {
         text('💎' + fmt(m.v), x, by + 100, 22, C.yellow, 'center', 5);
       });
       const extra = this.team[t].size - 3;
-      if (extra > 0) text(`+${extra} kişi`, t ? 790 : 290, 1250, 30, C.dim, 'center', 6);
+      if (extra > 0) text(`+${extra} kişi`, t ? 790 : 290, 1250, 30, '#fff', 'center', 6);
     });
     ctx.save(); ctx.translate(mx, y); ctx.rotate(Math.PI / 4);
     ctx.fillStyle = C.yellow; ctx.fillRect(-30, -30, 60, 60); ctx.lineWidth = 8; ctx.strokeStyle = '#14102e'; ctx.strokeRect(-30, -30, 60, 60);
     ctx.restore();
     ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.fillRect(537, 700, 6, 100);
-    if (!this.tot[0] && !this.tot[1]) text('Takımını seç, halata asıl! 💪', 540, 1180, 50, '#fff', 'center', 10);
+    if (!this.tot[0] && !this.tot[1]) text('Tarafını seç, halata asıl! 💪', 540, 1180, 50, '#fff', 'center', 10);
   },
 };
 
 // =====================================================================
-// MOD 4 — BALON
+// MOD 5 — KARPUZ PATLATMA
 // =====================================================================
-const balloon = {
-  title: 'BALONU PATLAT', hint: 'Her hediye balonu şişirir. Patlatan kazanır! 🎈',
-  reset() { this.size = this.shown = 0; this.limit = rand(CFG.balloonMin, CFG.balloonMax); this.last = null; this.bump = 0; this.gone = false; this.locked = false; this.n = new Set(); },
-  radius() { return 130 + 230 * clamp(this.shown / CFG.balloonMax, 0, 1); },
+const karpuz = {
+  title: 'KARPUZU PATLAT', hint: 'Her hediye karpuza lastik takar. Patlatan kazanır! 🍉',
+  reset() { this.size = this.shown = 0; this.limit = rand(CFG.karpuzMin, CFG.karpuzMax); this.last = null; this.bump = 0; this.gone = false; this.locked = false; this.n = new Set(); this.bands = 0; },
   gift(p, a) {
-    this.size += a; this.last = p; this.bump = 1; this.n.add(p.id);
+    this.size += a; this.last = p; this.bump = 1; this.n.add(p.id); this.bands++;
     if (this.size >= this.limit) {
       this.locked = true;
-      after(.45, () => { // kısa bir gerilim anı, sonra patlama
-        this.gone = true; const R = this.radius();
-        for (let i = 0; i < 5; i++) burst(540 + rand(-R, R) * .6, 1160 - R + rand(-R, R) * .6, [C.pink, C.yellow, '#fff'][i % 3], 34, 1100);
-        floater('BOOM!', 540, 860, C.yellow, 150);
-        after(1.1, () => { celebrate('BALONU PATLATTI!', p, `${this.n.size} kişi şişirdi · 💎 ${fmt(this.size)}`); this.reset(); });
+      after(.6, () => { // kısa bir gerilim anı, sonra patlama
+        this.gone = true;
+        for (let i = 0; i < 8; i++) burst(540 + rand(-170, 170), 850 + rand(-150, 150), ['#ff3b4f', '#ff6b7a', '#2f9e44', '#16110f'][i % 4], 34, 1200);
+        floater('ÇAT!', 540, 850, C.yellow, 160);
+        after(1.1, () => { celebrate('KARPUZU PATLATTI!', p, `${this.bands} lastik · ${this.n.size} kişi · 💎 ${fmt(this.size)}`); this.reset(); });
       });
     }
   },
   update(dt) { this.shown = ease(this.shown, this.size, dt, 7); this.bump = Math.max(0, this.bump - dt * 3); },
   draw() {
-    const ratio = clamp(this.shown / CFG.balloonMax, 0, 1), danger = this.size >= CFG.balloonMin;
+    panel(40, 440, 1000, 880, 40);
+    const ratio = clamp(this.shown / CFG.karpuzMax, 0, 1), danger = this.size >= CFG.karpuzMin;
     if (!this.gone) {
-      const R = this.radius() * (1 + this.bump * .07), cx = 540 + Math.sin(T * (3 + ratio * 22)) * ratio * 9, cy = 1160 - R;
-      const hue = (175 - ratio * 195 + 360) % 360;
-      ctx.beginPath(); ctx.moveTo(cx, cy + R + 22); ctx.bezierCurveTo(cx + 30, cy + R + 50, cx - 30, 1200, 540, 1226);
-      ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx, cy + R - 6); ctx.lineTo(cx - 24, cy + R + 30); ctx.lineTo(cx + 24, cy + R + 30); ctx.fillStyle = `hsl(${hue} 80% 42%)`; ctx.fill();
-      const g = ctx.createRadialGradient(cx - R * .35, cy - R * .4, R * .1, cx, cy, R); g.addColorStop(0, `hsl(${hue} 95% 78%)`); g.addColorStop(1, `hsl(${hue} 85% 48%)`);
-      ctx.beginPath(); ctx.ellipse(cx, cy, R * .9, R, 0, 0, TAU); ctx.fillStyle = g; ctx.fill();
-      ctx.beginPath(); ctx.ellipse(cx - R * .38, cy - R * .45, R * .14, R * .24, -.5, 0, TAU); ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fill();
-      text('💎 ' + fmt(this.shown), cx, cy, clamp(R * .34, 48, 120), '#fff', 'center', 12);
+      const sh = (this.locked ? 14 : ratio * ratio * 7), cx = 540 + rand(-1, 1) * sh, cy = 850 + rand(-1, 1) * sh;
+      const R = 262, w = R * (1 - .42 * ratio - this.bump * .03), ry = 215 * (1 + .14 * ratio);
+      const shape = () => { ctx.beginPath(); ctx.moveTo(cx - w, cy); ctx.bezierCurveTo(cx - R * 1.28, cy - ry * 1.32, cx + R * 1.28, cy - ry * 1.32, cx + w, cy);
+        ctx.bezierCurveTo(cx + R * 1.28, cy + ry * 1.32, cx - R * 1.28, cy + ry * 1.32, cx - w, cy); ctx.closePath(); };
+      ctx.save(); shape(); ctx.fillStyle = '#37a546'; ctx.fill(); ctx.clip();
+      ctx.lineWidth = 26; ctx.strokeStyle = '#1c6a2b'; ctx.lineCap = 'round';
+      for (let k = -4; k <= 4; k++) { ctx.beginPath(); ctx.moveTo(cx + k * 34, cy - ry * 1.1);
+        ctx.bezierCurveTo(cx + k * 96, cy - ry * .5, cx + k * 22 * (1 - ratio), cy - 20, cx + k * (w / 4.4), cy);
+        ctx.bezierCurveTo(cx + k * 22 * (1 - ratio), cy + 20, cx + k * 96, cy + ry * .5, cx + k * 34, cy + ry * 1.1); ctx.stroke(); }
+      ctx.beginPath(); ctx.ellipse(cx - 110, cy - ry * .55, 34, 60, .6, 0, TAU); ctx.fillStyle = 'rgba(255,255,255,.28)'; ctx.fill();
+      ctx.restore();
+      const nb = Math.min(46, this.bands); ctx.lineWidth = 4; ctx.strokeStyle = '#ecd2a6';
+      for (let i = 0; i < nb; i++) { const yy = cy + (i - (nb - 1) / 2) * Math.min(4, 70 / nb);
+        ctx.beginPath(); ctx.ellipse(cx, yy, w + 4, 12, 0, 0, Math.PI); ctx.stroke(); }
     }
-    if (danger && !this.gone && Math.sin(T * 10) > -.3) text('⚠ HER AN PATLAYABİLİR!', 540, 470, 46, C.pink, 'center', 10);
+    if (danger && !this.gone && Math.sin(T * 10) > -.3) text('⚠ HER AN PATLAYABİLİR!', 540, 486, 46, C.yellow, 'center', 10);
+    text(`${this.bands} LASTİK  ·  💎 ${fmt(this.shown)}`, 540, 1178, 44, '#fff', 'center', 9);
     if (this.last) {
-      panel(240, 1230, 600, 90, 45);
-      avatar(this.last, 292, 1275, 34, C.yellow);
-      text('Son üfleyen: ' + fit(this.last.name, 300, 32), 342, 1275, 32, '#fff', 'left');
-    } else text('İlk nefesi sen ver!', 540, 1275, 48, '#fff', 'center', 10);
+      panel(220, 1226, 640, 78, 39, 'rgba(0,0,0,.5)');
+      avatar(this.last, 266, 1265, 30, C.yellow);
+      text('Son lastik: ' + fit(this.last.name, 380, 32), 312, 1265, 32, '#fff', 'left');
+    } else text('İlk lastiği sen tak!', 540, 1265, 44, C.cyan, 'center', 9);
   },
 };
 
 // =====================================================================
-// MOD 5 — ŞANS ÇARKI
+// MOD 6 — KISMET ÇARKI
 // =====================================================================
 const wheel = {
-  title: 'ŞANS ÇARKI', hint: 'Hediye gönder, çarka gir! Daha çok 💎 = daha büyük dilim',
+  title: 'KISMET ÇARKI', hint: 'Hediye gönder, çarka gir! Kısmet kime çıkacak?',
   angle: 0,
   reset() { this.e = new Map(); this.timer = null; this.spin = null; this.locked = false; },
   gift(p, a) {
@@ -453,7 +586,7 @@ const wheel = {
       const s = this.spin; if (s.done) return;
       s.t = Math.min(1, s.t + dt / 6.5); this.angle = lerp(s.from, s.to, 1 - Math.pow(1 - s.t, 4));
       if (s.t >= 1) { s.done = true; burst(540, 880, C.yellow, 40, 800);
-        after(1.2, () => { celebrate('ÇARKI KAZANDI!', s.win.p, `Kazanma şansı %${s.pct.toFixed(1)}`); this.reset(); }); }
+        after(1.2, () => { celebrate('KISMET ONDA!', s.win.p, `Çarktaki payı %${s.pct.toFixed(1)}`); this.reset(); }); }
       return;
     }
     this.angle += dt * .12;
@@ -491,7 +624,7 @@ const wheel = {
   },
 };
 
-const MODES = { race, boss, tug, balloon, wheel };
+const MODES = { halay, race, taki, tug, karpuz, wheel };
 
 // ---------- olay akışı ----------
 function setMode(name) {
@@ -552,12 +685,12 @@ function demoTick(dt) {
   const r = Math.random();
   if (r < .55) demoGift();
   else if (r < .85) onEvent({ type: 'like', user: demoUser(), count: Math.ceil(rand(15)) });
-  else if (r < .95) onEvent({ type: 'comment', user: demoUser(), text: Math.random() < .5 ? 'kırmızı' : 'mavi' });
+  else if (r < .95) onEvent({ type: 'comment', user: demoUser(), text: Math.random() < .5 ? 'çay' : 'kahve' });
   else onEvent({ type: 'follow', user: demoUser() });
 }
 
 // ---------- başlat ----------
-setMode(MODES[qs.get('mode')] ? qs.get('mode') : 'race');
+setMode(MODES[qs.get('mode')] ? qs.get('mode') : 'halay');
 if (DEMO) {
   const bar = document.getElementById('bar'); bar.hidden = false;
   bar.addEventListener('click', e => {

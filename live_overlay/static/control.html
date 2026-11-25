@@ -78,8 +78,8 @@ iframe { width: 100%; aspect-ratio: 9 / 16; border: 1px solid var(--line); borde
         <button class="primary" id="sim-send" type="button">Hediye gönder</button>
         <button id="sim-like" type="button">10 beğeni</button>
         <button id="sim-follow" type="button">Takip</button>
-        <button id="sim-red" type="button">Yorum: kırmızı</button>
-        <button id="sim-blue" type="button">Yorum: mavi</button>
+        <button id="sim-red" type="button">Yorum: çay</button>
+        <button id="sim-blue" type="button">Yorum: kahve</button>
       </div>
       <p class="hint">Test olayları yalnızca overlay'e gider; TikTok'a hiçbir şey gönderilmez.</p>
     </section>
@@ -89,7 +89,7 @@ iframe { width: 100%; aspect-ratio: 9 / 16; border: 1px solid var(--line); borde
       <p>OBS'te “Tarayıcı” kaynağı, TikTok Live Studio'da “Bağlantı” kaynağı ekleyin. Genişlik 1080, yükseklik 1920. Zemin şeffaftır.</p>
       <div class="row" style="margin-top:10px"><code id="url"></code></div>
       <div class="row" style="margin-top:10px"><button id="copy" type="button">Adresi kopyala</button></div>
-      <p class="hint">Ayarlar adrese eklenir: <b>?goal=500</b> (yarış finişi), <b>bossHp=1000</b>, <b>tug=500</b>, <b>round=60</b> (çark süresi, sn), <b>balloonMin / balloonMax</b>, <b>mode=boss</b> (modu sabitle).</p>
+      <p class="hint">Ayarlar adrese eklenir: <b>?goal=500</b> (at yarışı finişi), <b>halay=600</b>, <b>taki=1000</b>, <b>tug=500</b>, <b>round=60</b> (çark süresi, sn), <b>karpuzMin / karpuzMax</b>, <b>mode=halay</b> (modu sabitle).</p>
     </section>
   </div>
 
@@ -101,7 +101,7 @@ iframe { width: 100%; aspect-ratio: 9 / 16; border: 1px solid var(--line); borde
 
 <script>
 const $ = id => document.getElementById(id);
-const LABELS = { race: 'Yarış', boss: 'Boss Savaşı', tug: 'Halat Çekme', balloon: 'Balon', wheel: 'Şans Çarkı' };
+const LABELS = { halay: 'Düğün Halayı', race: 'At Yarışı', taki: 'Takı Töreni', tug: 'Çay mı Kahve mi', karpuz: 'Karpuz Patlatma', wheel: 'Kısmet Çarkı' };
 const STATUS = { disconnected: 'Bağlı değil', connecting: 'Bağlanıyor…', connected: 'Yayına bağlı', error: 'Bağlanamadı, yeniden denenecek' };
 const post = (path, body) => fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
   .then(async r => { if (!r.ok) throw new Error((await r.json()).detail || r.statusText); return r.json(); })
@@ -132,8 +132,8 @@ $('sim-send').onclick = () => { const [gift, d] = $('sim-gift').value.split('|')
   sim({ type: 'gift', gift, diamonds: +d, count: Math.max(1, Math.min(1000, +$('sim-count').value || 1)) }); };
 $('sim-like').onclick = () => sim({ type: 'like', count: 10 });
 $('sim-follow').onclick = () => sim({ type: 'follow' });
-$('sim-red').onclick = () => sim({ type: 'comment', text: 'kırmızı' });
-$('sim-blue').onclick = () => sim({ type: 'comment', text: 'mavi' });
+$('sim-red').onclick = () => sim({ type: 'comment', text: 'çay' });
+$('sim-blue').onclick = () => sim({ type: 'comment', text: 'kahve' });
 $('url').textContent = location.origin + '/overlay';
 $('copy').onclick = () => navigator.clipboard.writeText($('url').textContent).then(() => { $('copy').textContent = 'Kopyalandı'; setTimeout(() => $('copy').textContent = 'Adresi kopyala', 1500); }).catch(() => {});
 </script>
