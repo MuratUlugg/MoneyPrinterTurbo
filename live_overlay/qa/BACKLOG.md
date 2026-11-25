@@ -17,9 +17,7 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - [ ] Davulcu yakın planında komşu halaycıların kolları kadraja giriyor, davul görüntünün üçte birini kaplıyor.
 
 ### Takı töreni
-- [ ] **Arka plan soluk ve boş**: bej perde, üstünde balon takının lekeli gölgesi, düz sarı sahne zemini. Balon takı, pankart ve çiçekler kadraja girmiyor.
 - [ ] Damat kolları sarkık, dimdik duruyor; gelin hiç kıpırdamıyor. İkisi birbirine dönük, el ele ya da kol kola durmalı.
-- [ ] En cömertler listesi çiftin ayaklarını ve gelinliğin eteğini kapatıyor.
 
 ### At yarışı
 - [ ] Finiş anı (takın altından geçiş) hâlâ görüntülenemedi: çekim hep kutlama kartına denk geliyor.
@@ -64,3 +62,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Jokey artık eyerde: dizler yukarıda atı kavrıyor, gövde öne eğik, kollar dizginlere uzanıyor, ata göre boyu küçüldü (görsel: `yaris-3` önce/sonra; QA geçti).
 - At donları: doru, al, kır, yağız, kula, beyaz, koyu doru ve bej; yele ve kuyruk ayrı renkte, pistteki atlar birbirinden farklı (görsel: `yaris-1`, `yaris-3` önce/sonra; QA geçti).
 - Renk uzayı: malzeme renkleri doğrusal uzaya çevriliyor; kıyafetler, halı, pist ve atlar artık pastel değil doygun, kurdele kırmızı (görsel: halay, takı ve yarışın önce/sonra karşılaştırması; QA geçti).
+- Takı kadrajı: geniş açıyla balon takı çifti çerçeveliyor, sahne kırmızı halılı, en cömertler tek satırda ve çiftin ayaklarını kapatmıyor (görsel: `taki-3` önce/sonra; QA geçti).

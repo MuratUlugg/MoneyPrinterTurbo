@@ -461,7 +461,8 @@ const hall = {
       for (let i = 0; i < 4; i++) s.add(mesh(new THREE.PlaneGeometry(.5, 6.5), new THREE.MeshBasicMaterial({ color: [0xff7ab0, 0xffc46b][i % 2], transparent: true, opacity: .28 }), d * (3.4 + i * 1.7), 3.25, -9.1, false)); }
     // sahne + pankart + balon takı
     s.add(mesh(new THREE.BoxGeometry(8.4, .4, 2.8), ivory, 0, .2, -6.9));
-    s.add(mesh(new THREE.BoxGeometry(8.5, .06, 2.9), gold, 0, .41, -6.9));
+    s.add(mesh(new THREE.BoxGeometry(8.5, .04, 2.9), gold, 0, .4, -6.9)); // altın kenar
+    s.add(mesh(new THREE.BoxGeometry(8.3, .05, 2.7), std('#7d1634', { roughness: .95 }), 0, .41, -6.9, false)); // sahne halısı
     const label = String(opt('cift', 'MUTLULUKLAR')).slice(0, 28);
     const pank = canvasTex(1024, 180, (g, w, h) => { g.fillStyle = '#fbf6ec'; g.fillRect(0, 0, w, h); g.strokeStyle = '#c9982f'; g.lineWidth = 10; g.strokeRect(10, 10, w - 20, h - 20);
       g.fillStyle = '#a3761a'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '800 96px ' + FONT; let fs = 96; while (g.measureText('♥ ' + label + ' ♥').width > w - 80 && fs > 40) { fs -= 6; g.font = `800 ${fs}px ${FONT}`; } g.fillText('♥ ' + label + ' ♥', w / 2, h / 2 + 6); });
@@ -803,7 +804,7 @@ const taki = {
   menu: [['💬 Yorum yaz', 'masana otur'], ['🌹 1+', 'çeyrek altın tak'], ['💎 10+', 'yarım altın'], ['💎 50+', 'tam altın + alkış'], ['💎 200+', 'bilezik'], ['💎 1000+', 'beşi bir yerde']],
   no: 1,
   build() {
-    this.hall = hall.get(); this.scene = this.hall.scene; this.cam = camera(30, 0, 2.0, -.9, 0, 1.45, -6.4);
+    this.hall = hall.get(); this.scene = this.hall.scene; this.cam = camera(40, 0, 2.0, -1.6, 0, 1.75, -6.4); // geniş açı: balon takı, pankart, pasta ve çelenkler çiftle aynı kadrajda
     // Takılar: kırmızı fiyonklu altınlar, çiftin göğsüne asılan kırmızı takı kurdelesine üçer üçer dizilir.
     const face = canvasTex(128, 128, (g) => { g.fillStyle = '#f2b824'; g.fillRect(0, 0, 128, 128); g.strokeStyle = '#a8740c'; g.lineWidth = 7; g.beginPath(); g.arc(64, 64, 55, 0, TAU); g.stroke();
       g.lineWidth = 3; g.beginPath(); g.arc(64, 64, 44, 0, TAU); g.stroke(); g.fillStyle = '#a8740c'; g.beginPath(); g.arc(58, 64, 24, 0, TAU); g.fill(); g.fillStyle = '#f2b824'; g.beginPath(); g.arc(66, 64, 20, 0, TAU); g.fill();
@@ -856,7 +857,7 @@ const taki = {
   update(dt) {
     this.shown = ease(this.shown, this.sum, dt, 6);
     if (this.say && (this.say.t += dt) > 2.6) this.say = null;
-    if (this.built) { this.hall.update(dt, T * 3.2, false); this.dir.update(dt, this.cam, { p: [Math.sin(T * .3) * .5, 1.95, -1.2], l: [0, 1.45, -6.4] }); }
+    if (this.built) { this.hall.update(dt, T * 3.2, false); this.dir.update(dt, this.cam, { p: [Math.sin(T * .3) * .6, 2.0, -1.6], l: [0, 1.78, -6.4] }); }
     this.shots = this.shots.filter(s => {
       if (s.delay > 0) { s.delay -= dt; return true; }
       s.t += dt * 1.4;
@@ -878,10 +879,10 @@ const taki = {
     else if (!this.sum) text('İlk takıyı sen tak! 🎗', 540, 580, 46, '#fff', 'center', 9);
     const top = [...this.g.values()].sort((a, b) => b.v - a.v).slice(0, 3);
     if (top.length) {
-      const y0 = 1310 - top.length * 56; panel(190, y0 - 12, 700, 20 + top.length * 56, 30, 'rgba(10,6,30,.66)');
-      top.forEach((d, i) => { const y = y0 + 26 + i * 56;
-        text(['🥇', '🥈', '🥉'][i], 236, y, 34); avatar(d.p, 300, y, 22);
-        text(fit(d.p.name, 340, 28), 338, y, 28, '#fff', 'left'); text('💎 ' + fmt(d.v), 862, y, 28, C.yellow, 'right'); });
+      // tek satır: çiftin ayaklarını ve gelinliğin eteğini kapatmasın
+      const w = 320; panel(60, 1252, 960, 64, 32, 'rgba(10,6,30,.7)');
+      top.forEach((d, i) => { const x = 80 + i * w; text(['🥇', '🥈', '🥉'][i], x + 18, 1285, 30); avatar(d.p, x + 62, 1284, 20);
+        text(fit(d.p.name, 120, 25), x + 90, 1285, 25, '#fff', 'left'); text('💎' + fmt(d.v), x + w - 14, 1285, 25, C.yellow, 'right'); });
     }
   },
 };
