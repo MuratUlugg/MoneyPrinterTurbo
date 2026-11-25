@@ -685,7 +685,7 @@ const halay = {
 // =====================================================================
 const COATS = ['#ffffff', '#6a5a50', '#ffe2b8', '#3d3530', '#c8a890', '#8f7a6a', '#fff4e0', '#555050'];
 const LANE = 1.45; // kulvar aralığı: atlar yan yana geldiğinde üst üste binmesin
-const SPAN = 7, SPEED = 9, JY = .78; // JY: jokeyin eyer yüksekliği
+const SPAN = 7, SPEED = 9, JY = 1.08; // JY: jokeyin eyer yüksekliği
 const race = {
   title: 'AT YARIŞI',
   menu: [['🌹 1+', 'atın piste çıkar'], ['💎 Her jeton', 'atını öne geçirir'], ['🔥 Kombo', 'art arda hediye = daha hızlı'], ['🏆 Finişi geçen', 'şampiyon ilan edilir']],
@@ -748,14 +748,15 @@ const race = {
         const m = assets.horse.scene.children[0].clone(); m.material = m.material.clone(); m.material.color.set(r.coat);
         m.scale.setScalar(.0056); m.rotation.y = Math.PI / 2; m.castShadow = true;
         const mixer = new THREE.AnimationMixer(m); mixer.clipAction(assets.horse.animations[0]).setDuration(.62).play(); mixer.update(rand(.6));
-        const col = `hsl(${r.p.hue},90%,52%)`, j = makeBot(col, Object.assign(lookOf(r.p.id), { kind: 2, bottom: '#ffffff', tall: 1, wide: 1 })); j.root.scale.setScalar(.74); j.root.rotation.y = Math.PI / 2;
+        const col = `hsl(${r.p.hue},90%,52%)`, j = makeBot(col, Object.assign(lookOf(r.p.id), { kind: 2, bottom: '#ffffff', tall: 1, wide: 1 })); j.root.scale.setScalar(.67); j.root.rotation.y = Math.PI / 2;
         const helmet = mesh(new THREE.SphereGeometry(.142, 18, 12, 0, TAU, 0, Math.PI * .62), std(col, { roughness: .3 })); helmet.position.set(0, .1, .01); j.b.Head.add(helmet);
-        P(j, 'Spine', .55, 0, 0); P(j, 'Spine1', .25, 0, 0); P(j, 'Head', -.6, 0, 0);
-        P(j, 'LeftUpLeg', -1.2, 0, -.38); P(j, 'RightUpLeg', -1.2, 0, .38); P(j, 'LeftLeg', 1.75, 0, 0); P(j, 'RightLeg', 1.75, 0, 0);
-        arm(j, 'Left', .1, 1.2); arm(j, 'Right', .1, 1.2);
+        // binici duruşu: eyerde, dizler yukarıda ve atı kavramış, gövde öne eğik, kollar dizginlere uzanmış
+        P(j, 'Spine', .42, 0, 0); P(j, 'Spine1', .22, 0, 0); P(j, 'Head', -.55, 0, 0);
+        P(j, 'LeftUpLeg', -1.45, 0, -.55); P(j, 'RightUpLeg', -1.45, 0, .55); P(j, 'LeftLeg', 2.15, 0, 0); P(j, 'RightLeg', 2.15, 0, 0);
+        arm(j, 'Left', .95, 1.05); arm(j, 'Right', .95, 1.05);
         r.act = { m, mixer, j }; r.lane = this.lanes.pop(); this.scene.add(m); this.scene.add(j.root);
       } else if (i >= 8 && r.act) { this.scene.remove(r.act.m); this.scene.remove(r.act.j.root); this.lanes.push(r.lane); r.act = null; }
-      if (r.act) { r.z = (r.lane - 3.5) * LANE; r.act.m.position.set(r.x, .95, r.z); r.act.j.root.position.set(r.x - .1, JY + Math.sin(r.act.mixer.time / .62 * TAU) * .05, r.z); r.act.mixer.update(dt * (1 + clamp(r.push / 30, 0, .6))); lo = Math.min(lo, r.x); hi = Math.max(hi, r.x); }
+      if (r.act) { r.z = (r.lane - 3.5) * LANE; r.act.m.position.set(r.x, .95, r.z); r.act.j.root.position.set(r.x + .12, JY + Math.sin(r.act.mixer.time / .62 * TAU) * .05, r.z); r.act.mixer.update(dt * (1 + clamp(r.push / 30, 0, .6))); lo = Math.min(lo, r.x); hi = Math.max(hi, r.x); }
     });
     if (!this.built) return;
     const f = hi === -Infinity ? this.base + 2 : hi * .62 + lo * .38;
