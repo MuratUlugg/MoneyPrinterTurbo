@@ -4,7 +4,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`).
 
 ## Açık
 
-- [ ] Overlay sunucuya bağlanamazsa ya da bağlantı koparsa ekranda hiçbir belirti yok; yayıncı fark etmez. Panelde ve (yalnızca `?kilavuz=1` iken) overlay'de bağlantı durumu gösterilmeli.
 - [ ] Kalabalık halayda yakın planda öndeki halaycıların sırtı araya giriyor; kamera açısı kişiyi net görecek şekilde seçilmeli.
 - [ ] Halay adımı tek bir basit tekme; gerçek halay figürü (üç adım, çök-kalk, omuz silkme) yok.
 - [ ] Takı töreninde gelin hiç hareket etmiyor; en azından nefes, baş ve gövde salınımı daha canlı olmalı.
@@ -31,3 +30,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`).
 
 - Kalıcı yayın defteri, rapor, ayar paneli, otomatik program, ad denetimi, otomatik kalite, yerel kütüphane, başlatma betikleri (QA: 8 birim testi + elle yenileme denemesi).
 - Otomatik QA kapısı (`qa/run.sh`): 5 mod, kazanma akışı, yenilemeden sonra geri yükleme, panel.
+- Bağlantı göstergesi: sunucu ya da TikTok bağlantısı yokken overlay'in sol üstünde küçük nokta, `?kilavuz=1` iken yazı; panel sunucuya ulaşamazsa uyarır (QA: duman testi TikTok'suz durumda göstergenin `tiktok` dediğini kontrol ediyor; sunucu kopması elle denenmedi).

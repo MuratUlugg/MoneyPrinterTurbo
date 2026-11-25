@@ -197,7 +197,7 @@ const LABELS = { halay: 'Düğün Halayı', race: 'At Yarışı', taki: 'Takı T
 const STATUS = { disconnected: 'Bağlı değil', connecting: 'Bağlanıyor…', connected: 'Yayına bağlı', error: 'Bağlanamadı, yeniden denenecek' };
 const NUMS = ['hedef', 'konuk', 'bahsis', 'orta', 'buyuk', 'halay', 'taki', 'goal', 'tug', 'karpuzMin', 'karpuzMax', 'anonsMin'];
 const fmt = n => Math.round(n).toLocaleString('tr-TR');
-let MODES = [], formLoaded = false;
+let MODES = [], formLoaded = false, down = false;
 const api = (path, body, method = 'POST') => fetch(path, { method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) })
   .then(async r => { if (!r.ok) throw new Error((await r.json()).detail || r.statusText); return r.json(); })
   .catch(e => { $('err').textContent = 'İstek başarısız: ' + e.message; });
@@ -240,7 +240,8 @@ function render(s) {
 }
 async function refresh() {
   const [st, r] = await Promise.all([fetch('/api/state').then(x => x.json()), fetch('/api/report').then(x => x.json())]).catch(() => [null, null]);
-  if (!st || !r) return;
+  if (!st || !r) { $('err').textContent = 'Sunucuya ulaşılamıyor. Sunucu penceresi kapandıysa yeniden başlatın; hediyeler şu an ekrana gelmiyor.'; down = true; return; }
+  if (down) { down = false; $('err').textContent = ''; }
   render(st);
   $('k-total').textContent = fmt(r.total); $('k-gifters').textContent = fmt(r.gifters); $('k-avg').textContent = fmt(r.average); $('k-min').textContent = fmt(r.minutes_live);
   const c = r.counts; $('k-counts').textContent = `${fmt(c.gift)} hediye · ${fmt(c.like)} beğeni · ${fmt(c.comment)} yorum · ${fmt(c.follow)} takip · ${fmt(c.share)} paylaşım` + (r.biggest ? ` · en büyük: ${r.biggest.name}, ${r.biggest.gift} (${fmt(r.biggest.amount)})` : '');

@@ -366,6 +366,13 @@ const quality = { level: 0, frames: 0, t: 0, low: 0, fps: 0, maxDancers: 12, max
     if (sock && sock.readyState === 1) sock.send(JSON.stringify({ type: 'stats', fps: Math.round(this.fps), quality: QNAMES[this.level] }));
   } };
 let sock = null;
+// Bağlantı durumu: sunucu ya da TikTok bağlantısı koparsa yayıncı fark etsin diye sol üstte küçük bir nokta yanar
+// (kırmızı: sunucu yok, sarı: TikTok'a bağlı değil). İzleyiciyi rahatsız etmeyecek kadar küçüktür; ?kilavuz=1 iken yazıyla da söyler.
+const link = { open: false, since: 0, tiktok: '',
+  state() { return !window.LIVE_SERVER ? 'ok' : !this.open ? (performance.now() - this.since > 3000 ? 'sunucu' : 'ok') : this.tiktok === 'connected' ? 'ok' : 'tiktok'; },
+  draw() { const st = this.state(); if (st === 'ok') return;
+    ctx.beginPath(); ctx.arc(26, 26, 9, 0, TAU); ctx.fillStyle = st === 'sunucu' ? '#ff3b3b' : '#ffd23f'; ctx.fill();
+    if (qs.get('kilavuz') === '1') text(st === 'sunucu' ? 'Sunucuya bağlanılamıyor: hediyeler ekrana gelmiyor' : 'TikTok yayınına bağlı değil (panelden bağlanın)', 48, 28, 26, '#fff', 'left', 6); } };
 if (QMODE === 'dusuk') quality.set(2);
 function baseScene(top, bottom, o = {}) {
   const s = new THREE.Scene();
@@ -1007,7 +1014,7 @@ function setMode(name) {
 function giveToMode(p, a, raw) { if (mode.locked) pending.push([p, a, raw]); else mode.gift(p, a, raw); }
 function onEvent(ev) {
   if (!ev || typeof ev !== 'object') return;
-  if (ev.type === 'state') { program = ev.program ? { next: ev.program.next, until: T + ev.program.sec } : null; return setMode(qs.get('mode') || ev.mode); }
+  if (ev.type === 'state') { link.tiktok = ev.tiktok ? ev.tiktok.status : ''; program = ev.program ? { next: ev.program.next, until: T + ev.program.sec } : null; return setMode(qs.get('mode') || ev.mode); }
   if (ev.type === 'reload') return location.reload();
   if (ev.type === 'round') { timers = []; pending = []; cel = null; mode.reset(); return; }
   if (ev.type === 'restore') { // sunucudaki defterden sıralamayı, seviyeleri ve yayın hedefini geri kur
@@ -1053,7 +1060,7 @@ function frame(now) {
   if (!mode.locked && pending.length) { const q = pending; pending = []; q.forEach(([p, a, raw]) => giveToMode(p, a, raw)); }
   if (DEMO) demoTick(dt);
   quality.tick(now);
-  if (QA) window.__qa = { mode: modeName, built: !!mode.built, champion: champion && champion.name, wins, session, top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
+  if (QA) window.__qa = { mode: modeName, built: !!mode.built, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
   if (ready() && !mode.built) { mode.build(); mode.built = true; }
   mode.update(dt);
   if (mode.built) renderer.render(mode.scene, mode.cam);
@@ -1062,7 +1069,7 @@ function frame(now) {
   if (DEMO) { const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#2a1560'); g.addColorStop(.55, '#140f2e'); g.addColorStop(1, '#0d2b4a'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'destination-out'; panel(VX, VY, VW, VH, 40, '#000'); ctx.globalCompositeOperation = 'source-over'; }
   if (!mode.built) { panel(VX, VY, VW, VH, 40); text(glError || '3B sahne yükleniyor…', 540, 880, 40, glError ? C.yellow : '#fff'); }
-  drawHeader(); mode.draw(); if (mode.dir) mode.dir.draw(); drawCombo(dt); drawDonors(); drawParts(dt); drawAlerts(dt); drawBig(dt); drawCelebration(dt);
+  drawHeader(); mode.draw(); if (mode.dir) mode.dir.draw(); drawCombo(dt); drawDonors(); drawParts(dt); drawAlerts(dt); drawBig(dt); drawCelebration(dt); link.draw();
   requestAnimationFrame(frame);
 }
 
@@ -1104,7 +1111,8 @@ if (window.LIVE_SERVER) {
   (function connect() {
     const ws = sock = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
     ws.onmessage = m => { try { onEvent(JSON.parse(m.data)); } catch (err) { console.error(err); } };
-    ws.onclose = () => setTimeout(connect, 2000);
+    ws.onopen = () => { link.open = true; };
+    ws.onclose = () => { if (link.open || !link.since) link.since = performance.now(); link.open = false; setTimeout(connect, 2000); };
   })();
 }
 requestAnimationFrame(frame);

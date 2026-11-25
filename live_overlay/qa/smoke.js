@@ -16,6 +16,7 @@ const MODES = ['halay', 'race', 'taki', 'tug', 'karpuz'];
   // _hiz: ekran kartsız makinede oyun saati geri kalır; test bunu telafi eder. _qa: sahne durumunu window.__qa'ya yazar.
   await p.goto(`${BASE}/overlay?_hiz=8&_qa=1&halay=300`); await p.waitForTimeout(5000);
   await api('/api/reset');
+  const q0 = await p.evaluate(() => window.__qa || {});
   for (const m of MODES) {
     await api('/api/mode', { mode: m }); await p.waitForTimeout(1500);
     await api('/api/simulate', { type: 'comment', name: 'Sibel', text: 'kahve' });
@@ -30,6 +31,7 @@ const MODES = ['halay', 'race', 'taki', 'tug', 'karpuz'];
     check(won, `${m}: büyük hediyeden sonra kazanan ilan edildi`);
     await p.waitForTimeout(4500);
   }
+  check(q0.link === 'tiktok', `bağlantı göstergesi TikTok'a bağlı olmadığını bildiriyor (${q0.link})`);
   // kalıcılık: sayfa yenilenince sıralama defterden geri gelmeli
   await p.reload(); await p.waitForTimeout(7000);
   const q = await p.evaluate(() => window.__qa || null), rep = await api('/api/report', undefined, 'GET');
