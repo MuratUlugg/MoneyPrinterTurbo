@@ -22,12 +22,12 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - [ ] En cömertler listesi çiftin ayaklarını ve gelinliğin eteğini kapatıyor.
 
 ### At yarışı
-- [ ] **Atlar üst üste yığılıyor**: sekiz at çapraz tek bir küme hâlinde, kulvarlar ayırt edilmiyor.
-- [ ] **Adlar birbirinin ve üstteki çubuğun üstüne biniyor.**
 - [ ] **Jokey atın boynuna yatmış, bacakları yere sarkıyor**; eyerde oturmuyor ve ata göre fazla büyük.
+- [ ] Finiş anı (takın altından geçiş) hâlâ görüntülenemedi: çekim hep kutlama kartına denk geliyor.
+- [ ] Yakın at planında öndeki kulvardaki at kadrajın altını kaplayabiliyor.
+- [ ] Yarışta büyük hediye bandı en uzak kulvarlardaki atları ve etiketleri kapatıyor.
 - [ ] Atların hepsi aynı kahverengi; don rengi çeşitliliği görünmüyor.
 - [ ] Tribün soluk pastel kutular ve beyaz toplar; seyirci gibi durmuyor. Gökyüzü neredeyse görünmüyor.
-- [ ] Yarışın "dağılmış", "yakın at" ve "finiş" görüntüleri henüz incelenmedi (çekim betiğinin finiş hedefi düzeltildi; bir sonraki çekimde bakılacak).
 - [ ] Pist dokusu iri kareli gürültü.
 
 ### Genel
@@ -64,3 +64,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Halay ad etiketleri üç kata kaydırılıyor, 12 kişide de okunuyor (görsel: `halay-2`).
 - Çekim betiği anı donduruyor ve oyun saatine göre bekliyor: yakın planların beşi de yakalandı; kamera odağının halayda, masada, davulcuda ve takıda çalıştığı görüldü.
 - Takılar: göğse gömülü sarı lekeler yerine, çiftin göğsündeki ucu çatallı kırmızı kurdeleye üçer üçer dizilen, değerine göre boyu değişen fiyonklu altınlar; iki kurdele dengeli doluyor (görsel: `taki-3` önce/sonra; QA geçti).
+- At yarışı kadrajı: kulvarlar genişledi, kamera yükseltildi; sekiz at ayrı ayrı görünüyor, her atın adı kendi kulvarında atın arkasında okunuyor (görsel: `yaris-1`, `yaris-2` önce/sonra; QA geçti).
