@@ -7,7 +7,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 İlk görsel denetimde (20 çekim) bulunanlar, göze batma sırasıyla.
 
 ### Halay
-- [ ] Halaycıların kolları dümdüz yana açık (T duruşu gibi); el ele / omuz omuza tutuş yok, dirsek kırılmıyor.
 - [ ] Hanımların hepsi aynı çizme ve aynı saç kesimiyle; yalnızca renk değişiyor.
 - [ ] Yer volkanları 500 jetonluk hediyede kadrajda yok: kamera ortaya çıkana dönüyor, volkanlar sahnenin önünde arkada kalıyor. Ya volkanlar pistin çevresine alınmalı ya kamera önce geniş planda kalmalı.
 - [ ] Büyük hediye bandı, ortaya çıkan kişinin başını kapatıyor.
@@ -63,3 +62,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Takı kadrajı: geniş açıyla balon takı çifti çerçeveliyor, sahne kırmızı halılı, en cömertler tek satırda ve çiftin ayaklarını kapatmıyor (görsel: `taki-3` önce/sonra; QA geçti).
 - Çiftin duruşu: damat geline dönük, kolları dirsekten kırık ve rahat; gelin hafifçe salınıp nefes alıyor; ikisi birbirine yaklaştı; balonların perdedeki lekeli gölgesi kalktı (görsel: `taki-0` önce/sonra; QA geçti).
 - Halay yakın planı: salon kapalı kutu oldu (ön duvar, tavan), arkada karanlık boşluk yok; kasketin altında saç var ve başa oturuyor; mendil küçük, kırmızı kenarlı ve kıvrımlı (görsel: `halay-3` önce/sonra; QA geçti).
+- Halay figürü: eller aşağıda ve dirsekler kırık (el ele tutuş), iki vuruşta çök-kalk, omuz silkme; kollar artık T duruşunda değil (görsel: `halay-2` önce/sonra; hareketin kendisi yalnızca durağan karelerde görüldü, videoyla doğrulanmadı; QA geçti).

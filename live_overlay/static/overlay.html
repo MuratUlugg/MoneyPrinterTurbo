@@ -654,15 +654,18 @@ const halay = {
       let a = this.acts.get(d.p.id);
       if (!a) { a = makeBot(`hsl(${d.p.hue},75%,62%)`, lookOf(d.p.id)); this.acts.set(d.p.id, a); this.scene.add(a.root); }
       const k = d.k, up = Math.max(0, k), dn = Math.max(0, -k), solo = d.slot < 0;
-      a.root.position.set(d.pos[0], Math.abs(k) * .05, d.pos[1]); a.root.rotation.y = d.face + (solo ? Math.sin(this.ph * .5) * .5 : 0);
-      P(a, 'Spine', .04, 0, Math.sin(this.ph * .5) * (solo ? .14 : .06));
-      P(a, 'LeftUpLeg', -up * .9, 0, 0); P(a, 'LeftLeg', up * 1.1, 0, 0); P(a, 'RightUpLeg', -dn * .5, 0, 0); P(a, 'RightLeg', dn * .7, 0, 0);
+      // halay figürü: iki vuruşta çök-kalk, sol ayakla tekme, sağla küçük adım; omuzlar tempoyla silkilir
+      const dip = Math.pow(Math.abs(Math.sin(this.ph)), 2), shim = Math.sin(this.ph * 2 + d.slot * .5);
+      a.root.position.set(d.pos[0], .03 - dip * .07 + up * .05, d.pos[1]); a.root.rotation.y = d.face + (solo ? Math.sin(this.ph * .5) * .5 : Math.sin(this.ph * .5) * .1);
+      P(a, 'Spine', .06 + dip * .05, shim * .05, Math.sin(this.ph * .5) * (solo ? .14 : .07)); P(a, 'Spine1', 0, 0, shim * .035);
+      P(a, 'LeftUpLeg', -up * .95 - dip * .16, 0, 0); P(a, 'LeftLeg', up * 1.15 + dip * .32, 0, 0); P(a, 'RightUpLeg', -dn * .55 - dip * .16, 0, 0); P(a, 'RightLeg', dn * .75 + dip * .32, 0, 0);
       if (solo) { arm(a, 'Left', 1.25 + Math.sin(this.ph) * .3, .25); arm(a, 'Right', 1.25 - Math.sin(this.ph) * .3, .25); }
-      else { arm(a, 'Left', .15 + Math.abs(k) * .08, 0);
+      else { const hold = (side, sg) => { arm(a, side, -.12 + dip * .16 + shim * .04, .1); P(a, side + 'ForeArm', 0, 0, sg * (.3 + dip * .25)); }; // eller aşağıda, dirsekler kırık: yandakiyle el ele
+        hold('Left', 1);
         if (d.slot === 0) { arm(a, 'Right', 1.85 + Math.sin(this.ph * 2) * .25, .2); // halay başı mendil sallar
           if (this.mendil.parent !== a.b.RightHand) { a.b.RightHand.add(this.mendil); this.mendil.scale.setScalar(a.unit); this.mendil.position.set(0, .1 * a.unit, 0); }
           this.mendil.rotation.set(Math.sin(this.ph * 2) * .6, 0, Math.cos(this.ph * 2) * .5);
-        } else arm(a, 'Right', .15 + Math.abs(k) * .08, 0); }
+        } else hold('Right', -1); }
     }
     if (!n && this.mendil.parent) this.mendil.parent.remove(this.mendil);
     this.hall.update(dt, this.ph, true);
