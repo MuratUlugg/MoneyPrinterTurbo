@@ -9,7 +9,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 ### Halay
 - [ ] Hanımların hepsi aynı çizme ve aynı saç kesimiyle; yalnızca renk değişiyor.
 - [ ] Yer volkanları 500 jetonluk hediyede kadrajda yok: kamera ortaya çıkana dönüyor, volkanlar sahnenin önünde arkada kalıyor. Ya volkanlar pistin çevresine alınmalı ya kamera önce geniş planda kalmalı.
-- [ ] Büyük hediye bandı, ortaya çıkan kişinin başını kapatıyor.
 - [ ] Davulcu yakın planında komşu halaycıların kolları kadraja giriyor, davul görüntünün üçte birini kaplıyor.
 
 ### Takı töreni
@@ -19,7 +18,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 ### At yarışı
 - [ ] Finiş anı (takın altından geçiş) hâlâ görüntülenemedi: çekim hep kutlama kartına denk geliyor.
 - [ ] Yakın at planında öndeki kulvardaki at kadrajın altını kaplayabiliyor.
-- [ ] Yarışta büyük hediye bandı en uzak kulvarlardaki atları ve etiketleri kapatıyor.
 - [ ] Tribün soluk pastel kutular ve beyaz toplar; seyirci gibi durmuyor. Gökyüzü neredeyse görünmüyor.
 
 ### Genel
@@ -63,3 +61,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Halay yakın planı: salon kapalı kutu oldu (ön duvar, tavan), arkada karanlık boşluk yok; kasketin altında saç var ve başa oturuyor; mendil küçük, kırmızı kenarlı ve kıvrımlı (görsel: `halay-3` önce/sonra; QA geçti).
 - Halay figürü: eller aşağıda ve dirsekler kırık (el ele tutuş), iki vuruşta çök-kalk, omuz silkme; kollar artık T duruşunda değil (görsel: `halay-2` önce/sonra; hareketin kendisi yalnızca durağan karelerde görüldü, videoyla doğrulanmadı; QA geçti).
 - Pist: iri kareli gürültü yerine ince taneli kum, tırmık izleri ve kulvar çizgileri (görsel: `yaris-1`, `yaris-3` önce/sonra; QA geçti).
+- Büyük hediye bandı sahnenin üstünden başlık bölgesine taşındı; yarışta atları, halayda ortaya çıkanı kapatmıyor. Sol kenarda kesilen at adı fotoğrafın sağına yazılıyor (görsel: `yaris-2-tam-ekran` önce/sonra, `halay-6-tam-ekran`; QA geçti).

@@ -35,7 +35,7 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
   await wait(1); await gift('Emre', 1); await wait(.5); await gl('halay-3-yakin-halayci');
   await wait(6); await api('/api/simulate', { type: 'comment', name: 'Sibel', text: 'maşallah' }); await wait(.5); await gl('halay-4-yakin-misafir');
   await wait(6); await gift('Elif', 30, 1, 'Donut'); await wait(.5); await gl('halay-5-davulcu-bahsis');
-  await wait(6); await gift('Selin', 500, 1, 'Aslan'); await wait(.4); await gl('halay-6-volkan'); await wait(1.5); await gl('halay-7-ortada');
+  await wait(6); await gift('Selin', 500, 1, 'Aslan'); await wait(.4); await gl('halay-6-volkan'); await full('halay-6-tam-ekran'); await wait(1.5); await gl('halay-7-ortada');
 
   }
   // ---- TAKI

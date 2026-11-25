@@ -228,6 +228,7 @@ function drawAlerts(dt) {
   ctx.globalAlpha = 1;
 }
 function drawHeader() {
+  if (bigs.length) return; // büyük hediye bandı başlığın yerine geçer: sahnenin (atların, ortaya çıkanın) üstünü kapatmasın
   const s = 1 + Math.sin(T * 2.4) * .015;
   ctx.save(); ctx.translate(540, 290); ctx.scale(s, s);
   text(mode.title, 0, 0, 92, C.yellow, 'center', 16);
@@ -265,7 +266,7 @@ function drawBig(dt) { // büyük hediye: gönderen birkaç saniye sahnenin yıl
   if (!b.t) for (let i = 0; i < 5; i++) burst(rand(200, 880), rand(560, 900), [C.pink, C.yellow, C.cyan][i % 3], 34, 900);
   b.t += dt; if (b.t > 3.2) { bigs.shift(); return; }
   const k = Math.min(1, b.t * 5), out = clamp((3.2 - b.t) * 5, 0, 1), s = (1 - Math.pow(1 - k, 3)) * out, epic = b.amount >= CFG.buyuk * 10;
-  ctx.save(); ctx.translate(540, 580); ctx.scale(s * .9, s * .9); ctx.globalAlpha = out;
+  ctx.save(); ctx.translate(540, 318); ctx.scale(s * .88, s * .88); ctx.globalAlpha = out;
   const g = ctx.createLinearGradient(-470, 0, 470, 0); g.addColorStop(0, epic ? '#6ee7ff' : C.pink); g.addColorStop(1, epic ? '#9b6bff' : '#ff9a3d');
   panel(-470, -120, 940, 240, 60, g); ctx.lineWidth = 8; ctx.strokeStyle = '#fff'; ctx.beginPath(); ctx.roundRect(-470, -120, 940, 240, 60); ctx.stroke();
   avatar(b.p, -350, 0, 88, C.yellow);
@@ -807,7 +808,8 @@ const race = {
       const i = this.list.indexOf(r), focus = this.dir && this.dir.f, [x0, y0] = proj(this.cam, r.x - 1.3, 2.3, r.z), x = Math.max(70, x0), y = Math.max(560, y0);
       if (focus && focus.who !== r.p) return; // yakın planda yalnızca o atın etiketi
       avatar(r.p, x, y, 24, i ? '#fff' : C.yellow); // etiket atın arkasında, kendi kulvarının hizasında durur
-      text(`${i + 1}. ${fit(r.p.name, 150, 22)}`, x - 32, y, 22, i ? '#fff' : C.yellow, 'right', 6);
+      if (x < 230) text(`${i + 1}. ${fit(r.p.name, 150, 22)}`, x + 32, y, 22, i ? '#fff' : C.yellow, 'left', 6); // sol kenarda ad kesilmesin: fotoğrafın sağına yaz
+      else text(`${i + 1}. ${fit(r.p.name, 150, 22)}`, x - 32, y, 22, i ? '#fff' : C.yellow, 'right', 6);
     });
     if (this.list.length > 8) text(`+${this.list.length - 8} at daha koşuyor`, 540, 1296, 26, '#fff', 'center', 6);
   },
