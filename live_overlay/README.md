@@ -4,13 +4,25 @@
 
 | Mod | Anahtar | Nasıl oynanır |
 | --- | --- | --- |
-| **Düğün Halayı** | `halay` | Hediye gönderen davul zurna eşliğinde halaya girer. En çok gönderen mendili sallayan halay başı olur. Coşku çubuğu dolunca halay başı ilan edilir. |
+| **Düğün Halayı** | `halay` | Hediye gönderen, ortasında davul zurna çalan dairesel halaya girer. En çok gönderen mendili sallayan halay başı olur. Tek seferde 100+ jeton gönderen ortaya çıkar, üstüne para saçılır. Coşku çubuğu dolunca halay başı ilan edilir. |
 | **At Yarışı** | `race` | Her izleyicinin bir atı olur, her jeton atı ileri taşır. Finişe ilk gelen kazanır. |
 | **Takı Töreni** | `taki` | Hediyeler altın olup gelinle damada takılır: çeyrek, yarım, tam altın, bilezik, beşi bir yerde. Takı hedefi dolunca en cömert misafir ilan edilir. |
 | **Çay mı Kahve mi?** | `tug` | İzleyici yoruma `çay` ya da `kahve` (veya `1` / `2`) yazar, hediyesiyle halatı kendi tarafına çeker. Seçmeyen zayıf takıma düşer. |
 | **Karpuz Patlatma** | `karpuz` | Her hediye karpuza bir lastik takar. Patlama sınırı gizlidir; patlatan kazanır. |
 
-Her modda ayrıca hediye bildirimi, beğeni kalpleri, takip bildirimi ve en çok destekleyen üç kişi görünür.
+## Hediye göndermeyi teşvik eden mekanikler
+
+Hepsi gerçek hediyelere dayanır; sahte bağışçı, sahte geri sayım ya da şans oyunu yoktur.
+
+- **Düşük giriş eşiği:** tek bir Gül bile izleyiciyi sahneye sokar (halaya girer, atı piste çıkar). Dönen ipuçları bunu sürekli hatırlatır.
+- **Seviye rozetleri:** yayın boyunca toplam hediyeye göre Bronz (10), Gümüş (100), Altın (500), Elmas (2000). Her hediye bildiriminde bir sonraki seviyeye kalan miktar yazar.
+- **Liderlik rekabeti:** en çok destekleyen üç kişi hep ekrandadır; altında sıradaki kişinin bir üst sıraya çıkması için gereken net miktar döner. Liderlik el değiştirince "liderliği kaptı, geri almak için X" bildirimi çıkar.
+- **Kombo:** 8 saniye içinde art arda gelen hediyeler oyundaki etkiyi %10'ar artırır (en çok 2 kat). Bir kişinin hediyesi başkalarını da hemen göndermeye çeker.
+- **Büyük hediye gösterisi:** tek seferde 100+ jeton gönderenin adı ve fotoğrafı birkaç saniye sahnenin üstünü kaplar; 1000+ için "efsane" sürümü.
+- **Yayın hedefi:** herkesin katkısıyla dolan ortak çubuk; dolunca kutlanır ve hedef ikiye katlanır.
+- **Kalıcı tanınma:** her turun kazananı "son şampiyon" olarak ekranda kalır.
+
+Her modda ayrıca hediye bildirimi, beğeni kalpleri ve takip bildirimi görünür.
 
 ## Kurulum
 
@@ -46,6 +58,9 @@ Adrese parametre ekleyin, örnek: `/overlay?goal=500&halay=600`
 | `taki` | 500 | İlk düğünün takı hedefi (her düğünde %50 artar) |
 | `tug` | 300 | Halatı kazanmak için gereken jeton farkı |
 | `karpuzMin` / `karpuzMax` | 120 / 450 | Karpuzun patlayabileceği jeton aralığı |
+| `orta` | 100 | Halayda ortaya çıkmak için tek seferde gereken jeton |
+| `buyuk` | 100 | Büyük hediye gösterisini açan tek seferlik jeton (10 katı "efsane") |
+| `hedef` | 2000 | Yayın hedefi (toplam jeton) |
 | `mode` | — | Overlay'i tek moda sabitler (tablodaki anahtarlardan biri) |
 
 ## 3B modeller
@@ -56,7 +71,7 @@ Modeller `static/models/` klasöründedir ve hepsi [three.js örnek deposundan](
 - `Bride.glb`: yüzlü kadın modeli (three.js `female02`). Elbisesi beyaza çevrilmiş, üzerine uzun etek, duvak ve buket eklenmiştir. İskeleti yoktur, yerinde durur.
 - `Horse.glb`: dörtnala koşan at (Mirada, ro.me).
 
-Bilinen sınırlar: halaycıların hepsi aynı erkek modelidir (yalnızca kıyafet rengi ve başının üstündeki profil fotoğrafı farklıdır), at modeli düşük poligonludur. Ticari yayında kullanmadan önce modellerin kullanım koşullarını kontrol edin. Kendi modelinizi kullanmak için aynı kemik adlarına (`Hips`, `Spine`, `LeftArm`, `LeftUpLeg`…) sahip bir `.glb` dosyasını `Groom.glb` yerine koyun.
+Her izleyicinin karakteri kimliğinden türetilir ve hep aynı kalır: ceket ve pantolon rengi, fötr / kasket / fes / saç / kel, bıyıklı ya da bıyıksız, ten rengi, boy ve kilo farklıdır. Bilinen sınırlar: hepsi aynı erkek yüz modelinden üretilir ve halayda kadın karakter yoktur (hareket ettirilebilen uygun bir kadın modeli bulunamadı); at modeli düşük poligonludur. Ticari yayında kullanmadan önce modellerin kullanım koşullarını kontrol edin. Kendi modelinizi kullanmak için aynı kemik adlarına (`Hips`, `Spine`, `LeftArm`, `LeftUpLeg`…) sahip bir `.glb` dosyasını `Groom.glb` yerine koyun.
 
 Three.js kütüphanesi CDN'den yüklenir, bu yüzden overlay'in açıldığı bilgisayarda internet gerekir. OBS tarayıcı kaynağında donanım hızlandırma açık olmalıdır.
 
