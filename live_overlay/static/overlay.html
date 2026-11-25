@@ -218,8 +218,9 @@ if (HAS3D) {
     renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     const loader = new THREE.GLTFLoader(), fail = () => { glError = '3B modeller yüklenemedi'; };
-    loader.load('models/Horse.glb', g => { assets.horse = g; }, undefined, fail);
-    loader.load('models/Xbot.glb', g => { assets.bot = g; }, undefined, fail);
+    const ext = window.LIVE_SERVER ? '' : '.wasm'; // sunucusuz önizleme barındırıcısı .glb sunmadığı için aynı dosya orada farklı uzantıyla durur
+    loader.load('models/Horse.glb' + ext, g => { assets.horse = g; }, undefined, fail);
+    loader.load('models/Xbot.glb' + ext, g => { assets.bot = g; }, undefined, fail);
   } catch (e) { glError = 'Bu tarayıcıda WebGL açılamadı'; }
 }
 const ready = () => renderer && assets.horse && assets.bot;
