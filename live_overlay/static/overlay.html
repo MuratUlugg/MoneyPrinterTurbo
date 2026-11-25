@@ -720,7 +720,13 @@ const race = {
     this.scene = s; this.sun = sun; this.cam = camera(36, 5, 4.6, 14, 0, 1, 0);
     const w = this.world = new THREE.Group(); s.add(w);
     const grass = mesh(new THREE.PlaneGeometry(400, 160), std('#fff', { map: speckTex('#3f9a3c', ['#2f7f2e', '#56b04a', '#3a8a35'], 900, 100, 40), roughness: 1 }), 0, 0, 0, false); grass.rotation.x = -Math.PI / 2; w.add(grass);
-    const dirt = mesh(new THREE.PlaneGeometry(400, 13.4), std('#fff', { map: speckTex('#a9794c', ['#8f623a', '#c0905f', '#7b532f'], 700, 100, 3), roughness: 1 }), 0, .02, 0, false); dirt.rotation.x = -Math.PI / 2; w.add(dirt);
+    // kum pist: ince taneli doku, tırmık izleri ve kulvar çizgileri (doku 4 birimde bir tekrarlar; zemin 8'er kayarken sıçrama görünmez)
+    const sand = canvasTex(512, 512, (g, w, h) => { g.fillStyle = '#9a6a3a'; g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 9000; i++) { g.fillStyle = ['#875a2e', '#b07f4c', '#7a4f27', '#bb8c58'][i % 4]; g.globalAlpha = rand(.2, .6); g.fillRect(rand(w), rand(h), rand(1, 3), rand(1, 3)); }
+      g.globalAlpha = .1; g.strokeStyle = '#6e4a26'; g.lineWidth = 2; for (let y = 6; y < h; y += 13) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+      g.globalAlpha = .13; g.fillStyle = '#5c3c1e'; for (let i = 0; i < 26; i++) { g.beginPath(); g.ellipse(rand(w), rand(h), rand(5, 9), rand(3, 5), 0, 0, TAU); g.fill(); } }, 100, 3.35); // toynak izleri
+    const dirt = mesh(new THREE.PlaneGeometry(400, 13.4), std('#fff', { map: sand, roughness: 1 }), 0, .02, 0, false); dirt.rotation.x = -Math.PI / 2; w.add(dirt);
+    for (let l = 1; l < 8; l++) { const ln = mesh(new THREE.PlaneGeometry(400, .05), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .22 }), 0, .03, (l - 4) * LANE, false); ln.rotation.x = -Math.PI / 2; w.add(ln); }
     const white = std('#f4f4f4', { roughness: .5 });
     for (const z of [-6.9, 6.9]) { w.add(mesh(new THREE.BoxGeometry(400, .09, .09), white, 0, 1.0, z));
       const posts = new THREE.InstancedMesh(new THREE.BoxGeometry(.09, 1, .09), white, 100), m = new THREE.Matrix4();
