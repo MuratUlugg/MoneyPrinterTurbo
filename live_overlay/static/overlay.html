@@ -50,8 +50,12 @@ const W = 1080, H = 1920, TAU = Math.PI * 2;
 const VX = 40, VY = 430, VW = 1000, VH = 900; // 3B pencerenin 2B katmandaki yeri
 const qs = new URLSearchParams(location.search);
 const DEMO = !window.LIVE_SERVER || qs.get('demo') === '1';
-const num = (k, d) => { const v = parseFloat(qs.get(k)); return v > 0 ? v : d; };
+const LS = window.LIVE_SETTINGS || {}; // panelden kaydedilen ayarlar (sunucu sayfaya gömer); adres çubuğu bunların üstüne yazar
+const num = (k, d) => { const v = parseFloat(qs.get(k)); if (v > 0) return v; const s = parseFloat(LS[k]); return s > 0 ? s : d; };
+const opt = (k, d) => qs.has(k) ? qs.get(k) : (LS[k] !== undefined && LS[k] !== '' ? LS[k] : d);
+const MODE_NAMES = { halay: 'Düğün Halayı', race: 'At Yarışı', taki: 'Takı Töreni', tug: 'Çay mı Kahve mi', karpuz: 'Karpuz Patlatma' };
 // Ayarlar URL ile değiştirilebilir: /overlay?goal=500&taki=1000&halay=600
+const clamp0 = v => Math.max(0, Math.min(16, Math.round(parseFloat(v) || 0)));
 const CFG = {
   goal: num('goal', 300),        // at yarışı: finiş için gereken jeton
   halay: num('halay', 400),      // halay: coşkuyu doldurmak için gereken jeton
@@ -60,7 +64,8 @@ const CFG = {
   karpuzMin: num('karpuzMin', 120), karpuzMax: num('karpuzMax', 450),
   orta: num('orta', 100),        // halay: tek hediyede bu kadar jeton 'ortaya çıkarır'
   hedef: num('hedef', 2000),     // yayın hedefi (toplam jeton); dolunca ikiye katlanır
-  konuk: Math.round(num('konuk', 6)), // salonda hazır oturan adsız konuk sayısı (en çok 16)
+  konuk: clamp0(opt('konuk', 6)),    // salonda hazır oturan adsız konuk sayısı (0-16)
+  anonsMin: num('anonsMin', 10), // sesli anons için en az jeton
   bahsis: num('bahsis', 30),     // halay: davulcuya bahşiş sayılan tek hediye
   buyuk: num('buyuk', 100),      // bu kadar jetonluk tek hediye 'büyük hediye' gösterisi açar
 };
@@ -122,6 +127,8 @@ function player(u) {
   let p = players.get(id);
   if (!p) { p = { id, name: 'Anonim', hue: hash(id) % 360, total: 0, img: null }; p.color = `hsl(${p.hue} 82% 56%)`; players.set(id, p); }
   if (u.name) p.name = String(u.name);
+  p.seen = T;
+  if (players.size > 3000) for (const [k, v] of players) { if (!v.total && T - v.seen > 300) players.delete(k); if (players.size <= 2000) break; } // hediye göndermemiş, 5 dk'dır görünmeyenleri at
   if (!p.img && typeof u.avatar === 'string' && /^https:\/\//.test(u.avatar)) {
     p.img = new Image(); p.img.referrerPolicy = 'no-referrer'; p.img.src = u.avatar;
   }
@@ -154,7 +161,7 @@ function drawParts(dt) {
   ctx.globalAlpha = 1;
 }
 
-const snd = { on: qs.get('ses') === '1', ctx: null,
+const snd = { on: String(opt('ses', '')) === '1' || opt('ses', false) === true, ctx: null,
   ac() { if (!this.on) return null; try { this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); } catch (e) { this.on = false; } return this.ctx; },
   tone(f0, f1, dur, vol, type = 'sine') { const c = this.ac(); if (!c) return; const o = c.createOscillator(), g = c.createGain(), t = c.currentTime;
     o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur); o.connect(g).connect(c.destination); o.start(t); o.stop(t + dur); },
@@ -185,13 +192,23 @@ const alerts = []; let alertCur = null;
 const TIERS = [{ min: 0, name: '' }, { min: 10, name: 'Bronz', color: '#e0935a' }, { min: 100, name: 'Gümüş', color: '#d7dbe6' }, { min: 500, name: 'Altın', color: '#ffd23f' }, { min: 2000, name: 'Elmas', color: '#6ee7ff' }];
 const tierOf = total => TIERS.filter(t => total >= t.min).pop();
 const combo = { n: 0, t: 0 }, comboMult = () => 1 + Math.min(Math.max(combo.n - 1, 0), 10) * .1;
-const bigs = []; let session = 0, goal = CFG.hedef, champion = null;
+const bigs = []; let session = 0, goal = CFG.hedef, champion = null, program = null;
 const leader = () => [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total)[0] || null;
-function pushAlert(p, line, sub = '') {
+function pushAlert(p, line, sub = '', icon = null) {
   const last = alerts[alerts.length - 1];
   if (alerts.length > 30) alerts.shift();
-  if (!(last && last.p === p && last.line === line)) alerts.push({ p, line, sub, t: 0 });
+  if (!(last && last.p === p && last.line === line)) alerts.push({ p, line, sub, icon, t: 0 });
 }
+// hediye görselleri (TikTok'un kendi ikonları) ve bu yayında görülen hediyelerin listesi
+const giftImgs = new Map(); let catalog = [];
+function giftImg(url) { if (typeof url !== 'string' || !/^https:\/\//.test(url)) return null; let im = giftImgs.get(url); if (!im) { im = new Image(); im.referrerPolicy = 'no-referrer'; im.src = url; giftImgs.set(url, im); } return im; }
+const drawIcon = (im, x, y, size) => { if (im && im.complete && im.naturalWidth) ctx.drawImage(im, x - size / 2, y - size / 2, size, size); };
+const giftFor = min => catalog.find(g => g.diamonds >= min && g.diamonds < min * 3); // eşiğe en yakın gerçek hediye
+// sesli anons: metni sunucu seslendirir; sırayla çalınır, yığılırsa eskiler atlanır
+const voice = { q: [], busy: false, last: -9,
+  say(text) { if (!LS.anons || !window.LIVE_SERVER || this.q.length > 2) return; this.q.push(text); this.next(); },
+  next() { if (this.busy || !this.q.length) return; this.busy = true; const a = new Audio('/api/tts?text=' + encodeURIComponent(this.q.shift())), done = () => { this.busy = false; this.next(); };
+    a.onended = done; a.onerror = done; a.play().catch(done); } };
 function drawAlerts(dt) {
   if (!alertCur && alerts.length) alertCur = alerts.shift();
   if (!alertCur) return;
@@ -206,6 +223,7 @@ function drawAlerts(dt) {
   text(fit(a.p.name, 590, 38), x + 144, 1510, 38, '#fff', 'left', 6);
   text(fit(a.line, 590, 32), x + 144, 1550, 32, C.yellow, 'left', 6);
   if (a.sub) text(fit(a.sub, 590, 25), x + 144, 1588, 25, C.cyan, 'left', 5);
+  drawIcon(a.icon, x + 800, 1546, 110);
   ctx.globalAlpha = 1;
 }
 function drawHeader() {
@@ -216,11 +234,19 @@ function drawHeader() {
   // hediye menüsü: ne gönderirsen ekranda ne olur (ikişer ikişer döner)
   const m = mode.menu, pages = Math.ceil(m.length / 2), pg = Math.floor(T / 4) % pages, ph = (T / 4) % 1, pair = m.slice(pg * 2, pg * 2 + 2);
   ctx.globalAlpha = clamp(Math.min(ph * 8, (1 - ph) * 8), 0, 1);
-  setFont(27); const ws = pair.map(c => ctx.measureText(c[0] + '  ' + c[1]).width + 44), tot = ws.reduce((a, b) => a + b, 0) + (pair.length - 1) * 16; let cx = 540 - tot / 2;
-  pair.forEach((c, i) => { panel(cx, 332, ws[i], 44, 22, 'rgba(10,6,30,.8)'); setFont(27); const w0 = ctx.measureText(c[0] + '  ').width;
-    text(c[0], cx + 22, 355, 27, C.yellow, 'left'); text(c[1], cx + 22 + w0, 355, 27, '#fff', 'left'); cx += ws[i] + 16; });
+  // eşik yazan kartlarda, bu yayında görülen ve o eşiği karşılayan gerçek hediyenin adı ve ikonu gösterilir ("Donut 30+")
+  const cards = pair.map(c => { const mm = /^(?:🌹|💎) (\d+)\+$/.exec(c[0]), g = mm && giftFor(+mm[1]); return g ? { a: `${g.name} ${mm[1]}+`, b: c[1], im: giftImg(g.image) } : { a: c[0], b: c[1], im: null }; });
+  let fs = 30, ws, tot; do { setFont(fs); ws = cards.map(c => ctx.measureText(c.a + '  ' + c.b).width + 44 + (c.im ? 40 : 0)); tot = ws.reduce((a, b) => a + b, 0) + (cards.length - 1) * 14; } while (tot > 1040 && --fs > 18);
+  let cx = 540 - tot / 2;
+  cards.forEach((c, i) => { panel(cx, 330, ws[i], 48, 24, 'rgba(10,6,30,.8)'); setFont(fs); let tx = cx + 22; if (c.im) { drawIcon(c.im, tx + 16, 354, 38); tx += 40; }
+    const w0 = ctx.measureText(c.a + '  ').width; text(c.a, tx, 355, fs, C.yellow, 'left'); text(c.b, tx + w0, 355, fs, '#fff', 'left'); cx += ws[i] + 14; });
   ctx.globalAlpha = 1;
   bar(190, 384, 700, 36, session / goal, C.pink, C.yellow, `YAYIN HEDEFİ  💎 ${fmt(session)} / ${fmt(goal)}`);
+  if (program) { const left = Math.max(0, Math.ceil(program.until - T)); // otomatik program: sıradaki bölüm
+    text(`Sıradaki: ${MODE_NAMES[program.next] || program.next} · ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`, 540, 232, 26, '#fff', 'center', 6); }
+  if (qs.get('kilavuz') === '1') { // TikTok arayüzünün yaklaşık olarak kapladığı yerler: yerleşimi kontrol etmek için
+    ctx.fillStyle = 'rgba(255,0,0,.28)'; ctx.fillRect(0, 0, W, 210); ctx.fillRect(930, 900, 150, 600); ctx.fillRect(0, 1500, W, 420);
+    text('TikTok üst çubuğu (yaklaşık)', 540, 105, 30); text('sohbet + hediye çubuğu (yaklaşık)', 540, 1710, 30); }
 }
 function drawCombo(dt) {
   combo.t = Math.max(0, combo.t - dt); if (combo.t <= 0) combo.n = 0;
@@ -245,6 +271,7 @@ function drawBig(dt) { // büyük hediye: gönderen birkaç saniye sahnenin yıl
   text(epic ? '🌟 EFSANE HEDİYE 🌟' : '💥 BÜYÜK HEDİYE', 90, -66, 44, '#fff', 'center', 8);
   text(fit(b.p.name, 640, 70), 90, -2, 70, '#fff', 'center', 12);
   text(fit(`${b.name}  ·  💎 ${fmt(b.amount)}`, 640, 42), 90, 70, 42, C.yellow, 'center', 8);
+  drawIcon(b.icon, 400, 0, 120);
   ctx.restore();
 }
 function drawDonors() {
@@ -260,8 +287,9 @@ function drawDonors() {
   });
   // en yakın rakibe kalan fark: sıralamada yükselmek için gereken net miktar
   const all = [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total), turn = Math.floor(T / 4) % Math.max(1, Math.min(all.length - 1, 4)) + 1;
-  if (all.length > 1) text(fit(`🔥 ${all[turn].name}: ${turn}. sıraya 💎 ${fmt(all[turn - 1].total - all[turn].total + 1)} kaldı`, 900, 27), 540, 1640, 27, '#fff', 'center', 6);
-  if (champion) text(fit(`🏆 Son şampiyon: ${champion.name}`, 900, 27), 540, 1678, 27, C.yellow, 'center', 6);
+  const showChamp = champion && (all.length < 2 || Math.floor(T / 4) % 3 === 2);
+  if (showChamp) text(fit(`🏆 Son şampiyon: ${champion.name}`, 900, 25), 540, 1462, 25, C.yellow, 'center', 6);
+  else if (all.length > 1) text(fit(`🔥 ${all[turn].name}: ${turn}. sıraya 💎 ${fmt(all[turn - 1].total - all[turn].total + 1)} kaldı`, 900, 25), 540, 1462, 25, '#fff', 'center', 6);
 }
 
 // =====================================================================
@@ -275,7 +303,7 @@ if (HAS3D) {
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gl'), antialias: true });
     renderer.setPixelRatio(1); renderer.setSize(VW, VH, false);
     renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
-    renderer.shadowMap.enabled = qs.get('kalite') !== 'dusuk'; renderer.shadowMap.type = THREE.PCFSoftShadowMap; // zayıf ekran kartı: ?kalite=dusuk gölgeleri kapatır
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     const loader = new THREE.GLTFLoader(), fail = () => { glError = '3B modeller yüklenemedi'; };
     const ext = window.LIVE_SERVER ? '' : '.wasm'; // sunucusuz önizleme barındırıcısı .glb sunmadığı için aynı dosya orada farklı uzantıyla durur
     loader.load('models/Horse.glb' + ext, g => { assets.horse = g; }, undefined, fail);
@@ -326,6 +354,18 @@ function speckTex(base, specks, n, rx, ry) {
 }
 const std = (color, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color, roughness: .8 }, o));
 function mesh(geo, mat, x = 0, y = 0, z = 0, cast = true) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = cast; m.receiveShadow = true; return m; }
+// ---- kalite: kare hızı düşerse kademe kademe kıs (gölge → çözünürlük → kalabalık) ----
+const SUNS = [], QNAMES = ['yüksek', 'orta', 'düşük', 'en düşük'], QMODE = opt('kalite', 'oto');
+const quality = { level: 0, frames: 0, t: 0, low: 0, fps: 0, maxDancers: 12, maxSeats: 16,
+  set(l) { this.level = l; for (const s of SUNS) s.castShadow = l < 1; if (renderer) renderer.setSize(l >= 2 ? VW * .7 : VW, l >= 2 ? VH * .7 : VH, false);
+    this.maxDancers = l >= 3 ? 8 : 12; this.maxSeats = l >= 3 ? 8 : 16; if (l >= 3 && hall.scene) hall.trim(); },
+  tick(now) { this.frames++; if (!this.t) this.t = now; const el = (now - this.t) / 1000; if (el < 3) return; // gerçek saatle ölç: yavaş makinede oyun saati geri kalır
+    this.fps = this.frames / el; this.frames = 0; this.t = now;
+    if (QMODE === 'oto' && TEST_SPEED === 1 && !document.hidden && el < 6) { this.low = this.fps < 22 ? this.low + 1 : 0; if (this.low >= 2 && this.level < 3) { this.set(this.level + 1); this.low = 0; } }
+    if (sock && sock.readyState === 1) sock.send(JSON.stringify({ type: 'stats', fps: Math.round(this.fps), quality: QNAMES[this.level] }));
+  } };
+let sock = null;
+if (QMODE === 'dusuk') quality.set(2);
 function baseScene(top, bottom, o = {}) {
   const s = new THREE.Scene();
   s.background = canvasTex(4, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, top); gr.addColorStop(1, bottom); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
@@ -333,7 +373,7 @@ function baseScene(top, bottom, o = {}) {
   const sun = new THREE.DirectionalLight(o.sunColor || 0xfff1dc, o.sun === undefined ? 1.25 : o.sun);
   sun.position.set(5, 11, 8); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -.0004;
   const c = sun.shadow.camera, r = o.range || 9; c.left = -r; c.right = r; c.top = r; c.bottom = -r; c.far = 60;
-  s.add(sun); s.add(sun.target);
+  s.add(sun); s.add(sun.target); SUNS.push(sun); if (quality.level >= 1) sun.castShadow = false;
   if (o.fog) s.fog = new THREE.Fog(o.fog, o.fogNear || 25, o.fogFar || 80);
   return { s, sun };
 }
@@ -412,7 +452,7 @@ const hall = {
     // sahne + pankart + balon takı
     s.add(mesh(new THREE.BoxGeometry(8.4, .4, 2.8), ivory, 0, .2, -6.9));
     s.add(mesh(new THREE.BoxGeometry(8.5, .06, 2.9), gold, 0, .41, -6.9));
-    const label = (qs.get('cift') || 'MUTLULUKLAR').slice(0, 28);
+    const label = String(opt('cift', 'MUTLULUKLAR')).slice(0, 28);
     const pank = canvasTex(1024, 180, (g, w, h) => { g.fillStyle = '#fbf6ec'; g.fillRect(0, 0, w, h); g.strokeStyle = '#c9982f'; g.lineWidth = 10; g.strokeRect(10, 10, w - 20, h - 20);
       g.fillStyle = '#a3761a'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '800 96px ' + FONT; let fs = 96; while (g.measureText('♥ ' + label + ' ♥').width > w - 80 && fs > 40) { fs -= 6; g.font = `800 ${fs}px ${FONT}`; } g.fillText('♥ ' + label + ' ♥', w / 2, h / 2 + 6); });
     s.add(mesh(new THREE.PlaneGeometry(5, .88), std('#fff', { map: pank, roughness: .7 }), 0, 4.9, -9.1, false));
@@ -482,7 +522,11 @@ const hall = {
   seed() { for (let i = 0; i < CFG.konuk; i++) this.sit(null); }, // salon boş görünmesin diye adsız konuklar; izleyici gelince yerlerini ona bırakırlar
   sit(p) {
     if (!this.scene || (p && this.seats.some(s => s.g && s.g.p === p))) return;
-    const seat = this.seats.find(s => !s.g) || this.seats.find(s => s.g && !s.g.p) || this.seats.filter(s => s.g).sort((a, b) => a.g.t - b.g.t)[0];
+    if (p && T - (this.lastSit || -9) < .5) return; // kalabalık sohbette saniyede en çok iki yeni misafir: sürekli model üretip takılma yapmasın
+    const pool = this.seats.slice(0, quality.maxSeats);
+    // boş koltuk → adsız konuğun yeri → en az 25 sn oturmuş izleyicinin yeri; hiçbiri yoksa bu kişi ayakta kalır
+    const seat = pool.find(s => !s.g) || pool.find(s => s.g && !s.g.p) || pool.filter(s => s.g && T - s.g.t > 25).sort((a, b) => a.g.t - b.g.t)[0];
+    if (p) this.lastSit = T;
     if (!seat || (!p && seat.g)) return;
     if (seat.g) this.scene.remove(seat.g.a.root);
     const id = p ? p.id : 'konuk' + this.seats.indexOf(seat), a = makeBot(`hsl(${p ? p.hue : hash(id) % 360},${p ? 70 : 35}%,${p ? 60 : 55}%)`, lookOf(id));
@@ -490,6 +534,7 @@ const hall = {
     P(a, 'LeftUpLeg', -1.5, 0, -.08); P(a, 'RightUpLeg', -1.5, 0, .08); P(a, 'LeftLeg', 1.5, 0, 0); P(a, 'RightLeg', 1.5, 0, 0);
     seat.g = { p, a, t: T, ph: rand(TAU) }; this.scene.add(a.root);
   },
+  trim() { this.seats.slice(8).forEach(s => { if (s.g) { this.scene.remove(s.g.a.root); s.g = null; } }); }, // en düşük kalitede yalnızca 8 koltuk
   seatOf(id) { return this.seats.find(s => s.g && s.g.p && s.g.p.id === id); },
   leave(id) { for (const s of this.seats) if (s.g && s.g.p && s.g.p.id === id) { this.scene.remove(s.g.a.root); s.g = null; } },
   clear() { if (!this.scene) return; for (const s of this.seats) if (s.g) { this.scene.remove(s.g.a.root); s.g = null; } this.seed(); },
@@ -526,7 +571,7 @@ const hall = {
 // =====================================================================
 const halay = {
   title: 'DÜĞÜN HALAYI',
-  menu: [['💬 Yorum yaz', 'masana otur'], ['🌹 1+', 'kalk, halaya gir'], [`💎 ${CFG.bahsis}+`, 'davulcuya bahşiş, tempo coşar'], [`💎 ${CFG.orta}+`, 'ortaya çık, para saçılsın'], [`💎 ${CFG.buyuk * 5}+`, 'yer volkanları + çelengin sahnede'], ['👑 En cömert', 'mendilli halay başı']],
+  menu: [['💬 Yorum yaz', 'masana otur'], ['🌹 1+', 'kalk, halaya gir'], [`💎 ${CFG.bahsis}+`, 'davulcuya bahşiş, tempo coşar'], [`💎 ${CFG.orta}+`, 'ortaya çık, para saçılsın'], [`💎 ${CFG.buyuk * 5}+`, 'yer volkanları + çelengin sahnede'], ['➕ Takip et', 'salon seni alkışlar'], ['↗ Paylaş', 'şerefine yer volkanı'], ['👑 En cömert', 'mendilli halay başı']],
   build() {
     this.hall = hall.get(); this.scene = this.hall.scene; this.cam = camera(38, 0, 4.6, 10.5, 0, 1.1, -1.2);
     this.mendil = mesh(new THREE.PlaneGeometry(.26, .26), std('#ffffff', { side: THREE.DoubleSide, roughness: .9 }));
@@ -557,6 +602,7 @@ const halay = {
     }
   },
   like(p, n) { this.cosku = Math.min(99, this.cosku + n * .02); },
+  bonus(n) { this.cosku = Math.min(99, this.cosku + n); }, // takip ve paylaşım coşkuyu artırır
   update(dt) {
     if (!this.locked) this.cosku = Math.max(0, this.cosku - dt * .5);
     this.shown = ease(this.shown, this.cosku, dt, 5);
@@ -566,7 +612,10 @@ const halay = {
     if (this.solo && ((this.solo.t -= dt) <= 0 || !this.d.has(this.solo.id))) this.solo = null;
     if (!this.solo && this.soloQ.length) { const id = this.soloQ.shift(); if (this.d.has(id)) { this.solo = { id, t: 8 }; floater('ORTAYA! 💸', 540, 760, C.yellow, 90); } }
     if (this.solo && (this.rainT -= dt) <= 0) { this.rainT = .09; spawn({ kind: 'text', text: Math.random() < .5 ? '💵' : '💸', x: rand(260, 820), y: 470, vx: rand(-40, 40), vy: rand(160, 320), g: 120, life: 2.2, size: rand(44, 64) }); }
-    const ring = this.list.filter(d => !(this.solo && this.solo.id === d.p.id)).slice(0, 12), n = ring.length;
+    const real = this.list.filter(d => !(this.solo && this.solo.id === d.p.id)).slice(0, quality.maxDancers);
+    // pist boş kalmasın: gerçek halaycı 4'ten azsa adsız konuklar halayı sürdürür (adları, fotoğrafları, hediyeleri yoktur)
+    this.ghosts = this.ghosts || [0, 1, 2, 3].map(i => ({ p: { id: 'halay-konuk' + i, name: '', hue: 200 + i * 37, total: 0 }, ghost: true, v: -1, ang: null, pos: [0, 0] }));
+    const ring = real.concat(this.ghosts.slice(0, Math.max(0, 4 - real.length))), n = ring.length;
     const R = this.R = Math.max(2.05, n * 1.08 / TAU), da = 1.08 / R;
     this.vis = ring.slice();
     ring.forEach((d, i) => { const ta = this.rot + ((n - 1) / 2 - i) * da;
@@ -601,16 +650,17 @@ const halay = {
     this.dir.update(dt, this.cam, { p: [Math.sin(T * .17) * 1.6, 2.05, 4.3 + this.zoom * 2.0], l: [0, 1.3, -.5] });
   },
   draw() {
-    if (!this.list.length) bar(140, 452, 800, 70, 0, C.cyan, C.pink, 'İlk hediyeyle halayı sen başlat! 🥁');
+    if (!this.list.length) bar(140, 452, 800, 70, 0, C.cyan, C.pink, 'Pist seni bekliyor: ilk Gülü at, halaya gir! 🥁');
     if (this.built) this.hall.draw(this.cam);
     if (this.built) [...(this.vis || [])].sort((a, b) => a.pos[1] - b.pos[1]).forEach(d => {
+      if (d.ghost) return;
       const [x, y] = proj(this.cam, d.pos[0], 2.12, d.pos[1]), lead = d.slot === 0, solo = d.slot < 0;
       avatar(d.p, x, y, solo ? 40 : 27, lead || solo ? C.yellow : '#fff');
       if (lead) text('👑', x, y - 46, 38);
       text(fit(d.p.name, 120, 21), x, y + (solo ? 58 : 42), 21, '#fff', 'center', 5);
       if (d.plus) { ctx.globalAlpha = 1 - d.plus.t; text('+' + fmt(d.plus.a), x, y - 70 - d.plus.t * 50, 38, C.cyan, 'center', 8); ctx.globalAlpha = 1; }
     });
-    const extra = this.list.length - (this.vis || []).length;
+    const extra = this.list.length - (this.vis || []).filter(d => !d.ghost).length;
     if (extra > 0) text(`+${extra} kişi sırada · öne geçmek için hediye gönder`, 540, 1218, 26, '#fff', 'center', 6);
     bar(120, 1246, 840, 62, this.shown / 100, C.cyan, C.pink, this.locked ? 'COŞKU TAVAN! 🔥' : `COŞKU  %${Math.floor(this.shown)}`);
   },
@@ -956,7 +1006,12 @@ function setMode(name) {
 function giveToMode(p, a, raw) { if (mode.locked) pending.push([p, a, raw]); else mode.gift(p, a, raw); }
 function onEvent(ev) {
   if (!ev || typeof ev !== 'object') return;
-  if (ev.type === 'state') return setMode(qs.get('mode') || ev.mode);
+  if (ev.type === 'state') { program = ev.program ? { next: ev.program.next, until: T + ev.program.sec } : null; return setMode(qs.get('mode') || ev.mode); }
+  if (ev.type === 'reload') return location.reload();
+  if (ev.type === 'round') { timers = []; pending = []; cel = null; mode.reset(); return; }
+  if (ev.type === 'restore') { // sunucudaki defterden sıralamayı, seviyeleri ve yayın hedefini geri kur
+    for (const u of ev.users || []) player(u).total = u.total;
+    session = ev.total || 0; goal = CFG.hedef; while (session >= goal) goal *= 2; catalog = ev.catalog || []; return; }
   if (ev.type === 'reset') { timers = []; pending = []; cel = null; players.clear(); session = 0; goal = CFG.hedef; champion = null; combo.n = combo.t = 0; bigs.length = 0; hall.clear(); mode.reset(); return; }
   const p = player(ev.user);
   if (ev.type !== 'gift' && mode.hall && !(mode === halay && halay.d.has(p.id))) hall.sit(p);
@@ -967,9 +1022,13 @@ function onEvent(ev) {
     const tier = tierOf(p.total), next = TIERS[TIERS.indexOf(tier) + 1];
     // Kombo: 8 sn içinde art arda gelen hediyeler oyundaki etkiyi artırır (gerçek jeton sayısı değişmez)
     combo.n = combo.t > 0 ? combo.n + 1 : 1; combo.t = 8;
-    pushAlert(p, `${count > 1 ? count + '× ' : ''}${g.name || 'Hediye'} gönderdi  💎${fmt(amount)}`, next ? `${next.name} seviyesine 💎 ${fmt(next.min - p.total)} kaldı` : 'En üst seviye: Elmas 💎');
+    const icon = giftImg(g.image), back = ev.user && ev.user.alltime > 0 && !p.welcomed; p.welcomed = true;
+    if (g.name && !catalog.some(c => c.name === g.name)) { catalog.push({ name: g.name, diamonds: g.diamonds || 1, image: g.image || '' }); catalog.sort((a, b) => a.diamonds - b.diamonds); }
+    pushAlert(p, `${count > 1 ? count + '× ' : ''}${g.name || 'Hediye'} gönderdi  💎${fmt(amount)}`,
+      back ? `Tekrar hoş geldin! Tüm yayınlarda 💎 ${fmt(ev.user.alltime + p.total)}` : next ? `${next.name} seviyesine 💎 ${fmt(next.min - p.total)} kaldı` : 'En üst seviye: Elmas 💎', icon);
+    if (amount >= CFG.anonsMin) voice.say(amount >= CFG.buyuk ? `Büyük hediye! ${p.name}, ${g.name || 'hediye'} gönderdi. Çok teşekkürler!` : `${p.name}, ${count > 1 ? count + ' tane ' : ''}${g.name || 'hediye'} gönderdi.`);
     if (tier !== before && tier.min >= 100) { floater(`${p.name}: ${tier.name} seviye!`, 540, 1100, tier.color, 50); }
-    if (amount >= CFG.buyuk) { bigs.push({ p, amount, name: g.name || 'Hediye', t: 0 }); hall.cheer = 1.5; if (amount >= CFG.buyuk * 5) hall.boom(4); }
+    if (amount >= CFG.buyuk) { bigs.push({ p, amount, name: g.name || 'Hediye', icon, t: 0 }); hall.cheer = 1.5; if (amount >= CFG.buyuk * 5) hall.boom(4); }
     const lead = leader(); if (leaderBefore && lead !== leaderBefore && lead === p) pushAlert(p, '👑 Liderliği kaptı!', `${leaderBefore.name} geri almak için 💎 ${fmt(p.total - leaderBefore.total + 1)}`);
     if (session >= goal) { floater('YAYIN HEDEFİ TAMAM! 🎉', 540, 600, C.yellow, 70); confetti(120); goal *= 2; }
     giveToMode(p, amount * comboMult(), amount);
@@ -977,8 +1036,8 @@ function onEvent(ev) {
     const n = Math.max(1, ev.count | 0);
     for (let i = 0; i < Math.min(n, 5); i++) spawn({ kind: 'heart', x: rand(880, 1010), y: 1440, vy: rand(-420, -260), life: rand(1.6, 2.6), size: rand(40, 70), rot: rand(TAU), color: [C.pink, '#ff7aa8', C.red][i % 3] });
     if (mode.like && !mode.locked) mode.like(p, n);
-  } else if (ev.type === 'follow') pushAlert(p, 'takip etti ⭐');
-  else if (ev.type === 'share') pushAlert(p, 'yayını paylaştı 🚀');
+  } else if (ev.type === 'follow') { pushAlert(p, 'takip etti ⭐', 'salon alkışlıyor'); hall.cheer = Math.max(hall.cheer, .8); if (mode.bonus) mode.bonus(2); }
+  else if (ev.type === 'share') { pushAlert(p, 'yayını paylaştı 🚀', 'onun şerefine yer volkanı'); hall.boom(1.4); hall.cheer = Math.max(hall.cheer, .8); if (mode.bonus) mode.bonus(4); }
   else if (ev.type === 'comment' && mode.comment) mode.comment(p, String(ev.text || ''));
   if (mode.built && mode.activity) mode.activity(p, ev.type === 'gift' ? 2 : ev.type === 'like' ? 0 : 1);
 }
@@ -991,6 +1050,7 @@ function frame(now) {
   due.forEach(t => t.fn());
   if (!mode.locked && pending.length) { const q = pending; pending = []; q.forEach(([p, a, raw]) => giveToMode(p, a, raw)); }
   if (DEMO) demoTick(dt);
+  quality.tick(now);
   if (ready() && !mode.built) { mode.build(); mode.built = true; }
   mode.update(dt);
   if (mode.built) renderer.render(mode.scene, mode.cam);
@@ -1039,7 +1099,7 @@ if (DEMO) {
 fitStage();
 if (window.LIVE_SERVER) {
   (function connect() {
-    const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+    const ws = sock = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
     ws.onmessage = m => { try { onEvent(JSON.parse(m.data)); } catch (err) { console.error(err); } };
     ws.onclose = () => setTimeout(connect, 2000);
   })();

@@ -13,20 +13,33 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any, Optional
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from . import store
+
 STATIC_DIR = Path(__file__).parent / "static"
 MODES = ("halay", "race", "taki", "tug", "karpuz")
-HTML_PREFIX = '<!doctype html><html lang="tr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script>window.LIVE_SERVER=1</script>'
+HTML_PREFIX = '<!doctype html><html lang="tr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+# Overlay kütüphaneleri internetten değil yerel kopyadan yüklenir: CDN erişilemese de sahne açılır.
+CDN_TO_LOCAL = {
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js": "vendor/three.min.js",
+    "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js": "vendor/GLTFLoader.js",
+    "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js": "vendor/SkeletonUtils.js",
+}
+
+settings: dict[str, Any] = store.load_settings(MODES)
+ledger = store.Ledger()
 
 
 class Hub:
@@ -38,6 +51,9 @@ class Hub:
         self.tiktok_user: str = ""
         self.tiktok_status: str = "disconnected"  # disconnected | connecting | connected | error
         self.tiktok_error: str = ""
+        self.stats: dict[str, Any] = {}  # overlay'in bildirdiği kare hızı ve kalite
+        self.step = 0                    # otomatik programda kaçıncı adım
+        self.left = 0                    # adımın bitmesine kalan saniye
 
     def state(self) -> dict[str, Any]:
         return {
@@ -49,7 +65,23 @@ class Hub:
                 "status": self.tiktok_status,
                 "error": self.tiktok_error,
             },
+            "settings": settings,
+            "program": self.program(),
+            "stats": self.stats if time.time() - self.stats.get("ts", 0) < 10 else {},
         }
+
+    def program(self) -> Optional[dict[str, Any]]:
+        steps = settings["program"]
+        if not settings["program_on"] or len(steps) < 2:
+            return None
+        return {"next": steps[(self.step + 1) % len(steps)]["mode"], "sec": max(0, self.left)}
+
+    def start_program(self) -> None:
+        """Programı, şu an açık olan modun adımından başlatır."""
+        steps = settings["program"]
+        self.step = next((i for i, st in enumerate(steps) if st["mode"] == self.mode), 0)
+        self.mode = steps[self.step]["mode"]
+        self.left = steps[self.step]["min"] * 60
 
     async def broadcast(self, message: dict[str, Any]) -> None:
         data = json.dumps(message, ensure_ascii=False)
@@ -69,6 +101,22 @@ class Hub:
 
 
 hub = Hub()
+
+
+async def emit(event: dict[str, Any]) -> None:
+    """Bir izleyici olayını denetler, deftere işler ve overlay'e yollar."""
+    user = event.get("user")
+    if user:
+        if user["id"] in settings["gizli"]:
+            user["name"], user["avatar"] = store.SAFE_NAME, ""
+        else:
+            user["name"] = store.clean_name(user["name"], settings["yasak"])
+    kind = event["type"]
+    if kind == "gift" and user:
+        user["alltime"] = ledger.add_gift(user, event["gift"], event["total"], hub.mode)  # önceki yayınlardaki toplamı
+    else:
+        ledger.count(kind, int(event.get("count", 1)) if kind == "like" else 1)
+    await hub.broadcast(event)
 
 
 # ---------------------------------------------------------------------------
@@ -151,6 +199,15 @@ class TikTokBridge:
             await hub.set_status("error", "TikTokLive kurulu değil: pip install TikTokLive")
             return
 
+        sign_key = os.environ.get("TIKTOK_SIGN_API_KEY", "")
+        if sign_key:  # imza servisinin ücretli anahtarı: yoğun kullanımda bağlantı sınırına takılmamak için
+            try:
+                from TikTokLive.client.web.web_settings import WebDefaults
+
+                WebDefaults.tiktok_sign_api_key = sign_key
+            except Exception:
+                pass
+
         while True:
             await hub.set_status("connecting")
             client = TikTokLiveClient(unique_id=f"@{username}")
@@ -166,23 +223,19 @@ class TikTokBridge:
 
             @client.on(LikeEvent)
             async def _on_like(event: Any) -> None:
-                await hub.broadcast(
-                    {"type": "like", "user": _user(event.user), "count": max(1, int(getattr(event, "count", 1) or 1))}
-                )
+                await emit({"type": "like", "user": _user(event.user), "count": max(1, int(getattr(event, "count", 1) or 1))})
 
             @client.on(FollowEvent)
             async def _on_follow(event: Any) -> None:
-                await hub.broadcast({"type": "follow", "user": _user(event.user)})
+                await emit({"type": "follow", "user": _user(event.user)})
 
             @client.on(ShareEvent)
             async def _on_share(event: Any) -> None:
-                await hub.broadcast({"type": "share", "user": _user(event.user)})
+                await emit({"type": "share", "user": _user(event.user)})
 
             @client.on(CommentEvent)
             async def _on_comment(event: Any) -> None:
-                await hub.broadcast(
-                    {"type": "comment", "user": _user(event.user), "text": str(getattr(event, "comment", "") or "")[:200]}
-                )
+                await emit({"type": "comment", "user": _user(event.user), "text": str(getattr(event, "comment", "") or "")[:200]})
 
             error = ""
             try:
@@ -195,6 +248,8 @@ class TikTokBridge:
                     error = f"@{username} şu an canlı yayında değil. Yayın açılınca otomatik bağlanır."
                 elif type(exc).__name__ == "UserNotFoundError":
                     error = f"@{username} bulunamadı. Kullanıcı adını kontrol edin."
+                elif "ratelimit" in type(exc).__name__.lower() or "rate limit" in str(exc).lower():
+                    error = "İmza servisi bağlantı sınırına takıldı. Birkaç dakika bekleyin ya da TIKTOK_SIGN_API_KEY ortam değişkenine anahtar girin."
                 else:
                     error = f"{type(exc).__name__}: {exc}"[:300]
             finally:
@@ -227,7 +282,7 @@ class TikTokBridge:
                 return
 
         diamonds = max(1, int(getattr(gift, "diamond_count", 1) or 1))
-        await hub.broadcast(
+        await emit(
             {
                 "type": "gift",
                 "user": user,
@@ -250,12 +305,17 @@ bridge = TikTokBridge()
 
 app = FastAPI(title="TikTok Live Overlay", docs_url=None, redoc_url=None)
 app.mount("/models", StaticFiles(directory=STATIC_DIR / "models"), name="models")  # 3B modeller
+app.mount("/vendor", StaticFiles(directory=STATIC_DIR / "vendor"), name="vendor")  # three.js yerel kopyası
 
 
 def _page(name: str) -> HTMLResponse:
     # Sayfalar gövde parçası olarak saklanır; doctype burada eklenir.
     body = (STATIC_DIR / name).read_text(encoding="utf-8")
-    return HTMLResponse(HTML_PREFIX + body, headers={"Cache-Control": "no-store"})
+    for cdn, local in CDN_TO_LOCAL.items():
+        body = body.replace(cdn, local)
+    boot = json.dumps(settings, ensure_ascii=False).replace("</", "<\\/")  # ayarlar sayfa açılmadan hazır olsun
+    head = f"{HTML_PREFIX}<script>window.LIVE_SERVER=1;window.LIVE_SETTINGS={boot}</script>"
+    return HTMLResponse(head + body, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -282,14 +342,72 @@ async def set_mode(body: ModeBody) -> dict[str, Any]:
     if body.mode not in MODES:
         raise HTTPException(400, f"Geçersiz mod. Seçenekler: {', '.join(MODES)}")
     hub.mode = body.mode
+    if settings["program_on"]:
+        hub.start_program()
     await hub.broadcast(hub.state())
     return hub.state()
 
 
 @app.post("/api/reset")
 async def reset() -> dict[str, bool]:
+    """Yeni yayın: bu yayının toplamları 'tüm zamanlar'a eklenir, rapor arşivlenir, ekran sıfırlanır."""
+    ledger.new_stream()
     await hub.broadcast({"type": "reset"})
     return {"ok": True}
+
+
+@app.post("/api/round")
+async def round_reset() -> dict[str, bool]:
+    """Yalnızca açık olan turu baştan başlatır; sıralama ve toplamlar kalır."""
+    await hub.broadcast({"type": "round"})
+    return {"ok": True}
+
+
+@app.get("/api/settings")
+async def get_settings() -> dict[str, Any]:
+    return settings
+
+
+@app.post("/api/settings")
+async def post_settings(body: dict[str, Any]) -> dict[str, Any]:
+    was_on = settings["program_on"]
+    settings.update(store.clean_settings(body, MODES, settings))
+    store.save_settings(settings)
+    if settings["program_on"] and not was_on:
+        hub.start_program()
+    await hub.broadcast({"type": "reload"})  # overlay yeni ayarlarla yeniden açılır; sıralama defterden geri gelir
+    await hub.broadcast(hub.state())
+    return settings
+
+
+@app.get("/api/report")
+async def report() -> dict[str, Any]:
+    return ledger.report()
+
+
+@app.get("/api/report.csv", response_class=PlainTextResponse)
+async def report_csv() -> PlainTextResponse:
+    return PlainTextResponse(ledger.report_csv(), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": "attachment; filename=yayin-raporu.csv"})
+
+
+@app.get("/api/tts")
+async def tts(text: str = Query(min_length=1, max_length=120)) -> FileResponse:
+    """Sesli anons: metni Türkçe seslendirir, aynı metni bir daha üretmemek için diske yazar."""
+    if not settings["anons"]:
+        raise HTTPException(404, "Sesli anons kapalı")
+    try:
+        import edge_tts
+    except ImportError:
+        raise HTTPException(503, "edge-tts kurulu değil: pip install edge-tts")
+    path = store.DATA_DIR / "tts" / (hashlib.sha1(text.encode("utf-8")).hexdigest() + ".mp3")
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            await asyncio.wait_for(edge_tts.Communicate(text, "tr-TR-AhmetNeural", rate="+8%").save(str(path)), timeout=8)
+        except Exception as exc:
+            path.unlink(missing_ok=True)
+            raise HTTPException(502, f"Seslendirme yapılamadı: {type(exc).__name__}")
+    return FileResponse(path, media_type="audio/mpeg")
 
 
 class ConnectBody(BaseModel):
@@ -320,7 +438,7 @@ class SimulateBody(BaseModel):
 @app.post("/api/simulate")
 async def simulate(body: SimulateBody) -> dict[str, bool]:
     """Panelden test olayı gönderir (TikTok bağlantısı gerekmez)."""
-    user = {"id": "sim:" + body.name.lower(), "name": body.name, "avatar": ""}
+    user: dict[str, Any] = {"id": "sim:" + body.name.lower(), "name": body.name, "avatar": ""}
     if body.type == "gift":
         event: dict[str, Any] = {
             "type": "gift",
@@ -336,7 +454,7 @@ async def simulate(body: SimulateBody) -> dict[str, bool]:
         event = {"type": body.type, "user": user}
     else:
         raise HTTPException(400, "Geçersiz olay türü")
-    await hub.broadcast(event)
+    await emit(event)
     return {"ok": True}
 
 
@@ -346,12 +464,48 @@ async def ws_endpoint(ws: WebSocket) -> None:
     hub.clients.add(ws)
     try:
         await ws.send_text(json.dumps(hub.state(), ensure_ascii=False))
+        await ws.send_text(json.dumps(ledger.snapshot(), ensure_ascii=False))  # sıralamayı geri kur
         while True:
-            await ws.receive_text()  # istemciden veri beklenmez; bağlantıyı açık tutar
+            raw = await ws.receive_text()
+            try:  # overlay birkaç saniyede bir kare hızını bildirir
+                msg = json.loads(raw)
+                if msg.get("type") == "stats":
+                    hub.stats = {"fps": float(msg.get("fps", 0)), "quality": str(msg.get("quality", ""))[:12], "ts": time.time()}
+            except (ValueError, TypeError, AttributeError):
+                pass
     except WebSocketDisconnect:
         pass
     finally:
         hub.clients.discard(ws)
+
+
+async def _ticker() -> None:
+    """Saniyede bir: defteri diske yazar ve otomatik programı ilerletir."""
+    n = 0
+    while True:
+        await asyncio.sleep(1)
+        n += 1
+        if n % 3 == 0:
+            ledger.save()
+        steps = settings["program"]
+        if settings["program_on"] and len(steps) > 1:
+            hub.left -= 1
+            if hub.left <= 0:
+                hub.step = (hub.step + 1) % len(steps)
+                hub.mode, hub.left = steps[hub.step]["mode"], steps[hub.step]["min"] * 60
+                await hub.broadcast(hub.state())
+
+
+@app.on_event("startup")
+async def _startup() -> None:
+    if settings["program_on"]:
+        hub.start_program()
+    app.state.ticker = asyncio.create_task(_ticker())
+
+
+@app.on_event("shutdown")
+async def _shutdown() -> None:
+    ledger.save(force=True)
 
 
 def main() -> None:

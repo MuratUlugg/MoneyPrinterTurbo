@@ -52,8 +52,12 @@ Her modda ayrıca hediye bildirimi, beğeni kalpleri ve takip bildirimi görün�
 
 ## Kurulum
 
+**Kolay yol:** `live_overlay/baslat.bat` (Windows) ya da `live_overlay/baslat.sh` (macOS / Linux) dosyasını çalıştırın. İlk seferde gerekenleri kurar, sonra kontrol panelini tarayıcıda açar. Bilgisayarda Python 3.11 ya da üstü kurulu olmalıdır.
+
+**Elle:**
+
 ```bash
-pip install -r live_overlay/requirements.txt   # fastapi ve uvicorn ana projeyle gelir
+pip install -r live_overlay/requirements.txt
 python -m live_overlay.server --user tiktok_kullanici_adin
 ```
 
@@ -64,18 +68,50 @@ python -m live_overlay.server --user tiktok_kullanici_adin
 
 ## Yayına ekleme
 
-- **OBS**: Kaynak ekle → Tarayıcı → adres `http://127.0.0.1:8765/overlay`, genişlik 1080, yükseklik 1920.
+- **OBS**: Kaynak ekle → Tarayıcı → adres `http://127.0.0.1:8765/overlay`, genişlik 1080, yükseklik 1920. Tarayıcı kaynağında donanım hızlandırma açık olmalı.
 - **TikTok Live Studio**: Kaynak ekle → Bağlantı → aynı adres.
 
-Zemin şeffaftır, kamera görüntüsünün üstüne oturur. Üstteki ve alttaki boşluklar TikTok arayüzü (profil, sohbet) için bırakılmıştır.
+Zemin şeffaftır, kamera görüntüsünün üstüne oturur. Yerleşimi kontrol etmek için adrese `?kilavuz=1` ekleyin: TikTok arayüzünün yaklaşık olarak kapladığı yerler kırmızı gösterilir.
 
-## Yayından önce deneme
+## Kontrol paneli
 
-Paneldeki “Test olayı gönder” bölümü overlay'e sahte hediye, beğeni, takip ve yorum yollar; TikTok'a hiçbir şey gitmez. Sunucusuz hızlı bir bakış için `/overlay?demo=1` adresi rastgele izleyicilerle kendi kendine oynar (bunu yayında kullanmayın).
+- **Sahne:** bölümü değiştirir. “Bu turu baştan başlat” sıralamaya dokunmaz; “Yayını bitir, yenisini başlat” raporu arşivler ve ekranı sıfırlar.
+- **Düğün programı:** bölümleri verdiğiniz sürelerle sırayla kendiliğinden değiştirir (örneğin 10 dk halay, 6 dk takı töreni). Ekranda “Sıradaki: Takı Töreni · 2:15” yazar.
+- **Ayarlar:** tüm eşikler, yayın hedefi, pankart yazısı, ses, kalite. Kaydedince overlay kendiliğinden yenilenir.
+- **Overlay durumu:** overlay'in saniyede kaç kare çizdiğini ve hangi kalitede çalıştığını gösterir.
+- **Yayın raporu:** toplam jeton, hediye gönderen sayısı, kişi başı ortalama, dakika dakika jeton grafiği, bölümlere göre dağılım, en cömertler, CSV indirme.
+- **Tüm zamanlar:** biten yayınların toplamı.
+
+## Güvenilirlik
+
+- **Hiçbir şey kaybolmaz.** Hediyelerin asıl kaydı sunucudadır ve birkaç saniyede bir diske yazılır (`live_overlay/data/`). OBS kaynağı yenilense, overlay çökse ya da sunucu yeniden başlasa bile sıralama, seviyeler, çelenkler ve yayın hedefi geri gelir. Yarım kalan tur (örneğin yarışın o anki durumu) baştan başlar.
+- **Otomatik kalite.** Kare hızı saniyede 22'nin altına düşerse overlay kendini kademe kademe kısar: önce gölgeler, sonra çözünürlük, en son kalabalık. Panelden “hep yüksek” ya da “düşük” de seçilebilir.
+- **Kalabalık yayın.** Masalara saniyede en çok iki yeni misafir oturur ve oturan en az 25 saniye yerinde kalır; izleyici listesi uzun yayında kendini temizler.
+- **İnternetsiz kütüphane.** Three.js yerel kopyadan yüklenir (`static/vendor/`).
+- **Ad denetimi.** Küfür, bağlantı ya da telefon numarası içeren adlar ekranda “Misafir” olur. Kendi yasak kelimelerinizi ve adı gizlenecek kullanıcıları panelden ekleyin.
+- **Bağlantı sınırı.** TikTok bağlantısı üçüncü taraf bir imza servisinden geçer ve yoğun kullanımda sınıra takılabilir. Anahtarınız varsa sunucuyu başlatmadan önce `TIKTOK_SIGN_API_KEY` ortam değişkenine girin.
+
+## Ses
+
+- **Efektler** (panelde “Davul, altın ve alkış sesi”): davul vuruşu, altın şıngırtısı, alkış. Müzik içermez; müziği yayında siz çalarsınız.
+- **Sesli anons** (panelde “Hediyeleri sesli oku”): belirlediğiniz jetonun üstündeki hediyeleri Türkçe okur (“Ayşe, üç tane Gül gönderdi”). `edge-tts` paketi ve internet gerekir; ses dosyaları `data/tts/` klasöründe önbelleğe alınır.
+
+## İlk yayından önce: deneme yayını listesi
+
+1. Sunucuyu başlatın, paneli açın, overlay'i OBS'e ekleyin.
+2. Panelden test hediyeleri gönderin; “Overlay durumu” satırında kare hızına bakın. 40 ve üstü iyi, 24'ün altı takılır.
+3. Adrese `?kilavuz=1` ekleyip önemli yazıların kırmızı bölgelerin dışında kaldığını kontrol edin; telefonda kendi yayınınızı izleyerek doğrulayın.
+4. Kısa, özel bir deneme yayını açın; bir arkadaşınız 1 jetonluk bir hediye ve bir seri hediye göndersin. Ekrandaki ve rapordaki sayının TikTok'taki ile aynı olduğunu doğrulayın.
+5. Yayın sırasında OBS kaynağını bir kez yenileyin; sıralamanın geri geldiğini görün.
+6. “Yayını bitir, yenisini başlat” ile deneme verisini temizleyin.
+
+## Yayından önce deneme (TikTok'suz)
+
+Paneldeki “Test olayı gönder” bölümü overlay'e sahte hediye, beğeni, takip, paylaşım ve yorum yollar; TikTok'a hiçbir şey gitmez. Sunucusuz hızlı bir bakış için `/overlay?demo=1` adresi rastgele izleyicilerle kendi kendine oynar (bunu yayında kullanmayın).
 
 ## Ayarlar
 
-Adrese parametre ekleyin, örnek: `/overlay?goal=500&halay=600`
+Ayarların hepsi panelden yapılır. Aynı adlar adres çubuğundan da verilebilir ve panel ayarının üstüne yazar, örnek: `/overlay?goal=500&halay=600`
 
 | Parametre | Varsayılan | Anlamı |
 | --- | --- | --- |
@@ -90,8 +126,10 @@ Adrese parametre ekleyin, örnek: `/overlay?goal=500&halay=600`
 | `hedef` | 2000 | Yayın hedefi (toplam jeton) |
 | `cift` | MUTLULUKLAR | Sahnedeki pankart yazısı |
 | `konuk` | 6 | Baştan oturan adsız konuk sayısı (en çok 16) |
-| `ses` | kapalı | `ses=1` davul vuruşu, altın şıngırtısı ve alkış sesini açar. Müzik içermez; müziği yayıncı kendi çalar |
-| `kalite` | — | `kalite=dusuk` gölgeleri kapatır (zayıf ekran kartları için) |
+| `ses` | kapalı | Davul vuruşu, altın şıngırtısı ve alkış sesi |
+| `kalite` | oto | `oto` takılırsa kendisi kısar, `yuksek` hiç kısmaz, `dusuk` gölgesiz ve düşük çözünürlükle başlar |
+| `anons` / `anonsMin` | kapalı / 10 | Sesli anons ve okunacak en küçük hediye |
+| `kilavuz` | — | `kilavuz=1` TikTok arayüzünün yaklaşık yerlerini kırmızı gösterir |
 | `mode` | — | Overlay'i tek moda sabitler (tablodaki anahtarlardan biri) |
 
 ## 3B modeller ve lisans
@@ -109,10 +147,6 @@ Modeller `static/models/` klasöründedir:
 **Para kazanmadan önce lisansı çözün.** Bu modeller açık depolardan alınmış örnek dosyalardır; hiçbiri için ticari kullanım izni doğrulanmadı. Ready Player Me avatarlarının ticari kullanımı Ready Player Me'nin kendi koşullarına bağlıdır. Gelir getiren bir yayında kullanmadan önce ya koşulları kendiniz doğrulayın ya da lisansını satın aldığınız / kendi oluşturduğunuz modellerle değiştirin. Değiştirmek kolaydır: aynı kemik adlarına (`Hips`, `Spine`, `LeftArm`, `LeftUpLeg`…) ve `Wolf3D_Outfit_Top` gibi parça adlarına sahip bir `.glb` dosyasını aynı adla klasöre koymak yeterlidir.
 
 Her izleyicinin karakteri kimliğinden türetilir ve hep aynı kalır: üç gövdeden biri (bey, hanım, genç), kıyafet ve elbise rengi, saç rengi, fötr / kasket / fes / saç, bıyık, ten rengi, boy ve kilo. Bilinen sınırlar: aynı gövdeyi alan kişilerin yüzü aynıdır, gelin yerinde durur, at modeli düşük poligonludur.
-
-Salon kalabalıkken ekranda 30 kadar hareketli insan modeli olur. Zayıf ekran kartlarında takılma olursa `konuk=0` ile hazır konukları kapatın.
-
-Three.js kütüphanesi CDN'den yüklenir, bu yüzden overlay'in açıldığı bilgisayarda internet gerekir. OBS tarayıcı kaynağında donanım hızlandırma açık olmalıdır.
 
 ## Bilmeniz gerekenler
 

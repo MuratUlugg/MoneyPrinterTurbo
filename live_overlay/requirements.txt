@@ -1,3 +1,7 @@
-# live_overlay için ek bağımlılıklar (fastapi ve uvicorn ana projede zaten var)
-TikTokLive>=7.0,<8
+# Hediye Arenası'nın tek başına çalışması için gerekenler
+fastapi>=0.110
+uvicorn>=0.30
 websockets>=13
+TikTokLive>=7.0,<8
+# Sesli anons için (isteğe bağlı; kurulmazsa yalnızca anons çalışmaz)
+edge-tts>=7
