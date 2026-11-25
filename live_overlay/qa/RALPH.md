@@ -36,6 +36,7 @@ Bir görüntüde kusur gördüysen ve o turun işi değilse listeye yaz; "sonra 
 - QA kırmızıyken push yok. Testi susturmak, atlamak ya da beklentiyi gevşetmek çözüm değildir.
 - İzleyiciyi yanıltan hiçbir şey eklenmez: sahte bağışçı, sahte geri sayım, sahte "az kaldı", ödüllü şans oyunu yok. Ekrandaki her 💎 gerçek jetondur.
 - Lisansı belirsiz yeni model ya da görsel eklenmez; eklenirse README'deki lisans tablosuna kaynağıyla yazılır.
+- Çekim betiği bir görüntüyü yeniden üretmediyse (çıktıda "çekildi <ad>" satırı yoksa) o görüntü eskidir; ona bakıp karar verilmez. Uzun tek satırlık koda `//` yorumu eklenmez (satırın devamını yutar); `/* */` kullanılır.
 - Doğrulanamayan şey "yapıldı" diye yazılmaz. Göremediysen "gözle doğrulanmadı" de.
 
 ## Durma koşulu

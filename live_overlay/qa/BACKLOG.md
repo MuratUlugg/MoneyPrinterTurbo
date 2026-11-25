@@ -15,7 +15,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - [ ] Takı yokken kurdeleler göğüste boş kırmızı dikdörtgen gibi duruyor; ilk takıya kadar gizlenebilir ya da daha ince olabilir.
 
 ### At yarışı
-- [ ] Finiş anı (takın altından geçiş) hâlâ görüntülenemedi: çekim hep kutlama kartına denk geliyor.
 - [ ] Yakın at planında öndeki kulvardaki at kadrajın altını kaplayabiliyor.
 - [ ] Tribün soluk pastel kutular ve beyaz toplar; seyirci gibi durmuyor. Gökyüzü neredeyse görünmüyor.
 
@@ -62,3 +61,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Pist: iri kareli gürültü yerine ince taneli kum, tırmık izleri ve kulvar çizgileri (görsel: `yaris-1`, `yaris-3` önce/sonra; QA geçti).
 - Büyük hediye bandı sahnenin üstünden başlık bölgesine taşındı; yarışta atları, halayda ortaya çıkanı kapatmıyor. Sol kenarda kesilen at adı fotoğrafın sağına yazılıyor (görsel: `yaris-2-tam-ekran` önce/sonra, `halay-6-tam-ekran`; QA geçti).
 - Yer volkanları: pistin arka kenarına ve sahnenin iki yanına taşındı, kıvılcımlar yumuşak parlak nokta oldu ve sayısı kare hızından bağımsız; ortaya çıkanın arkasında ilk kez görüntülendi (görsel: `halay-6`, `halay-7`; QA geçti).
+- Finiş çekimi: kazanan belli olunca kamera takın önüne geçip atların çizgiye gelişini karşıdan gösteriyor, alt bantta "finişe geliyor"; kutlama kartı ondan sonra çıkıyor (görsel: `yaris-4`, ilk kez yakalandı; QA geçti).

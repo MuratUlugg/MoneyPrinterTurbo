@@ -55,7 +55,7 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
   for (const [i, n] of NAMES.slice(0, 8).entries()) await gift(n, 700 * (i + 1)); // finiş 20.000, kombo en çok 2 kat: en öndeki 11.200'de kalır, yarış bitmez
   await wait(4); await gl('yaris-2-dagilmis'); await full('yaris-2-tam-ekran');
   await wait(3); await gift('Ayşe', 10); await wait(.5); await gl('yaris-3-yakin-at');
-  await wait(4); await gift('Selin', 40000, 1, 'Galaksi'); await wait(.3); await gl('yaris-4-finis');
+  await wait(4); await gift('Selin', 40000, 1, 'Galaksi'); await wait(1.5); /* kazanan takın altından geçerken */ await gl('yaris-4-finis');
   }
   await b.close();
 })();
