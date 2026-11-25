@@ -1,6 +1,6 @@
 # Hediye Arenası — TikTok canlı yayın bağış animasyonları
 
-İzleyicilerin hediye (bağış) göndererek katıldığı, yayına overlay olarak eklenen, Türk düğünü ve kültürü temalı altı etkileşimli animasyon.
+İzleyicilerin hediye (bağış) göndererek katıldığı, yayına overlay olarak eklenen, Türk düğünü ve kültürü temalı altı etkileşimli **3B** animasyon. Sahneler Three.js ile gerçek zamanlı çizilir: ışık, gölge, hareket yakalama ile canlandırılmış at ve insan modelleri.
 
 | Mod | Anahtar | Nasıl oynanır |
 | --- | --- | --- |
@@ -49,6 +49,12 @@ Adrese parametre ekleyin, örnek: `/overlay?goal=500&round=60`
 | `round` | 45 | Çark turunun süresi (saniye) |
 | `karpuzMin` / `karpuzMax` | 120 / 450 | Karpuzun patlayabileceği jeton aralığı |
 | `mode` | — | Overlay'i tek moda sabitler (tablodaki anahtarlardan biri) |
+
+## 3B modeller
+
+- `static/models/Horse.glb` (dörtnala koşan at) ve `static/models/Xbot.glb` (iskeletli insan mankeni) [three.js örnek deposundan](https://github.com/mrdoob/three.js/tree/r128/examples/models/gltf) alınmıştır. At modeli Mirada'nın (ro.me) çalışmasıdır, Xbot ise Mixamo karakteridir. Ticari yayında kullanmadan önce bu modellerin kullanım koşullarını kontrol edin.
+- İnsanlar yüzsüz mankenlerdir; izleyicinin profil fotoğrafı başının üstünde gösterilir. Gerçek kıyafetli, yüzlü karakterler isterseniz aynı Mixamo iskeletine sahip kendi `.glb` modelinizi `Xbot.glb` yerine koymanız yeterlidir (kemik adları `mixamorig…` olmalı).
+- Three.js kütüphanesi CDN'den yüklenir, bu yüzden overlay'in açıldığı bilgisayarda internet gerekir. OBS tarayıcı kaynağında donanım hızlandırma açık olmalıdır.
 
 ## Bilmeniz gerekenler
 

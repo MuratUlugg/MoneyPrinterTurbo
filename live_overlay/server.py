@@ -21,6 +21,7 @@ from typing import Any, Optional
 import uvicorn
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -248,6 +249,7 @@ bridge = TikTokBridge()
 # ---------------------------------------------------------------------------
 
 app = FastAPI(title="TikTok Live Overlay", docs_url=None, redoc_url=None)
+app.mount("/models", StaticFiles(directory=STATIC_DIR / "models"), name="models")  # 3B modeller
 
 
 def _page(name: str) -> HTMLResponse:
