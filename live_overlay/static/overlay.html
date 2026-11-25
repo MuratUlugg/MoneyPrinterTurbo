@@ -683,7 +683,17 @@ const halay = {
 // =====================================================================
 // MOD 2 — AT YARIŞI
 // =====================================================================
-const COATS = ['#ffffff', '#6a5a50', '#ffe2b8', '#3d3530', '#c8a890', '#8f7a6a', '#fff4e0', '#555050'];
+// At donları: [gövde, yele ve kuyruk]. Modelin kendi köşe renkleri tek bir kahverengi olduğu için her at için yeniden boyanır.
+const COATS = [['#8a4a22', '#17110d'], ['#b5622b', '#7a3a16'], ['#c9c9c6', '#55555a'], ['#2a211d', '#0c0a09'], ['#d9a85a', '#f4ead2'], ['#f1ede4', '#d8d2c6'], ['#5a2f18', '#120c08'], ['#c8a878', '#2a1d14']];
+const coatGeo = new Map();
+function horseGeo(src, k) { // köşe rengi koyu olan yerler (yele, kuyruk, toynak) yele rengine, gerisi gövde rengine boyanır; modelin kendi gölgelendirmesi korunur
+  if (coatGeo.has(k)) return coatGeo.get(k);
+  const g = src.clone(), c = g.attributes.color.clone(), a = c.array, n = c.itemSize, body = new THREE.Color(COATS[k][0]).convertSRGBToLinear(), mane = new THREE.Color(COATS[k][1]).convertSRGBToLinear(); // köşe renkleri doğrusal uzayda okunur; çevrilmezse donlar soluk çıkar
+  let lo = 9, hi = 0; for (let i = 0; i < a.length; i += n) { const l = (a[i] + a[i + 1] + a[i + 2]) / 3; lo = Math.min(lo, l); hi = Math.max(hi, l); }
+  for (let i = 0; i < a.length; i += n) { const t = ((a[i] + a[i + 1] + a[i + 2]) / 3 - lo) / (hi - lo || 1), col = t < .3 ? mane : body, sh = t < .3 ? 1 : .8 + t * .35;
+    a[i] = col.r * sh; a[i + 1] = col.g * sh; a[i + 2] = col.b * sh; }
+  g.setAttribute('color', c); coatGeo.set(k, g); return g;
+}
 const LANE = 1.45; // kulvar aralığı: atlar yan yana geldiğinde üst üste binmesin
 const SPAN = 7, SPEED = 9, JY = 1.08; // JY: jokeyin eyer yüksekliği
 const race = {
@@ -727,7 +737,7 @@ const race = {
   },
   gift(p, a) {
     let r = this.r.get(p.id);
-    if (!r) { r = { p, prog: 0, shown: 0, x: this.base, coat: COATS[hash(p.id) % COATS.length], act: null }; this.r.set(p.id, r); }
+    if (!r) { r = { p, prog: 0, shown: 0, x: this.base, coat: -1, act: null }; this.r.set(p.id, r); }
     r.prog += a;
     if (r.prog >= CFG.goal) {
       r.prog = CFG.goal; this.locked = true;
@@ -745,7 +755,8 @@ const race = {
       r.push = r.prog - r.shown; r.shown = ease(r.shown, r.prog, dt, 2.6); r.x = this.base + r.shown / CFG.goal * SPAN;
       if (!this.built) return;
       if (i < 8 && !r.act && this.lanes.length) {
-        const m = assets.horse.scene.children[0].clone(); m.material = m.material.clone(); m.material.color.set(r.coat);
+        const m = assets.horse.scene.children[0].clone(); if (r.coat < 0) { const used = new Set([...this.r.values()].map(o => o.coat)); r.coat = [...COATS.keys()].find(k => !used.has(k)) ?? hash(r.p.id) % COATS.length; } // pistteki atlar birbirinden farklı donda olsun
+        m.geometry = horseGeo(m.geometry, r.coat);
         m.scale.setScalar(.0056); m.rotation.y = Math.PI / 2; m.castShadow = true;
         const mixer = new THREE.AnimationMixer(m); mixer.clipAction(assets.horse.animations[0]).setDuration(.62).play(); mixer.update(rand(.6));
         const col = `hsl(${r.p.hue},90%,52%)`, j = makeBot(col, Object.assign(lookOf(r.p.id), { kind: 2, bottom: '#ffffff', tall: 1, wide: 1 })); j.root.scale.setScalar(.67); j.root.rotation.y = Math.PI / 2;

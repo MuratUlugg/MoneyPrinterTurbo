@@ -25,7 +25,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - [ ] Finiş anı (takın altından geçiş) hâlâ görüntülenemedi: çekim hep kutlama kartına denk geliyor.
 - [ ] Yakın at planında öndeki kulvardaki at kadrajın altını kaplayabiliyor.
 - [ ] Yarışta büyük hediye bandı en uzak kulvarlardaki atları ve etiketleri kapatıyor.
-- [ ] Atların hepsi aynı kahverengi; don rengi çeşitliliği görünmüyor.
 - [ ] Tribün soluk pastel kutular ve beyaz toplar; seyirci gibi durmuyor. Gökyüzü neredeyse görünmüyor.
 - [ ] Pist dokusu iri kareli gürültü.
 
@@ -65,3 +64,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Takılar: göğse gömülü sarı lekeler yerine, çiftin göğsündeki ucu çatallı kırmızı kurdeleye üçer üçer dizilen, değerine göre boyu değişen fiyonklu altınlar; iki kurdele dengeli doluyor (görsel: `taki-3` önce/sonra; QA geçti).
 - At yarışı kadrajı: kulvarlar genişledi, kamera yükseltildi; sekiz at ayrı ayrı görünüyor, her atın adı kendi kulvarında atın arkasında okunuyor (görsel: `yaris-1`, `yaris-2` önce/sonra; QA geçti).
 - Jokey artık eyerde: dizler yukarıda atı kavrıyor, gövde öne eğik, kollar dizginlere uzanıyor, ata göre boyu küçüldü (görsel: `yaris-3` önce/sonra; QA geçti).
+- At donları: doru, al, kır, yağız, kula, beyaz, koyu doru ve bej; yele ve kuyruk ayrı renkte, pistteki atlar birbirinden farklı (görsel: `yaris-1`, `yaris-3` önce/sonra; QA geçti).
