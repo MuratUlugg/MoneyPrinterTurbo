@@ -8,7 +8,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 
 ### Halay
 - [ ] Hanımların hepsi aynı çizme ve aynı saç kesimiyle; yalnızca renk değişiyor.
-- [ ] Yer volkanları 500 jetonluk hediyede kadrajda yok: kamera ortaya çıkana dönüyor, volkanlar sahnenin önünde arkada kalıyor. Ya volkanlar pistin çevresine alınmalı ya kamera önce geniş planda kalmalı.
 - [ ] Davulcu yakın planında komşu halaycıların kolları kadraja giriyor, davul görüntünün üçte birini kaplıyor.
 
 ### Takı töreni
@@ -62,3 +61,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Halay figürü: eller aşağıda ve dirsekler kırık (el ele tutuş), iki vuruşta çök-kalk, omuz silkme; kollar artık T duruşunda değil (görsel: `halay-2` önce/sonra; hareketin kendisi yalnızca durağan karelerde görüldü, videoyla doğrulanmadı; QA geçti).
 - Pist: iri kareli gürültü yerine ince taneli kum, tırmık izleri ve kulvar çizgileri (görsel: `yaris-1`, `yaris-3` önce/sonra; QA geçti).
 - Büyük hediye bandı sahnenin üstünden başlık bölgesine taşındı; yarışta atları, halayda ortaya çıkanı kapatmıyor. Sol kenarda kesilen at adı fotoğrafın sağına yazılıyor (görsel: `yaris-2-tam-ekran` önce/sonra, `halay-6-tam-ekran`; QA geçti).
+- Yer volkanları: pistin arka kenarına ve sahnenin iki yanına taşındı, kıvılcımlar yumuşak parlak nokta oldu ve sayısı kare hızından bağımsız; ortaya çıkanın arkasında ilk kez görüntülendi (görsel: `halay-6`, `halay-7`; QA geçti).

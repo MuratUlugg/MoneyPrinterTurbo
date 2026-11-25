@@ -510,9 +510,9 @@ const hall = {
     // sahne ışıkları (renkli spotlar pistte gezer)
     this.spots = [0xff5aa0, 0x4ad8ff].map((c, i) => { const sp = new THREE.SpotLight(c, 1.1, 22, .34, .7); sp.position.set(i ? 5.5 : -5.5, 6.5, 3); s.add(sp); s.add(sp.target); return sp; });
     // yer volkanları: büyük anlarda sahnenin önünden fışkırır
-    const N = 700, pos = new Float32Array(N * 3).fill(-50); this.fxV = new Float32Array(N * 3); this.fxL = new Float32Array(N); this.fxI = 0; this.fx = 0;
+    const N = 900, pos = new Float32Array(N * 3).fill(-50); this.fxV = new Float32Array(N * 3); this.fxL = new Float32Array(N); this.fxI = 0; this.fx = 0;
     const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    this.sparks = new THREE.Points(pg, new THREE.PointsMaterial({ size: .11, color: 0xffe39a, transparent: true, opacity: .95, blending: THREE.AdditiveBlending, depthWrite: false })); this.sparks.frustumCulled = false; s.add(this.sparks);
+    this.sparks = new THREE.Points(pg, new THREE.PointsMaterial({ size: .22, color: 0xffc85a, map: canvasTex(32, 32, g => { const r = g.createRadialGradient(16, 16, 0, 16, 16, 16); r.addColorStop(0, '#fff'); r.addColorStop(.35, 'rgba(255,220,140,.9)'); r.addColorStop(1, 'rgba(255,180,60,0)'); g.fillStyle = r; g.fillRect(0, 0, 32, 32); }), transparent: true, opacity: .95, blending: THREE.AdditiveBlending, depthWrite: false })); this.sparks.frustumCulled = false; s.add(this.sparks);
     // çelenkler: yayının en cömert üç ismi adına sahnenin önünde durur
     this.wreaths = [0, 1, 2].map(i => { const g = new THREE.Group(), cv = document.createElement('canvas'); cv.width = 256; cv.height = 320;
       const tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding;
@@ -572,8 +572,8 @@ const hall = {
     this.tip = Math.max(0, (this.tip || 0) - dt); this.note.visible = this.tip > 0;
     if ((this.wT = (this.wT || 0) - dt) <= 0) { this.wT = .5; this.wreath([...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3)); }
     // yer volkanları
-    this.fx = Math.max(0, this.fx - dt); const P3 = this.sparks.geometry.attributes.position, A = P3.array, SRC = [[-3.9, -5.6], [-1.9, -5.55], [1.9, -5.55], [3.9, -5.6]];
-    if (this.fx > 0) for (let k = 0; k < 14; k++) { const i = this.fxI = (this.fxI + 1) % this.fxL.length, src = SRC[i % 4]; A[i * 3] = src[0]; A[i * 3 + 1] = .45; A[i * 3 + 2] = src[1];
+    this.fx = Math.max(0, this.fx - dt); const P3 = this.sparks.geometry.attributes.position, A = P3.array, SRC = [[-2.9, -2.2], [-1.2, -3.3], [1.2, -3.3], [2.9, -2.2], [-3.4, -5.6], [3.4, -5.6]]; // pistin arka kenarı (ortaya çıkanın arkasında görünür) + sahnenin iki yanı
+    if (this.fx > 0) for (let k = Math.min(400, Math.ceil(dt * 700)); k > 0; k--) { /* saniyede 700 kıvılcım: kare hızından bağımsız */ const i = this.fxI = (this.fxI + 1) % this.fxL.length, src = SRC[i % 6]; A[i * 3] = src[0]; A[i * 3 + 1] = src[1] < -5 ? .45 : .05; A[i * 3 + 2] = src[1];
       this.fxV[i * 3] = rand(-.7, .7); this.fxV[i * 3 + 1] = rand(4.2, 6.8); this.fxV[i * 3 + 2] = rand(-.7, .7); this.fxL[i] = rand(.7, 1.15); }
     for (let i = 0; i < this.fxL.length; i++) { if (this.fxL[i] <= 0) continue; this.fxL[i] -= dt; if (this.fxL[i] <= 0) { A[i * 3 + 1] = -50; continue; }
       this.fxV[i * 3 + 1] -= 7 * dt; A[i * 3] += this.fxV[i * 3] * dt; A[i * 3 + 1] += this.fxV[i * 3 + 1] * dt; A[i * 3 + 2] += this.fxV[i * 3 + 2] * dt; }
