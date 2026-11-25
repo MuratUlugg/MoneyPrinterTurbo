@@ -10,9 +10,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - [ ] Halaycıların kolları dümdüz yana açık (T duruşu gibi); el ele / omuz omuza tutuş yok, dirsek kırılmıyor.
 - [ ] Hanımların hepsi aynı çizme ve aynı saç kesimiyle; yalnızca renk değişiyor.
 - [ ] Yer volkanları 500 jetonluk hediyede kadrajda yok: kamera ortaya çıkana dönüyor, volkanlar sahnenin önünde arkada kalıyor. Ya volkanlar pistin çevresine alınmalı ya kamera önce geniş planda kalmalı.
-- [ ] **Kasket başın üstünde havada duruyor**, altı kel; şapka başa oturmalı, altından saç görünmeli.
-- [ ] Halay başının mendili yakın planda kocaman, dümdüz beyaz bir levha.
-- [ ] Yakın planda salonun duvarı bitiyor, arkası kapkara boşluk (sol üst).
 - [ ] Büyük hediye bandı, ortaya çıkan kişinin başını kapatıyor.
 - [ ] Davulcu yakın planında komşu halaycıların kolları kadraja giriyor, davul görüntünün üçte birini kaplıyor.
 
@@ -65,3 +62,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Renk uzayı: malzeme renkleri doğrusal uzaya çevriliyor; kıyafetler, halı, pist ve atlar artık pastel değil doygun, kurdele kırmızı (görsel: halay, takı ve yarışın önce/sonra karşılaştırması; QA geçti).
 - Takı kadrajı: geniş açıyla balon takı çifti çerçeveliyor, sahne kırmızı halılı, en cömertler tek satırda ve çiftin ayaklarını kapatmıyor (görsel: `taki-3` önce/sonra; QA geçti).
 - Çiftin duruşu: damat geline dönük, kolları dirsekten kırık ve rahat; gelin hafifçe salınıp nefes alıyor; ikisi birbirine yaklaştı; balonların perdedeki lekeli gölgesi kalktı (görsel: `taki-0` önce/sonra; QA geçti).
+- Halay yakın planı: salon kapalı kutu oldu (ön duvar, tavan), arkada karanlık boşluk yok; kasketin altında saç var ve başa oturuyor; mendil küçük, kırmızı kenarlı ve kıvrımlı (görsel: `halay-3` önce/sonra; QA geçti).

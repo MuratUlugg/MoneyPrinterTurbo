@@ -422,10 +422,10 @@ function makeBot(top, o = {}) {
   const a = { root, b, rest, kind, unit: 1 };
   if (kind === 0) { // takım elbiseli bey: fötr yerine saç, kasket ya da fes
     const hair = () => { const m = mesh(new THREE.SphereGeometry(.111, 18, 12, 0, TAU, 0, Math.PI * .56), std(o.hair || HAIRS[0], { roughness: .95 })); m.position.set(0, .1, -.016); m.rotation.x = -.28; m.scale.z = 1.06; b.Head.add(m); };
-    if (o.head === 'hair' || o.head === 'fes') hair();
+    if (o.head === 'hair' || o.head === 'fes' || o.head === 'kasket') hair(); // şapkanın altı kel kalmasın
     if (o.head === 'fes') { const m = mesh(new THREE.CylinderGeometry(.068, .084, .12, 18), std('#b3161b', { roughness: .6 })); m.position.set(0, .225, -.01); b.Head.add(m); }
-    if (o.head === 'kasket') { const cap = mesh(new THREE.SphereGeometry(.116, 16, 10, 0, TAU, 0, Math.PI * .5), std('#4a4038', { roughness: .9 })); cap.scale.y = .6; cap.position.set(0, .135, 0); b.Head.add(cap);
-      const v = mesh(new THREE.BoxGeometry(.13, .012, .08), std('#3a322c', { roughness: .9 })); v.position.set(0, .135, .115); b.Head.add(v); }
+    if (o.head === 'kasket') { const cap = mesh(new THREE.SphereGeometry(.116, 16, 10, 0, TAU, 0, Math.PI * .5), std('#4a4038', { roughness: .9 })); cap.scale.set(1.04, .72, 1.1); cap.position.set(0, .128, -.008); b.Head.add(cap); // başa oturur: saçın üst yarısını örter
+      const v = mesh(new THREE.BoxGeometry(.13, .012, .08), std('#3a322c', { roughness: .9 })); v.position.set(0, .136, .118); v.rotation.x = .18; b.Head.add(v); }
   }
   root.scale.set(o.wide || 1, o.tall || 1, o.wide || 1);
   return a;
@@ -457,7 +457,10 @@ const hall = {
     const drape = canvasTex(256, 64, (g, w, h) => { for (let x = 0; x < w; x++) { const v = 205 + Math.sin(x / w * TAU * 10) * 40; g.fillStyle = `rgb(${v},${v * .93},${v * .84})`; g.fillRect(x, 0, 1, h); } }, 5, 1);
     const wallM = std('#c9b29c', { map: drape, roughness: .9 });
     s.add(mesh(new THREE.PlaneGeometry(30, 9), wallM, 0, 4.5, -9.2, false));
-    for (const d of [-1, 1]) { const w = mesh(new THREE.PlaneGeometry(26, 9), wallM, d * 9.5, 4.5, 0, false); w.rotation.y = -d * Math.PI / 2; s.add(w);
+    // salon kapalı bir kutudur: yakın planlarda kamera hangi yöne dönerse dönsün arkada karanlık boşluk görünmesin
+    const front = mesh(new THREE.PlaneGeometry(30, 9), wallM, 0, 4.5, 15, false); front.rotation.y = Math.PI; s.add(front);
+    const ceil = mesh(new THREE.PlaneGeometry(30, 26), std('#efe2cf', { roughness: 1 }), 0, 9, 3, false); ceil.rotation.x = Math.PI / 2; s.add(ceil);
+    for (const d of [-1, 1]) { const w = mesh(new THREE.PlaneGeometry(26, 9), wallM, d * 9.5, 4.5, 3, false); w.rotation.y = -d * Math.PI / 2; s.add(w);
       for (let i = 0; i < 4; i++) s.add(mesh(new THREE.PlaneGeometry(.5, 6.5), new THREE.MeshBasicMaterial({ color: [0xff7ab0, 0xffc46b][i % 2], transparent: true, opacity: .28 }), d * (3.4 + i * 1.7), 3.25, -9.1, false)); }
     // sahne + pankart + balon takı
     s.add(mesh(new THREE.BoxGeometry(8.4, .4, 2.8), ivory, 0, .2, -6.9));
@@ -586,7 +589,12 @@ const halay = {
   menu: [['💬 Yorum yaz', 'masana otur'], ['🌹 1+', 'kalk, halaya gir'], [`💎 ${CFG.bahsis}+`, 'davulcuya bahşiş, tempo coşar'], [`💎 ${CFG.orta}+`, 'ortaya çık, para saçılsın'], [`💎 ${CFG.buyuk * 5}+`, 'yer volkanları + çelengin sahnede'], ['➕ Takip et', 'salon seni alkışlar'], ['↗ Paylaş', 'şerefine yer volkanı'], ['👑 En cömert', 'mendilli halay başı']],
   build() {
     this.hall = hall.get(); this.scene = this.hall.scene; this.cam = camera(38, 0, 4.6, 10.5, 0, 1.1, -1.2);
-    this.mendil = mesh(new THREE.PlaneGeometry(.26, .26), std('#ffffff', { side: THREE.DoubleSide, roughness: .9 }));
+    { // mendil: köşesinden tutulan, kırmızı kenarlı küçük bir bez
+      const tex = canvasTex(64, 64, g => { g.fillStyle = '#fff'; g.fillRect(0, 0, 64, 64); g.strokeStyle = '#c1121f'; g.lineWidth = 7; g.strokeRect(4, 4, 56, 56); });
+      const geo = new THREE.PlaneGeometry(.17, .17, 4, 4), pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) pos.setZ(i, Math.sin(pos.getX(i) * 22) * .012 + Math.cos(pos.getY(i) * 18) * .012); // düz levha gibi durmasın
+      geo.computeVertexNormals(); geo.translate(.06, .06, 0);
+      this.mendil = mesh(geo, std('#ffffff', { map: tex, side: THREE.DoubleSide, roughness: .95 })); }
     this.acts = new Map(); this.dir = makeDirector();
   },
   activity(p, pri) { // son hareketi yapan kişiye dön: pistteyse halaycıya, masadaysa masasına
@@ -652,7 +660,7 @@ const halay = {
       if (solo) { arm(a, 'Left', 1.25 + Math.sin(this.ph) * .3, .25); arm(a, 'Right', 1.25 - Math.sin(this.ph) * .3, .25); }
       else { arm(a, 'Left', .15 + Math.abs(k) * .08, 0);
         if (d.slot === 0) { arm(a, 'Right', 1.85 + Math.sin(this.ph * 2) * .25, .2); // halay başı mendil sallar
-          if (this.mendil.parent !== a.b.RightHand) { a.b.RightHand.add(this.mendil); this.mendil.scale.setScalar(a.unit); this.mendil.position.set(0, .2 * a.unit, 0); }
+          if (this.mendil.parent !== a.b.RightHand) { a.b.RightHand.add(this.mendil); this.mendil.scale.setScalar(a.unit); this.mendil.position.set(0, .1 * a.unit, 0); }
           this.mendil.rotation.set(Math.sin(this.ph * 2) * .6, 0, Math.cos(this.ph * 2) * .5);
         } else arm(a, 'Right', .15 + Math.abs(k) * .08, 0); }
     }
