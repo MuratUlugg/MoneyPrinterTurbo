@@ -1,6 +1,6 @@
 # Hediye Arenası — TikTok canlı yayın bağış animasyonları
 
-İzleyicilerin hediye (bağış) göndererek katıldığı, yayına overlay olarak eklenen, Türk düğünü ve kültürü temalı altı etkileşimli **3B** animasyon. Sahneler Three.js ile gerçek zamanlı çizilir: ışık, gölge, hareket yakalama ile canlandırılmış at ve insan modelleri.
+İzleyicilerin hediye (bağış) göndererek katıldığı, yayına overlay olarak eklenen, Türk düğünü ve kültürü temalı beş etkileşimli **3B** animasyon. Sahneler Three.js ile gerçek zamanlı çizilir: ışık, gölge, yüzlü ve kıyafetli insan modelleri, jokeyli atlar.
 
 | Mod | Anahtar | Nasıl oynanır |
 | --- | --- | --- |
@@ -9,7 +9,6 @@
 | **Takı Töreni** | `taki` | Hediyeler altın olup gelinle damada takılır: çeyrek, yarım, tam altın, bilezik, beşi bir yerde. Takı hedefi dolunca en cömert misafir ilan edilir. |
 | **Çay mı Kahve mi?** | `tug` | İzleyici yoruma `çay` ya da `kahve` (veya `1` / `2`) yazar, hediyesiyle halatı kendi tarafına çeker. Seçmeyen zayıf takıma düşer. |
 | **Karpuz Patlatma** | `karpuz` | Her hediye karpuza bir lastik takar. Patlama sınırı gizlidir; patlatan kazanır. |
-| **Kısmet Çarkı** | `wheel` | Hediye gönderen çarka girer, jetonu kadar dilim alır. Süre bitince çark döner. |
 
 Her modda ayrıca hediye bildirimi, beğeni kalpleri, takip bildirimi ve en çok destekleyen üç kişi görünür.
 
@@ -38,7 +37,7 @@ Paneldeki “Test olayı gönder” bölümü overlay'e sahte hediye, beğeni, t
 
 ## Ayarlar
 
-Adrese parametre ekleyin, örnek: `/overlay?goal=500&round=60`
+Adrese parametre ekleyin, örnek: `/overlay?goal=500&halay=600`
 
 | Parametre | Varsayılan | Anlamı |
 | --- | --- | --- |
@@ -46,18 +45,23 @@ Adrese parametre ekleyin, örnek: `/overlay?goal=500&round=60`
 | `halay` | 400 | Halayda coşkuyu doldurmak için gereken jeton |
 | `taki` | 500 | İlk düğünün takı hedefi (her düğünde %50 artar) |
 | `tug` | 300 | Halatı kazanmak için gereken jeton farkı |
-| `round` | 45 | Çark turunun süresi (saniye) |
 | `karpuzMin` / `karpuzMax` | 120 / 450 | Karpuzun patlayabileceği jeton aralığı |
 | `mode` | — | Overlay'i tek moda sabitler (tablodaki anahtarlardan biri) |
 
 ## 3B modeller
 
-- `static/models/Horse.glb` (dörtnala koşan at) ve `static/models/Xbot.glb` (iskeletli insan mankeni) [three.js örnek deposundan](https://github.com/mrdoob/three.js/tree/r128/examples/models/gltf) alınmıştır. At modeli Mirada'nın (ro.me) çalışmasıdır, Xbot ise Mixamo karakteridir. Ticari yayında kullanmadan önce bu modellerin kullanım koşullarını kontrol edin.
-- İnsanlar yüzsüz mankenlerdir; izleyicinin profil fotoğrafı başının üstünde gösterilir. Gerçek kıyafetli, yüzlü karakterler isterseniz aynı Mixamo iskeletine sahip kendi `.glb` modelinizi `Xbot.glb` yerine koymanız yeterlidir (kemik adları `mixamorig…` olmalı).
-- Three.js kütüphanesi CDN'den yüklenir, bu yüzden overlay'in açıldığı bilgisayarda internet gerekir. OBS tarayıcı kaynağında donanım hızlandırma açık olmalıdır.
+Modeller `static/models/` klasöründedir ve hepsi [three.js örnek deposundan](https://github.com/mrdoob/three.js/tree/dev/examples/models) alınmıştır:
+
+- `Groom.glb`: takım elbiseli, papyonlu, yüzlü erkek (Ready Player Me avatarı). Damat, halaycılar, davulcu, zurnacı, halat takımları ve jokeyler bu modelden üretilir; ceket ve pantolon rengi kişiye göre değişir, jokeylere kask takılır.
+- `Bride.glb`: yüzlü kadın modeli (three.js `female02`). Elbisesi beyaza çevrilmiş, üzerine uzun etek, duvak ve buket eklenmiştir. İskeleti yoktur, yerinde durur.
+- `Horse.glb`: dörtnala koşan at (Mirada, ro.me).
+
+Bilinen sınırlar: halaycıların hepsi aynı erkek modelidir (yalnızca kıyafet rengi ve başının üstündeki profil fotoğrafı farklıdır), at modeli düşük poligonludur. Ticari yayında kullanmadan önce modellerin kullanım koşullarını kontrol edin. Kendi modelinizi kullanmak için aynı kemik adlarına (`Hips`, `Spine`, `LeftArm`, `LeftUpLeg`…) sahip bir `.glb` dosyasını `Groom.glb` yerine koyun.
+
+Three.js kütüphanesi CDN'den yüklenir, bu yüzden overlay'in açıldığı bilgisayarda internet gerekir. OBS tarayıcı kaynağında donanım hızlandırma açık olmalıdır.
 
 ## Bilmeniz gerekenler
 
 - TikTok bağlantısı resmî olmayan [TikTokLive](https://github.com/isaackogan/TikTokLive) kütüphanesiyle kurulur. TikTok tarafındaki değişiklikler bağlantıyı geçici olarak bozabilir; böyle bir durumda kütüphaneyi güncelleyin.
 - Sunucu yalnızca kendi bilgisayarınızdan erişilecek şekilde (`127.0.0.1`) açılır ve panelde parola yoktur. `--host 0.0.0.0` ile ağa açarsanız ağdaki herkes modu değiştirebilir ve test olayı gönderebilir.
-- Çekiliş/ödül vaat eden modları (Kısmet Çarkı, Karpuz) kullanırken TikTok'un canlı yayın ve hediye kurallarına uyduğunuzdan emin olun.
+- Çekiliş/ödül vaat eden modları (örneğin Karpuz Patlatma) kullanırken TikTok'un canlı yayın ve hediye kurallarına uyduğunuzdan emin olun.

@@ -36,7 +36,6 @@ html.live body { background: transparent; } /* OBS / Live Studio: şeffaf zemin 
   <button type="button" data-mode="taki">Takı Töreni</button>
   <button type="button" data-mode="tug">Çay mı Kahve mi</button>
   <button type="button" data-mode="karpuz">Karpuz</button>
-  <button type="button" data-mode="wheel">Kısmet Çarkı</button>
   <button type="button" class="go" id="burst">Hediye yağdır</button>
 </div>
 
@@ -51,13 +50,12 @@ const VX = 40, VY = 430, VW = 1000, VH = 900; // 3B pencerenin 2B katmandaki yer
 const qs = new URLSearchParams(location.search);
 const DEMO = !window.LIVE_SERVER || qs.get('demo') === '1';
 const num = (k, d) => { const v = parseFloat(qs.get(k)); return v > 0 ? v : d; };
-// Ayarlar URL ile değiştirilebilir: /overlay?goal=500&taki=1000&round=60
+// Ayarlar URL ile değiştirilebilir: /overlay?goal=500&taki=1000&halay=600
 const CFG = {
   goal: num('goal', 300),        // at yarışı: finiş için gereken jeton
   halay: num('halay', 400),      // halay: coşkuyu doldurmak için gereken jeton
   taki: num('taki', 500),        // takı töreni: ilk düğünün takı hedefi
   tug: num('tug', 300),          // halat: kazanmak için gereken jeton farkı
-  round: num('round', 45),       // çark: tur süresi (sn)
   karpuzMin: num('karpuzMin', 120), karpuzMax: num('karpuzMax', 450),
 };
 const C = { panel: 'rgba(20,15,46,.78)', ink: '#fff', dim: 'rgba(255,255,255,.7)', pink: '#ff3d7f',
@@ -210,7 +208,7 @@ function drawDonors() {
 // =====================================================================
 const THREE = window.THREE, HAS3D = !!(THREE && THREE.GLTFLoader && THREE.SkeletonUtils);
 let renderer = null, glError = HAS3D ? '' : '3B kütüphanesi yüklenemedi (internet bağlantısını kontrol edin)';
-const assets = { horse: null, bot: null };
+const assets = { horse: null, bot: null, bride: null };
 if (HAS3D) {
   try {
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gl'), antialias: true });
@@ -220,10 +218,11 @@ if (HAS3D) {
     const loader = new THREE.GLTFLoader(), fail = () => { glError = '3B modeller yüklenemedi'; };
     const ext = window.LIVE_SERVER ? '' : '.wasm'; // sunucusuz önizleme barındırıcısı .glb sunmadığı için aynı dosya orada farklı uzantıyla durur
     loader.load('models/Horse.glb' + ext, g => { assets.horse = g; }, undefined, fail);
-    loader.load('models/Xbot.glb' + ext, g => { assets.bot = g; }, undefined, fail);
+    loader.load('models/Groom.glb' + ext, g => { assets.bot = g; }, undefined, fail);
+    loader.load('models/Bride.glb' + ext, g => { assets.bride = g; }, undefined, fail);
   } catch (e) { glError = 'Bu tarayıcıda WebGL açılamadı'; }
 }
-const ready = () => renderer && assets.horse && assets.bot;
+const ready = () => renderer && assets.horse && assets.bot && assets.bride;
 const V = HAS3D ? new THREE.Vector3() : null, Q = HAS3D ? new THREE.Quaternion() : null, E = HAS3D ? new THREE.Euler() : null;
 function proj(cam, x, y, z) { V.set(x, y, z).project(cam); return [VX + (V.x + 1) / 2 * VW, VY + (1 - V.y) / 2 * VH]; }
 function canvasTex(w, h, fn, rx = 1, ry = 1) {
@@ -255,19 +254,22 @@ function lights(scene, x0, x1, y, z, n, sag) { // düğün ışıkları
   return list;
 }
 
-// ---- insan modeli (Xbot): kopyala, renklendir, kemikleri elle oynat ----
-function makeBot(color, joint) {
+// ---- insan modeli (takım elbiseli, yüzlü): kopyala, kıyafeti renklendir, kemikleri elle oynat ----
+function makeBot(top, bottom, hat = true) {
   const root = THREE.SkeletonUtils.clone(assets.bot.scene), b = {}, rest = {};
   root.traverse(o => {
-    if (o.isBone) { const k = o.name.replace('mixamorig', ''); b[k] = o; rest[k] = o.quaternion.clone(); }
-    if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; o.material = o.material.clone();
-      o.material.color.set(/Joints/.test(o.material.name) ? (joint || '#2a2233') : color); o.material.roughness = .5; o.material.metalness = .05; }
+    if (o.isBone) { b[o.name] = o; rest[o.name] = o.quaternion.clone(); }
+    if (o.isMesh) { o.castShadow = true; o.frustumCulled = false;
+      if (o.name === 'Wolf3D_Outfit_Top' || o.name === 'Wolf3D_Outfit_Bottom') { o.material = o.material.clone(); o.material.color.set(o.name.endsWith('Top') ? top : (bottom || top)); }
+      if (o.name === 'Wolf3D_Headwear') o.visible = hat; }
   });
   return { root, b, rest };
 }
 function P(a, name, x, y, z) { a.b[name].quaternion.copy(a.rest[name]).multiply(Q.setFromEuler(E.set(x, y, z))); }
 function dispose(scene, a) { if (a) scene.remove(a.root || a.m); }
 // Kol aşağı: Sol kol -z, sağ kol +z. Bacak öne: UpLeg -x. Diz: Leg +x. Öne eğil: Spine +x.
+// Kollar (bu modelde): kaldırmak -x, öne uzatmak solda +z / sağda -z. Duruş A-poz olduğu için 0 = kollar yarı açık.
+function arm(a, side, raise, fwd) { P(a, side + 'Arm', -raise, 0, side === 'Left' ? fwd : -fwd); }
 
 // =====================================================================
 // MOD 1 — DÜĞÜN HALAYI
@@ -285,13 +287,13 @@ const halay = {
     const warm = new THREE.PointLight(0xffb060, .9, 14); warm.position.set(0, 4, -1); s.add(warm);
     // davulcu + zurnacı
     s.add(mesh(new THREE.BoxGeometry(6, 1.0, 2.2), std('#5a2f1c', { roughness: .7 }), 0, .5, -2.9));
-    const dv = this.davulcu = makeBot('#8f1d1d', '#2b0d0d'); dv.root.position.set(-1.4, 1.0, -2.7); s.add(dv.root);
+    const dv = this.davulcu = makeBot('#b05050', '#5a5a66'); dv.root.position.set(-1.4, 1.0, -2.7); s.add(dv.root);
     const drum = new THREE.Group(); drum.add(mesh(new THREE.CylinderGeometry(34, 34, 30, 28), std('#b3261e', { roughness: .5 })));
     for (const y of [-15.5, 15.5]) drum.add(mesh(new THREE.CylinderGeometry(33, 33, 1.5, 28), std('#f3e6cf'), 0, y, 0));
-    drum.rotation.z = Math.PI / 2; drum.position.set(0, 8, 36); dv.b.Hips.add(drum);
-    const zr = this.zurnaci = makeBot('#1f3a6b', '#0f1c33'); zr.root.position.set(1.4, 1.0, -2.7); s.add(zr.root);
-    const zurna = mesh(new THREE.CylinderGeometry(2, 9, 46, 14), std('#7a4a22', { roughness: .45 })); zurna.rotation.x = -Math.PI / 2 + .35; zurna.position.set(0, 4, 30); zr.b.Head.add(zurna);
-    this.mendil = mesh(new THREE.PlaneGeometry(26, 26), std('#ffffff', { side: THREE.DoubleSide, roughness: .9 }));
+    drum.rotation.z = Math.PI / 2; drum.scale.setScalar(.01); drum.position.set(0, .1, .38); dv.b.Hips.add(drum);
+    const zr = this.zurnaci = makeBot('#5a6fb0', '#5a5a66'); zr.root.position.set(1.4, 1.0, -2.7); s.add(zr.root);
+    const zurna = mesh(new THREE.CylinderGeometry(2, 9, 46, 14), std('#7a4a22', { roughness: .45 })); zurna.rotation.x = -Math.PI / 2 + .35; zurna.scale.setScalar(.01); zurna.position.set(0, .0, .32); zr.b.Head.add(zurna);
+    this.mendil = mesh(new THREE.PlaneGeometry(.26, .26), std('#ffffff', { side: THREE.DoubleSide, roughness: .9 }));
     this.acts = new Map();
   },
   reset() {
@@ -329,23 +331,23 @@ const halay = {
     for (const [id, a] of this.acts) if (!vis.has(id)) { dispose(this.scene, a); this.acts.delete(id); }
     this.list.slice(0, 8).forEach((d, i) => {
       let a = this.acts.get(d.p.id);
-      if (!a) { a = makeBot(`hsl(${d.p.hue},90%,42%)`); this.acts.set(d.p.id, a); this.scene.add(a.root); }
+      if (!a) { a = makeBot(`hsl(${d.p.hue},75%,62%)`, '#8a8a99'); this.acts.set(d.p.id, a); this.scene.add(a.root); }
       const k = d.k, up = Math.max(0, k), dn = Math.max(0, -k), first = i === 0;
       a.root.position.set(d.x, Math.abs(k) * .05, 0);
       P(a, 'Spine', .04, 0, Math.sin(this.ph * .5) * .06);
       P(a, 'LeftUpLeg', -up * .95, 0, 0); P(a, 'LeftLeg', up * 1.1, 0, 0);
       P(a, 'RightUpLeg', -dn * .5, 0, 0); P(a, 'RightLeg', dn * .7, 0, 0);
-      P(a, 'RightArm', 0, 0, .78 + Math.abs(k) * .08); P(a, 'RightForeArm', 0, 0, .1);
-      if (first) { P(a, 'LeftArm', 0, 0, .95 + Math.sin(this.ph * 2) * .25); P(a, 'LeftForeArm', 0, 0, .5);
-        if (this.mendil.parent !== a.b.LeftHand) { a.b.LeftHand.add(this.mendil); this.mendil.position.set(0, 20, 0); }
+      arm(a, 'Right', .15 + Math.abs(k) * .08, 0);
+      if (first) { arm(a, 'Left', 1.85 + Math.sin(this.ph * 2) * .25, .2);
+        if (this.mendil.parent !== a.b.LeftHand) { a.b.LeftHand.add(this.mendil); this.mendil.position.set(0, .2, 0); }
         this.mendil.rotation.set(Math.sin(this.ph * 2) * .6, 0, Math.cos(this.ph * 2) * .5);
-      } else { P(a, 'LeftArm', 0, 0, -.78 - Math.abs(k) * .08); P(a, 'LeftForeArm', 0, 0, -.1); }
+      } else arm(a, 'Left', .15 + Math.abs(k) * .08, 0);
     });
     if (!n && this.mendil.parent) this.mendil.parent.remove(this.mendil);
     const hit = Math.max(0, Math.sin(this.ph)), dv = this.davulcu, zr = this.zurnaci;
-    P(dv, 'RightArm', 0, .9, 1.0 - hit * .5); P(dv, 'RightForeArm', 0, 0, .9 - hit * .7); P(dv, 'LeftArm', 0, -.9, -1.0); P(dv, 'LeftForeArm', 0, 0, -1.1 + Math.max(0, -Math.sin(this.ph)) * .5);
+    arm(dv, 'Right', .25 + hit * .5, .7 - hit * .5); arm(dv, 'Left', .1, .8 + Math.max(0, -Math.sin(this.ph)) * .3);
     dv.root.position.y = 1.0 + hit * .03; P(dv, 'Spine', -.08, 0, Math.sin(this.ph * .5) * .08);
-    P(zr, 'RightArm', 0, 1.15, .75); P(zr, 'RightForeArm', 0, 0, 1.5); P(zr, 'LeftArm', 0, -1.15, -.75); P(zr, 'LeftForeArm', 0, 0, -1.5);
+    arm(zr, 'Right', .55, 1.15); arm(zr, 'Left', .55, 1.15);
     P(zr, 'Spine', -.1 + Math.sin(this.ph) * .05, 0, 0); P(zr, 'Head', -.15, Math.sin(this.ph * .5) * .15, 0);
     this.bulbs.forEach((m, i) => m.scale.setScalar((i + Math.floor(T * 2.5)) % 3 ? 1.2 : .7));
     this.zoom = ease(this.zoom || 9, 5.6 + Math.max(2, n) * .62, dt, 2);
@@ -370,7 +372,7 @@ const halay = {
 // MOD 2 — AT YARIŞI
 // =====================================================================
 const COATS = ['#ffffff', '#6a5a50', '#ffe2b8', '#3d3530', '#c8a890', '#8f7a6a', '#fff4e0', '#555050'];
-const SPAN = 7, SPEED = 9;
+const SPAN = 7, SPEED = 9, JY = .78; // JY: jokeyin eyer yüksekliği
 const race = {
   title: 'AT YARIŞI', hint: 'Hediye gönder, atın koşsun! Her 💎 atını öne geçirir 🏇',
   base: 0, focus: 0, spread: 0,
@@ -396,7 +398,7 @@ const race = {
     arch.visible = false; s.add(arch);
   },
   reset() {
-    if (this.r && this.built) for (const r of this.r.values()) if (r.act) this.scene.remove(r.act.m);
+    if (this.r && this.built) for (const r of this.r.values()) if (r.act) { this.scene.remove(r.act.m); this.scene.remove(r.act.j.root); }
     this.r = new Map(); this.list = []; this.locked = false; this.lanes = [7, 0, 6, 1, 5, 2, 4, 3];
     if (this.arch) this.arch.visible = false;
   },
@@ -420,11 +422,16 @@ const race = {
       if (!this.built) return;
       if (i < 8 && !r.act && this.lanes.length) {
         const m = assets.horse.scene.children[0].clone(); m.material = m.material.clone(); m.material.color.set(r.coat);
-        m.scale.setScalar(.0046); m.rotation.y = Math.PI / 2; m.castShadow = true;
+        m.scale.setScalar(.0056); m.rotation.y = Math.PI / 2; m.castShadow = true;
         const mixer = new THREE.AnimationMixer(m); mixer.clipAction(assets.horse.animations[0]).setDuration(.62).play(); mixer.update(rand(.6));
-        r.act = { m, mixer }; r.lane = this.lanes.pop(); this.scene.add(m);
-      } else if (i >= 8 && r.act) { this.scene.remove(r.act.m); this.lanes.push(r.lane); r.act = null; }
-      if (r.act) { r.z = (r.lane - 3.5) * 1.05; r.act.m.position.set(r.x, .78, r.z); r.act.mixer.update(dt * (1 + clamp(r.push / 30, 0, .6))); lo = Math.min(lo, r.x); hi = Math.max(hi, r.x); }
+        const col = `hsl(${r.p.hue},90%,52%)`, j = makeBot(col, '#ffffff', false); j.root.scale.setScalar(.74); j.root.rotation.y = Math.PI / 2;
+        const helmet = mesh(new THREE.SphereGeometry(.13, 18, 12, 0, TAU, 0, Math.PI * .6), std(col, { roughness: .3 })); helmet.position.set(0, .1, .02); j.b.Head.add(helmet);
+        P(j, 'Spine', .55, 0, 0); P(j, 'Spine1', .25, 0, 0); P(j, 'Head', -.6, 0, 0);
+        P(j, 'LeftUpLeg', -1.2, 0, -.38); P(j, 'RightUpLeg', -1.2, 0, .38); P(j, 'LeftLeg', 1.75, 0, 0); P(j, 'RightLeg', 1.75, 0, 0);
+        arm(j, 'Left', .1, 1.2); arm(j, 'Right', .1, 1.2);
+        r.act = { m, mixer, j }; r.lane = this.lanes.pop(); this.scene.add(m); this.scene.add(j.root);
+      } else if (i >= 8 && r.act) { this.scene.remove(r.act.m); this.scene.remove(r.act.j.root); this.lanes.push(r.lane); r.act = null; }
+      if (r.act) { r.z = (r.lane - 3.5) * 1.05; r.act.m.position.set(r.x, .95, r.z); r.act.j.root.position.set(r.x - .1, JY + Math.sin(r.act.mixer.time / .62 * TAU) * .05, r.z); r.act.mixer.update(dt * (1 + clamp(r.push / 30, 0, .6))); lo = Math.min(lo, r.x); hi = Math.max(hi, r.x); }
     });
     if (!this.built) return;
     const f = hi === -Infinity ? this.base + 2 : hi * .62 + lo * .38;
@@ -439,7 +446,7 @@ const race = {
     else bar(140, 452, 800, 70, lead.shown / CFG.goal, C.yellow, C.pink, this.locked ? '🏁 FİNİŞ!' : `🏁 ${fit(lead.p.name, 260, 34)} önde · finişe 💎 ${fmt(CFG.goal - lead.prog)}`);
     if (!this.built) return;
     shown.forEach(r => {
-      const i = this.list.indexOf(r), [x, y0] = proj(this.cam, r.x, 2.75, r.z), y = y0 - (r.lane % 4) * 34;
+      const i = this.list.indexOf(r), [x, y0] = proj(this.cam, r.x, 3.0, r.z), y = y0 - (r.lane % 4) * 34;
       avatar(r.p, x, y, 27, i ? '#fff' : C.yellow);
       text(`${i + 1}. ${fit(r.p.name, 150, 22)}`, x, y - 42, 22, i ? '#fff' : C.yellow, 'center', 6);
     });
@@ -456,7 +463,7 @@ const taki = {
   no: 1,
   build() {
     const { s } = baseScene('#3a0a1c', '#7a1634', { amb: .8, sun: 1.3, sunColor: 0xfff0d8, range: 5 });
-    this.scene = s; this.cam = camera(30, 0, 1.45, 6.3, 0, 1.02, 0);
+    this.scene = s; this.cam = camera(30, 0, 1.4, 5.4, 0, 1.0, 0);
     const carpet = mesh(new THREE.PlaneGeometry(30, 30), std('#fff', { map: speckTex('#8e1230', ['#a31a3c', '#7a0e28'], 500, 10, 10), roughness: .9 }), 0, 0, 0, false); carpet.rotation.x = -Math.PI / 2; s.add(carpet);
     const curtain = canvasTex(256, 64, (g, w, h) => { for (let x = 0; x < w; x++) { const v = 150 + Math.sin(x / w * TAU * 8) * 60; g.fillStyle = `rgb(${v},${v * .14},${v * .28})`; g.fillRect(x, 0, 1, h); } }, 3, 1);
     s.add(mesh(new THREE.PlaneGeometry(26, 9), std('#fff', { map: curtain, roughness: .85 }), 0, 4.5, -3.2, false));
@@ -464,14 +471,10 @@ const taki = {
     this.gold = std('#ffcf3a', { metalness: .85, roughness: .28, emissive: '#7a5200', emissiveIntensity: .55 });
     this.coinGeo = new THREE.CylinderGeometry(1, 1, .22, 24); this.coinGeo.rotateX(Math.PI / 2);
     this.ringGeo = new THREE.TorusGeometry(1, .22, 10, 28);
-    const mk = (color, joint, x) => { const a = makeBot(color, joint); a.root.position.set(x, 0, 0); a.root.rotation.y = -x * .28; s.add(a.root);
-      a.mixer = new THREE.AnimationMixer(a.root); const clip = n => assets.bot.animations.find(c => c.name === n);
-      a.idle = a.mixer.clipAction(clip('idle')); a.idle.play(); a.nod = a.mixer.clipAction(clip('agree')); a.nod.setLoop(THREE.LoopOnce); a.mixer.update(rand(2));
-      const sash = mesh(new THREE.BoxGeometry(46, 8, 27), std('#d81f3a', { roughness: .6 })); sash.rotation.z = x < 0 ? .85 : -.85; sash.position.set(0, 6, 1); a.b.Spine2.add(sash); return a; };
-    const groom = mk('#1d2a55', '#0c1228', -.62), bride = mk('#ffffff', '#f1dede', .62);
-    s.add(mesh(new THREE.CylinderGeometry(.2, .72, 1.02, 32, 1, true), std('#ffffff', { roughness: .65, side: THREE.DoubleSide }), .62, .51, 0));
-    const veil = mesh(new THREE.CylinderGeometry(13, 44, 95, 24, 1, true, Math.PI * .5, Math.PI), new THREE.MeshStandardMaterial({ color: '#fff', transparent: true, opacity: .42, side: THREE.DoubleSide, roughness: .9 })); veil.position.set(0, -34, -2); veil.castShadow = false; bride.b.Head.add(veil);
-    const bow = mesh(new THREE.BoxGeometry(13, 5, 3), std('#d81f3a')); bow.position.set(0, 2, 9); groom.b.Neck.add(bow);
+    const groom = makeBot('#3b3b48', '#3b3b48'); groom.root.position.set(-.55, 0, 0); groom.root.rotation.y = .16; s.add(groom.root);
+    const bride = assets.bride.scene.clone(); bride.traverse(o => { if (o.isMesh) { o.castShadow = o.material.name !== 'Veil'; o.receiveShadow = true; } });
+    bride.position.set(.62, 0, 0); bride.rotation.y = -.2; s.add(bride);
+    this.target = [groom.b.Spine2, bride]; this.nod = [0, 0];
     this.pair = [groom, bride]; this.coins = [];
   },
   clear3d() { if (!this.built) return; for (const c of this.coins) c.parent && c.parent.remove(c); this.coins = []; for (const s of this.shots) if (s.m) this.scene.remove(s.m); },
@@ -481,14 +484,15 @@ const taki = {
     this.max = Math.round(CFG.taki * (1 + .5 * (this.no - 1)));
     this.sum = this.shown = 0; this.g = new Map(); this.shots = []; this.say = null; this.locked = false;
   },
-  gift(p, a) { this.shots.push({ p, a, t: 0, side: Math.random() < .5 ? 0 : 1, from: [rand(-2.2, 2.2), .1, 4.6], off: [rand(-13, 13), rand(-12, 16), 13.5], m: null }); },
+  gift(p, a) { const side = Math.random() < .5 ? 0 : 1, off = side ? [rand(-.1, .1), rand(1.1, 1.34), .14] : [rand(-.12, .12), rand(-.06, .16), .15];
+    this.shots.push({ p, a, t: 0, side, off, from: [rand(-2.2, 2.2), .1, 4.6], m: null }); },
   land(s) {
     const kind = TAKI.find(k => s.a >= k[0]);
     this.sum += s.a; this.g.set(s.p.id, { p: s.p, v: (this.g.get(s.p.id)?.v || 0) + s.a });
     this.say = { p: s.p, line: `${kind[1]} taktı!`, t: 0 };
     if (this.built) {
-      const a = this.pair[s.side]; a.nod.reset().setEffectiveWeight(.9).play();
-      if (s.m) { a.b.Spine2.add(s.m); s.m.position.set(s.off[0], s.off[1], s.off[2]); s.m.scale.multiplyScalar(100); s.m.rotation.set(0, 0, rand(TAU));
+      this.nod[s.side] = 1;
+      if (s.m) { this.target[s.side].add(s.m); s.m.position.set(s.off[0], s.off[1], s.off[2]); s.m.rotation.set(0, 0, rand(TAU));
         this.coins.push(s.m); if (this.coins.length > 70) { const old = this.coins.shift(); old.parent && old.parent.remove(old); } }
       const [x, y] = proj(this.cam, s.side ? .62 : -.62, 1.3, .2); burst(x, y, C.yellow, 12, 380);
     }
@@ -501,13 +505,16 @@ const taki = {
   update(dt) {
     this.shown = ease(this.shown, this.sum, dt, 6);
     if (this.say && (this.say.t += dt) > 2.6) this.say = null;
-    if (this.built) { for (const a of this.pair) a.mixer.update(dt); this.bulbs.forEach((m, i) => m.scale.setScalar((i + Math.floor(T * 2.5)) % 3 ? 1.2 : .7)); }
+    if (this.built) { const [g, br] = this.pair; this.nod = this.nod.map(v => Math.max(0, v - dt * 1.4));
+      P(g, 'Spine', Math.sin(T * 1.7) * .015, 0, Math.sin(T * .8) * .02); arm(g, 'Left', -.6, .05); arm(g, 'Right', -.6, .05); P(g, 'Head', Math.sin(this.nod[0] * Math.PI * 3) * .22 * this.nod[0], Math.sin(T * .5) * .12, 0);
+      br.rotation.y = -.2 + Math.sin(T * .7) * .06; br.position.y = Math.abs(Math.sin(this.nod[1] * Math.PI * 2)) * .03 * this.nod[1];
+      this.bulbs.forEach((m, i) => m.scale.setScalar((i + Math.floor(T * 2.5)) % 3 ? 1.2 : .7)); }
     this.shots = this.shots.filter(s => {
       s.t += dt * 1.7;
       if (this.built) {
         if (!s.m) { const ring = s.a >= 200 && s.a < 1000, r = clamp(.035 + Math.sqrt(s.a) * .004, .04, .1);
           s.m = new THREE.Mesh(ring ? this.ringGeo : this.coinGeo, this.gold); s.m.scale.setScalar(r); s.m.castShadow = true; this.scene.add(s.m); }
-        const bone = this.pair[s.side].b.Spine2; V.set(s.off[0], s.off[1], s.off[2]); bone.localToWorld(V);
+        V.set(s.off[0], s.off[1], s.off[2]); this.target[s.side].localToWorld(V);
         const e = s.t * s.t; s.m.position.set(lerp(s.from[0], V.x, e), lerp(s.from[1], V.y, e) + Math.sin(Math.min(1, s.t) * Math.PI) * .9, lerp(s.from[2], V.z, e));
         s.m.rotation.y = s.t * 14;
       }
@@ -535,7 +542,7 @@ const taki = {
 // =====================================================================
 const tug = {
   title: 'ÇAY MI KAHVE Mİ?', hint: 'Yoruma ÇAY ya da KAHVE yaz, hediyenle takımını çek!',
-  names: ['ÇAY', 'KAHVE'], cols: ['#ff5a4d', '#e0a368'], tint: ['#c62b20', '#7a4a22'],
+  names: ['ÇAY', 'KAHVE'], cols: ['#ff5a4d', '#e0a368'], tint: ['#e0584e', '#8a6038'],
   build() {
     const { s } = baseScene('#58a8ea', '#d8efff', { amb: .9, sun: 1.45, range: 9 });
     this.scene = s; this.cam = camera(34, 0, 2.5, 10.6, 0, 1.15, 0);
@@ -586,12 +593,12 @@ const tug = {
     this.flag.position.x = mx; this.rope.position.x = mx;
     this.vis.forEach((list, t) => list.forEach((m, i) => {
       let a = this.acts.get(m.p.id);
-      if (!a) { a = makeBot(this.tint[t]); this.acts.set(m.p.id, a); this.scene.add(a.root); }
+      if (!a) { a = makeBot(this.tint[t], '#8a8a99'); this.acts.set(m.p.id, a); this.scene.add(a.root); }
       const d = t ? 1 : -1, pull = (this.tugDir === d ? this.tugT : -this.tugT * .5), w = Math.sin(T * 7 + i * 2 + t), lean = .32 + pull * .18 + w * .03;
       m.x = mx + d * (.9 + i * .82); a.root.position.set(m.x, 0, .12); a.root.rotation.y = -d * Math.PI / 2; // rakibe dönük
       P(a, 'Hips', -lean, 0, 0); P(a, 'Spine', -.1, 0, 0);
-      P(a, 'LeftUpLeg', -.75 + lean - w * .12, 0, 0); P(a, 'LeftLeg', .35, 0, 0); P(a, 'RightUpLeg', .25 + lean + w * .12, 0, 0); P(a, 'RightLeg', .3, 0, 0);
-      P(a, 'LeftArm', 0, -1.25, -.75); P(a, 'LeftForeArm', 0, 0, -.25); P(a, 'RightArm', 0, 1.25, .75); P(a, 'RightForeArm', 0, 0, .25);
+      P(a, 'LeftUpLeg', -.22 + lean - w * .1, 0, 0); P(a, 'LeftLeg', .25, 0, 0); P(a, 'RightUpLeg', .1 + lean + w * .1, 0, 0); P(a, 'RightLeg', .35, 0, 0);
+      arm(a, 'Left', -.25, .62); arm(a, 'Right', -.25, .62);
     }));
   },
   draw() {
@@ -678,76 +685,7 @@ const karpuz = {
   },
 };
 
-// =====================================================================
-// MOD 6 — KISMET ÇARKI
-// =====================================================================
-const wheel = {
-  title: 'KISMET ÇARKI', hint: 'Hediye gönder, çarka gir! Kısmet kime çıkacak?',
-  angle: 0, dirty: true,
-  build() {
-    const { s } = baseScene('#0a0c2a', '#3b1f66', { amb: .7, sky: 0xb0b8ff, sun: 1.3, range: 6 });
-    this.scene = s; this.cam = camera(32, 0, 2.6, 10.2, 0, 2.5, 0);
-    const f = mesh(new THREE.PlaneGeometry(40, 40), std('#2a1d4a', { roughness: .35, metalness: .2 }), 0, 0, 0, false); f.rotation.x = -Math.PI / 2; s.add(f);
-    this.bulbsTop = lights(s, -5, 5, 5.2, -2, 22, .6);
-    const gold = std('#ffcf3a', { metalness: .85, roughness: .25, emissive: '#6b4700', emissiveIntensity: .5 });
-    for (const x of [-1, 1]) { const leg = mesh(new THREE.BoxGeometry(.22, 3.1, .22), std('#3a2a66', { roughness: .4 }), x * 1.0, 1.4, -.35); leg.rotation.z = -x * .3; s.add(leg); }
-    this.cv = document.createElement('canvas'); this.cv.width = this.cv.height = 1024;
-    this.tex = new THREE.CanvasTexture(this.cv); this.tex.encoding = THREE.sRGBEncoding; this.tex.anisotropy = 8;
-    const spin = this.spinG = new THREE.Group(); spin.position.set(0, 2.55, 0); s.add(spin);
-    const body = mesh(new THREE.CylinderGeometry(2.12, 2.12, .22, 64), std('#1a1238', { roughness: .4 })); body.rotation.x = Math.PI / 2; spin.add(body);
-    spin.add(mesh(new THREE.CircleGeometry(2.0, 64), std('#fff', { map: this.tex, roughness: .45 }), 0, 0, .115, false));
-    spin.add(mesh(new THREE.TorusGeometry(2.06, .09, 12, 64), gold, 0, 0, .1));
-    const hub = mesh(new THREE.SphereGeometry(.3, 24, 16), gold, 0, 2.55, .2); hub.scale.z = .5; s.add(hub);
-    this.bulbs = []; for (let i = 0; i < 24; i++) { const a = i / 24 * TAU, b = new THREE.Mesh(new THREE.SphereGeometry(.07, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      b.position.set(Math.cos(a) * 2.06, 2.55 + Math.sin(a) * 2.06, .2); s.add(b); this.bulbs.push(b); }
-    const ptr = mesh(new THREE.ConeGeometry(.2, .55, 4), std('#ff3d7f', { roughness: .3, emissive: '#7a0030', emissiveIntensity: .5 }), 0, 4.72, .3); ptr.rotation.x = Math.PI; s.add(ptr);
-    this.dirty = true;
-  },
-  paint() {
-    const g = this.cv.getContext('2d'), tot = this.total(), R = 512; g.clearRect(0, 0, 1024, 1024);
-    g.save(); g.translate(R, R);
-    if (!tot) { g.beginPath(); g.arc(0, 0, R, 0, TAU); g.fillStyle = '#4a3f7a'; g.fill(); g.fillStyle = '#fff'; g.font = '800 70px ' + FONT; g.textAlign = 'center'; g.fillText('Hediye gönder,', 0, -150); g.fillText('çarka gir!', 0, 200); }
-    let a = 0;
-    for (const e of this.e.values()) { const da = e.w / tot * TAU;
-      g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R, a, a + da); g.closePath(); g.fillStyle = e.p.color; g.fill(); g.lineWidth = 6; g.strokeStyle = '#14102e'; g.stroke();
-      if (da > .12) { g.save(); g.rotate(a + da / 2); g.font = '800 46px ' + FONT; g.textAlign = 'right'; g.textBaseline = 'middle'; g.lineWidth = 9; g.lineJoin = 'round'; g.strokeStyle = 'rgba(10,6,30,.9)';
-        let n = e.p.name; while (n.length > 1 && g.measureText(n).width > 300) n = n.slice(0, -1); g.strokeText(n, R - 34, 0); g.fillStyle = '#fff'; g.fillText(n, R - 34, 0); g.restore(); }
-      a += da; }
-    g.restore(); this.tex.needsUpdate = true; this.dirty = false;
-  },
-  reset() { this.e = new Map(); this.timer = null; this.spin = null; this.locked = false; this.dirty = true; },
-  gift(p, a) { this.e.set(p.id, { p, w: (this.e.get(p.id)?.w || 0) + a }); if (this.timer == null) this.timer = CFG.round; this.dirty = true; },
-  total() { let s = 0; for (const e of this.e.values()) s += e.w; return s; },
-  start() {
-    const tot = this.total(); let pick = rand(tot), acc = 0, win = null, s = 0;
-    for (const e of this.e.values()) { if (pick < acc + e.w) { win = e; s = acc; break; } acc += e.w; }
-    if (!win) return;
-    const local = (s + win.w * rand(.15, .85)) / tot * TAU;       // kazanan dilimin içindeki açı
-    let to = -Math.PI / 2 - local; while (to < this.angle + TAU * 5) to += TAU; // ibre üstte
-    this.locked = true; this.spin = { from: this.angle, to, t: 0, win, pct: win.w / tot * 100 };
-  },
-  update(dt) {
-    if (this.spin) {
-      const s = this.spin;
-      if (!s.done) { s.t = Math.min(1, s.t + dt / 6.5); this.angle = lerp(s.from, s.to, 1 - Math.pow(1 - s.t, 4));
-        if (s.t >= 1) { s.done = true; burst(540, 860, C.yellow, 40, 800);
-          after(1.2, () => { celebrate('KISMET ONDA!', s.win.p, `Çarktaki payı %${s.pct.toFixed(1)}`); this.reset(); }); } }
-    } else { this.angle += dt * .12; if (this.timer != null) { this.timer -= dt; if (this.timer <= 0) { this.timer = 0; this.start(); } } }
-    if (!this.built) return;
-    if (this.dirty) this.paint();
-    this.spinG.rotation.z = -this.angle;
-    this.bulbs.forEach((b, i) => b.material.color.set((i + Math.floor(T * 3)) % 2 ? 0xffd23f : 0xffffff));
-    this.bulbsTop.forEach((m, i) => m.scale.setScalar((i + Math.floor(T * 2.5)) % 3 ? 1.2 : .7));
-  },
-  draw() {
-    const tot = this.total();
-    const label = this.spin ? 'Çark dönüyor… 🎉' : this.timer != null ? `⏱ ${Math.ceil(this.timer)} sn sonra çark dönüyor` : 'İlk hediye turu başlatır! 🎁';
-    bar(140, 1240, 800, 68, this.timer != null && !this.spin ? this.timer / CFG.round : 0, C.pink, C.yellow, label);
-    if (tot) text(`${this.e.size} katılımcı · 💎 ${fmt(tot)}`, 540, 1212, 30, '#fff', 'center', 7);
-  },
-};
-
-const MODES = { halay, race, taki, tug, karpuz, wheel };
+const MODES = { halay, race, taki, tug, karpuz };
 
 // =====================================================================
 // OLAY AKIŞI + ANA DÖNGÜ

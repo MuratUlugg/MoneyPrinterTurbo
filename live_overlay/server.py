@@ -25,7 +25,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 STATIC_DIR = Path(__file__).parent / "static"
-MODES = ("halay", "race", "taki", "tug", "karpuz", "wheel")
+MODES = ("halay", "race", "taki", "tug", "karpuz")
 HTML_PREFIX = '<!doctype html><html lang="tr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script>window.LIVE_SERVER=1</script>'
 
 

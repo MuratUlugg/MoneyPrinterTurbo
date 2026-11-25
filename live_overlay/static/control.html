@@ -89,7 +89,7 @@ iframe { width: 100%; aspect-ratio: 9 / 16; border: 1px solid var(--line); borde
       <p>OBS'te “Tarayıcı” kaynağı, TikTok Live Studio'da “Bağlantı” kaynağı ekleyin. Genişlik 1080, yükseklik 1920. Zemin şeffaftır.</p>
       <div class="row" style="margin-top:10px"><code id="url"></code></div>
       <div class="row" style="margin-top:10px"><button id="copy" type="button">Adresi kopyala</button></div>
-      <p class="hint">Ayarlar adrese eklenir: <b>?goal=500</b> (at yarışı finişi), <b>halay=600</b>, <b>taki=1000</b>, <b>tug=500</b>, <b>round=60</b> (çark süresi, sn), <b>karpuzMin / karpuzMax</b>, <b>mode=halay</b> (modu sabitle).</p>
+      <p class="hint">Ayarlar adrese eklenir: <b>?goal=500</b> (at yarışı finişi), <b>halay=600</b>, <b>taki=1000</b>, <b>tug=500</b>, <b>karpuzMin / karpuzMax</b>, <b>mode=halay</b> (modu sabitle).</p>
     </section>
   </div>
 
@@ -101,7 +101,7 @@ iframe { width: 100%; aspect-ratio: 9 / 16; border: 1px solid var(--line); borde
 
 <script>
 const $ = id => document.getElementById(id);
-const LABELS = { halay: 'Düğün Halayı', race: 'At Yarışı', taki: 'Takı Töreni', tug: 'Çay mı Kahve mi', karpuz: 'Karpuz Patlatma', wheel: 'Kısmet Çarkı' };
+const LABELS = { halay: 'Düğün Halayı', race: 'At Yarışı', taki: 'Takı Töreni', tug: 'Çay mı Kahve mi', karpuz: 'Karpuz Patlatma' };
 const STATUS = { disconnected: 'Bağlı değil', connecting: 'Bağlanıyor…', connected: 'Yayına bağlı', error: 'Bağlanamadı, yeniden denenecek' };
 const post = (path, body) => fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
   .then(async r => { if (!r.ok) throw new Error((await r.json()).detail || r.statusText); return r.json(); })
