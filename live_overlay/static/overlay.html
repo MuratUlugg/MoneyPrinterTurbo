@@ -303,7 +303,7 @@ if (HAS3D) {
   try {
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gl'), antialias: true });
     renderer.setPixelRatio(1); renderer.setSize(VW, VH, false);
-    renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
+    renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.3;
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     const loader = new THREE.GLTFLoader(), fail = () => { glError = '3B modeller yüklenemedi'; };
     const ext = window.LIVE_SERVER ? '' : '.wasm'; // sunucusuz önizleme barındırıcısı .glb sunmadığı için aynı dosya orada farklı uzantıyla durur
@@ -353,7 +353,9 @@ function speckTex(base, specks, n, rx, ry) {
   return canvasTex(256, 256, (g, w, h) => { g.fillStyle = base; g.fillRect(0, 0, w, h);
     for (let i = 0; i < n; i++) { g.fillStyle = specks[i % specks.length]; g.globalAlpha = rand(.25, .8); g.fillRect(rand(w), rand(h), rand(2, 7), rand(2, 9)); } }, rx, ry);
 }
-const std = (color, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color, roughness: .8 }, o));
+// Renkler sRGB olarak yazılır ama ışık hesabı doğrusal uzayda yapılır; çevrilmezse her şey soluk ve pastel çıkar.
+const lin = c => new THREE.Color(c).convertSRGBToLinear();
+const std = (color, o = {}) => { const m = new THREE.MeshStandardMaterial(Object.assign({ roughness: .8 }, o, { color: lin(color) })); if (o.emissive !== undefined) m.emissive = lin(o.emissive); return m; };
 function mesh(geo, mat, x = 0, y = 0, z = 0, cast = true) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = cast; m.receiveShadow = true; return m; }
 // ---- kalite: kare hızı düşerse kademe kademe kıs (gölge → çözünürlük → kalabalık) ----
 const SUNS = [], QNAMES = ['yüksek', 'orta', 'düşük', 'en düşük'], QMODE = opt('kalite', 'oto');
@@ -409,7 +411,7 @@ function makeBot(top, o = {}) {
     if (n.isBone) { b[n.name] = n; rest[n.name] = n.quaternion.clone(); }
     if (!n.isMesh) return;
     n.castShadow = true; n.frustumCulled = false;
-    const tint = (c, plain) => { n.material = n.material.clone(); if (plain) n.material.map = null; n.material.color.set(c); };
+    const tint = (c, plain) => { n.material = n.material.clone(); if (plain) n.material.map = null; n.material.color.copy(lin(c)); };
     if (n.name === 'Wolf3D_Outfit_Top') tint(kind === 1 ? (o.dress || top) : top, kind > 0); // hanımın siyah elbisesi boyanamaz, gencin tişörtünde logo var: ikisine düz renk verilir
     else if (n.name === 'Wolf3D_Outfit_Bottom') tint(kind === 1 ? '#3a3038' : (o.bottom || top));
     else if ((n.name === 'Wolf3D_Head' || n.name === 'Wolf3D_Body') && o.skin) tint(o.skin);
@@ -808,7 +810,7 @@ const taki = {
       g.fillStyle = '#fff3b8'; g.beginPath(); g.arc(40, 36, 9, 0, TAU); g.fill(); });
     const goldSide = std('#e0a516', { metalness: .4, roughness: .35, emissive: '#6b4a00', emissiveIntensity: .5 }), goldFace = std('#ffffff', { map: face, metalness: .35, roughness: .3, emissive: '#7a5200', emissiveMap: face, emissiveIntensity: .45 });
     const coinGeo = new THREE.CylinderGeometry(1, 1, .14, 28); coinGeo.rotateX(Math.PI / 2);
-    const ringGeo = new THREE.TorusGeometry(.82, .17, 10, 30), bowGeo = new THREE.BoxGeometry(.5, .34, .1), red = std('#a3001c', { roughness: .85 }); // koyu tutulur: parlak ışıkta açık kırmızı pembeye kaçıyor
+    const ringGeo = new THREE.TorusGeometry(.82, .17, 10, 30), bowGeo = new THREE.BoxGeometry(.5, .34, .1), red = std('#c1121f', { roughness: .85 });
     this.makeTaki = raw => { const g = new THREE.Group(), ring = raw >= 200 && raw < 1000;
       g.add(ring ? new THREE.Mesh(ringGeo, goldSide) : new THREE.Mesh(coinGeo, [goldSide, goldFace, goldFace]));
       for (const d of [-1, 1]) { const b = new THREE.Mesh(bowGeo, red); b.position.set(d * .3, 1.12, 0); b.rotation.z = d * .35; g.add(b); }
@@ -819,7 +821,7 @@ const taki = {
     this.target = [this.hall.groom.root, this.hall.bride];
     this.target.forEach((t, i) => { if (t.userData.ribbon) return; const [x, top, z] = this.ribbon[i], sh = new THREE.Shape(); // ucu çatallı kurdele
       sh.moveTo(-.105, 0); sh.lineTo(.105, 0); sh.lineTo(.105, -.47); sh.lineTo(0, -.41); sh.lineTo(-.105, -.47); sh.closePath();
-      const r = mesh(new THREE.ShapeGeometry(sh), new THREE.MeshStandardMaterial({ color: '#a3001c', roughness: .85, side: THREE.DoubleSide }), x, top, z); r.rotation.x = i ? .09 : .03; t.add(r); t.userData.ribbon = r; });
+      const r = mesh(new THREE.ShapeGeometry(sh), std('#c1121f', { roughness: .85, side: THREE.DoubleSide }), x, top, z); r.rotation.x = i ? .09 : .03; t.add(r); t.userData.ribbon = r; });
     this.slot = (side, i) => { const [x, top, z] = this.ribbon[side], row = Math.floor(i / 3) % 6, col = i % 3; return [x + (col - 1) * .066, top - .06 - row * .068, z + .014 + row * (side ? .0065 : .0025)]; };
     this.coins = []; this.count = [0, 0]; this.dir = makeDirector();
   },

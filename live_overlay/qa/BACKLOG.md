@@ -29,8 +29,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - [ ] Pist dokusu iri kareli gürültü.
 
 ### Genel
-- [ ] Takı kurdelesi koyu kırmızı verildiği hâlde ekranda pembeye yakın çıkıyor: pozlama / ton eşlemesi renkleri açıyor (aşağıdaki "soluk" maddesiyle aynı kök).
-- [ ] Sahneler soluk ve düz: ortam ışığı fazla, kontrast az; kişiler zeminden ve duvardan ayrışmıyor.
 
 ## Açık: diğer
 
@@ -65,3 +63,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - At yarışı kadrajı: kulvarlar genişledi, kamera yükseltildi; sekiz at ayrı ayrı görünüyor, her atın adı kendi kulvarında atın arkasında okunuyor (görsel: `yaris-1`, `yaris-2` önce/sonra; QA geçti).
 - Jokey artık eyerde: dizler yukarıda atı kavrıyor, gövde öne eğik, kollar dizginlere uzanıyor, ata göre boyu küçüldü (görsel: `yaris-3` önce/sonra; QA geçti).
 - At donları: doru, al, kır, yağız, kula, beyaz, koyu doru ve bej; yele ve kuyruk ayrı renkte, pistteki atlar birbirinden farklı (görsel: `yaris-1`, `yaris-3` önce/sonra; QA geçti).
+- Renk uzayı: malzeme renkleri doğrusal uzaya çevriliyor; kıyafetler, halı, pist ve atlar artık pastel değil doygun, kurdele kırmızı (görsel: halay, takı ve yarışın önce/sonra karşılaştırması; QA geçti).
