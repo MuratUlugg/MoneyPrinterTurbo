@@ -442,6 +442,15 @@ function makeBot(top, o = {}) {
   return a;
 }
 function P(a, name, x, y, z) { a.b[name].quaternion.copy(a.rest[name]).multiply(Q.setFromEuler(E.set(x, y, z))); }
+// Kolu omuzdan verilen dünya noktasına doğrultur (dirsek düz). El ele tutuşta iki komşunun eli aynı noktada buluşsun diye kullanılır.
+const _a1 = HAS3D ? new THREE.Vector3() : null, _a2 = HAS3D ? new THREE.Vector3() : null, _a3 = HAS3D ? new THREE.Vector3() : null, _q1 = HAS3D ? new THREE.Quaternion() : null, _q2 = HAS3D ? new THREE.Quaternion() : null, _q3 = HAS3D ? new THREE.Quaternion() : null;
+function aimArm(a, side, x, y, z) {
+  const arm = a.b[side + 'Arm'], fore = a.b[side + 'ForeArm'], hand = a.b[side + 'Hand'];
+  arm.quaternion.copy(a.rest[side + 'Arm']); fore.quaternion.copy(a.rest[side + 'ForeArm']); arm.parent.updateWorldMatrix(true, false); arm.updateWorldMatrix(false, true);
+  const sh = arm.getWorldPosition(_a1), cur = hand.getWorldPosition(_a2).sub(sh).normalize(), want = _a3.set(x, y, z).sub(sh).normalize();
+  _q1.setFromUnitVectors(cur, want); arm.parent.getWorldQuaternion(_q2).invert(); arm.getWorldQuaternion(_q3);
+  arm.quaternion.copy(_q2).multiply(_q1).multiply(_q3);
+}
 function dispose(scene, a) { if (a) scene.remove(a.root || a.m); }
 // Kol aşağı: Sol kol -z, sağ kol +z. Bacak öne: UpLeg -x. Diz: Leg +x. Öne eğil: Spine +x.
 // Kollar (bu modelde): kaldırmak -x, öne uzatmak solda +z / sağda -z. Duruş A-poz olduğu için 0 = kollar yarı açık.
@@ -623,7 +632,7 @@ const halay = {
     d.v += raw; d.plus = { a: raw, t: 0 };
     if (raw >= CFG.orta) hall.cheer = 1;
     else if (raw >= CFG.bahsis && this.built) { hall.tip = 7; floater('DAVULCUYA BAHŞİŞ! 🥁', 540, 760, C.yellow, 64); // tempo coşar, kamera davulcuya döner
-      this.dir.focus(() => hall.tip > 0 ? shot(-.5, -.25, .25, 1.5, 2.1, .45) : null, 3, 2, p, 'davulcuya bahşiş verdi 💵'); }
+      this.dir.focus(() => { const dv = hall.davulcu.root; return hall.tip > 0 ? shot(dv.position.x, dv.position.z, dv.rotation.y, 1.5, 2.3, -.5) : null; }, 3, 2, p, 'davulcuya bahşiş verdi 💵'); }
     if (raw >= CFG.orta && !this.soloQ.includes(p.id) && !(this.solo && this.solo.id === p.id)) this.soloQ.push(p.id);
     this.cosku = Math.min(100, this.cosku + a / CFG.halay * 100);
     if (this.cosku >= 100) {
@@ -647,14 +656,17 @@ const halay = {
     // pist boş kalmasın: gerçek halaycı 4'ten azsa adsız konuklar halayı sürdürür (adları, fotoğrafları, hediyeleri yoktur)
     this.ghosts = this.ghosts || [0, 1, 2, 3].map(i => ({ p: { id: 'halay-konuk' + i, name: '', hue: 200 + i * 37, total: 0 }, ghost: true, v: -1, ang: null, pos: [0, 0] }));
     const ring = real.concat(this.ghosts.slice(0, Math.max(0, 4 - real.length))), n = ring.length;
-    // Halay kameraya açık bir yaydır (at nalı): herkesin yüzü görünür, ortası davul zurna ve ortaya çıkan için boş kalır.
-    // Yay en çok 225 derece açılır; kalabalık arttıkça yarıçap büyür, zincir sağa sola salınır.
-    const SP = 1.08, R = this.R = Math.max(2.1, Math.max(0, n - 1) * SP / 3.93), da = SP / R;
+    // Halay dizilimi: omuz omuza, el ele tek sıra; kameraya açık hafif bir yay çizer (herkesin yüzü görünür).
+    // SP omuzlar arası mesafedir: kollar aşağıdayken komşuların elleri tam ortada buluşur.
+    const SP = .56, R = this.R = Math.max(2.4, Math.max(0, n - 1) * SP / 2.6), da = SP / R, half = Math.max(0, n - 1) / 2 * da;
+    // Adım döngüsü 4 vuruştur ve herkes aynı anda yapar: sağa adım, sol ayağı yanına çek, çök, sol tekme.
+    const t4 = ((this.ph / Math.PI) % 4 + 4) % 4, drift = Math.sin((t4 / 4) * TAU - .9) * .18; // sıra, adımla birlikte sağa-sola kayar (metre)
+    this.zmid = -R * (1 + Math.cos(half)) / 2; this.halfW = Math.max(.6, R * Math.sin(Math.min(half, Math.PI / 2)));
     this.vis = ring.slice();
-    ring.forEach((d, i) => { const ta = Math.PI + ((n - 1) / 2 - i) * da + Math.sin(this.ph * .22) * .16;
-      d.ang = d.ang == null ? ta : d.ang + (ta - d.ang) * Math.min(1, dt * 5); d.slot = i; d.pos = [Math.sin(d.ang) * R, Math.cos(d.ang) * R]; d.face = d.ang + Math.PI; d.k = Math.sin(this.ph + i * .55); });
+    ring.forEach((d, i) => { const ta = Math.PI + ((n - 1) / 2 - i) * da + drift / R;
+      d.ang = d.ang == null ? ta : d.ang + (ta - d.ang) * Math.min(1, dt * 7); d.slot = i; d.last = i === n - 1; d.pos = [Math.sin(d.ang) * R, Math.cos(d.ang) * R]; d.face = d.ang + Math.PI; });
     const so = this.solo && this.d.get(this.solo.id);
-    if (so) { so.ang = null; so.slot = -1; so.pos = [ease(so.pos[0], 0, dt, 4), ease(so.pos[1], 1.25, dt, 4)]; so.face = 0; so.k = Math.sin(this.ph * 1.3); this.vis.push(so); }
+    if (so) { so.ang = null; so.slot = -1; so.pos = [ease(so.pos[0], 0, dt, 4), ease(so.pos[1], this.zmid + 1.5, dt, 4)]; so.face = 0; this.vis.push(so); }
     this.list.forEach(d => { if (d.plus && (d.plus.t += dt) > 1) d.plus = null; });
     if (n && Math.floor(this.ph / Math.PI) !== this.beat) { this.beat = Math.floor(this.ph / Math.PI); this.beat % 2 ? snd.tek() : snd.dum();
       spawn({ kind: 'text', text: this.beat % 2 ? '♪' : '♫', x: rand(460, 620), y: 720, vx: rand(-60, 60), vy: -130, life: 1.4, size: 54, color: [C.yellow, C.cyan, '#fff'][this.beat % 3] }); }
@@ -664,33 +676,46 @@ const halay = {
     for (const d of this.vis) {
       let a = this.acts.get(d.p.id);
       if (!a) { a = makeBot(`hsl(${d.p.hue},75%,62%)`, lookOf(d.p.id)); this.acts.set(d.p.id, a); this.scene.add(a.root); }
-      const k = d.k, up = Math.max(0, k), dn = Math.max(0, -k), solo = d.slot < 0;
-      // halay figürü: iki vuruşta çök-kalk, sol ayakla tekme, sağla küçük adım; omuzlar tempoyla silkilir
-      const dip = Math.pow(Math.abs(Math.sin(this.ph)), 2), shim = Math.sin(this.ph * 2 + d.slot * .5);
-      a.root.position.set(d.pos[0], .03 - dip * .07 + up * .05, d.pos[1]); a.root.rotation.y = d.face + (solo ? Math.sin(this.ph * .5) * .5 : Math.sin(this.ph * .5) * .1);
-      P(a, 'Spine', .06 + dip * .05, shim * .05, Math.sin(this.ph * .5) * (solo ? .14 : .07)); P(a, 'Spine1', 0, 0, shim * .035);
-      P(a, 'LeftUpLeg', -up * .95 - dip * .16, 0, 0); P(a, 'LeftLeg', up * 1.15 + dip * .32, 0, 0); P(a, 'RightUpLeg', -dn * .55 - dip * .16, 0, 0); P(a, 'RightLeg', dn * .75 + dip * .32, 0, 0);
-      if (solo) { arm(a, 'Left', 1.25 + Math.sin(this.ph) * .3, .25); arm(a, 'Right', 1.25 - Math.sin(this.ph) * .3, .25); }
-      else { const hold = (side, sg) => { arm(a, side, -.12 + dip * .16 + shim * .04, .1); P(a, side + 'ForeArm', 0, 0, sg * (.3 + dip * .25)); }; // eller aşağıda, dirsekler kırık: yandakiyle el ele
-        hold('Left', 1);
-        if (d.slot === 0) { arm(a, 'Right', 1.85 + Math.sin(this.ph * 2) * .25, .2); // halay başı mendil sallar
-          if (this.mendil.parent !== a.b.RightHand) { a.b.RightHand.add(this.mendil); this.mendil.scale.setScalar(a.unit); this.mendil.position.set(0, .1 * a.unit, 0); }
-          this.mendil.rotation.set(Math.sin(this.ph * 2) * .6, 0, Math.cos(this.ph * 2) * .5);
-        } else hold('Right', -1); }
+      const solo = d.slot < 0, tt = solo ? ((this.ph * 1.3 / Math.PI) % 4 + 4) % 4 : t4, bt = Math.floor(tt), f = tt - bt, bell = Math.sin(f * Math.PI);
+      // vuruşa göre bacaklar: 0 sağa adım · 1 sol ayağı çek · 2 çök · 3 sol tekme (sıçrayarak)
+      let rUp = 0, rOut = 0, rKnee = 0, lUp = 0, lOut = 0, lKnee = 0, y = 0, lean = .03;
+      if (bt === 0) { rOut = bell * .3; rUp = bell * .22; rKnee = bell * .35; y = -bell * .015; }
+      else if (bt === 1) { lUp = bell * .3; lKnee = bell * .55; lOut = -bell * .12; }
+      else if (bt === 2) { rUp = lUp = bell * .32; rKnee = lKnee = bell * .64; y = -bell * .075; lean = .03 + bell * .05; }
+      else { lUp = Math.sin(Math.min(1, f * 1.25) * Math.PI) * 1.05; lKnee = Math.max(0, Math.sin(f * TAU)) * 1.1 + .05; rKnee = bell * .18; y = bell * .07; lean = .03 - bell * .07; }
+      a.root.position.set(d.pos[0], y, d.pos[1]); a.root.rotation.y = d.face + (solo ? Math.sin(this.ph * .5) * .5 : 0);
+      P(a, 'Spine', lean, 0, solo ? Math.sin(this.ph * .5) * .14 : 0); P(a, 'Spine1', 0, 0, Math.sin(this.ph * 2) * .025); // hafif omuz silkme
+      P(a, 'RightUpLeg', -rUp, 0, rOut); P(a, 'RightLeg', rKnee, 0, 0); P(a, 'LeftUpLeg', -lUp, 0, lOut); P(a, 'LeftLeg', lKnee, 0, 0);
+      d.y = y; d.a = a;
+    }
+    // kollar: komşuyla el ele (iki el aynı noktada buluşur); halay başının serbest eli mendil sallar, sondakinin eli belinde
+    const swing = (Math.floor(t4) === 3 ? Math.sin((t4 - 3) * Math.PI) : 0) * .1, hy = .92;
+    const meet = (p, q) => { const mx = (p.pos[0] + q.pos[0]) / 2, mz = (p.pos[1] + q.pos[1]) / 2, fa = (p.face + q.face) / 2; return [mx + Math.sin(fa) * (.17 + swing), hy + (p.y + q.y) / 2 + swing * .6, mz + Math.cos(fa) * (.17 + swing)]; };
+    for (const d of this.vis) { const a = d.a;
+      if (d.slot < 0) { arm(a, 'Left', 1.25 + Math.sin(this.ph) * .3, .25); arm(a, 'Right', 1.25 - Math.sin(this.ph) * .3, .25); P(a, 'LeftForeArm', 0, 0, 0); P(a, 'RightForeArm', 0, 0, 0); continue; }
+      const prev = ring[d.slot - 1], next = ring[d.slot + 1];
+      if (next) aimArm(a, 'Left', ...meet(d, next)); else { arm(a, 'Left', -.3, -.15); P(a, 'LeftForeArm', 0, 0, 1.35); } // sondaki: el belde
+      if (prev) aimArm(a, 'Right', ...meet(prev, d));
+      else { arm(a, 'Right', 1.75 + Math.sin(this.ph * 2) * .22, .2); P(a, 'RightForeArm', 0, 0, 0); // halay başı mendil sallar
+        if (this.mendil.parent !== a.b.RightHand) { a.b.RightHand.add(this.mendil); this.mendil.scale.setScalar(a.unit); this.mendil.position.set(0, .1 * a.unit, 0); }
+        this.mendil.rotation.set(Math.sin(this.ph * 2) * .6, 0, Math.cos(this.ph * 2) * .5); }
     }
     if (!n && this.mendil.parent) this.mendil.parent.remove(this.mendil);
     this.hall.update(dt, this.ph, true);
-    this.zoom = ease(this.zoom || 2, R, dt, 2);
-    if (so) this.dir.focus(() => this.solo && this.d.get(this.solo.id) === so ? shot(so.pos[0], so.pos[1], 0, 1.5, 2.9, Math.sin(T * .5) * .5) : null, 8, 3, so.p, 'ortada oynuyor 💸'); // ortaya çıkan: süre boyunca onda kal
-    // geniş plan: pistin kenarında ayakta duran bir kameraman gibi, herkes kadrajda
-    this.dir.update(dt, this.cam, { p: [Math.sin(T * .17) * 1.3, 2.0, 4.6 + this.zoom * 1.75], l: [0, 1.22, -.9] });
+    // davul zurna sıranın sağ önünde durur, halaycılara döner (sıranın önünü kapatmaz)
+    const zm = this.zmid, hw = this.halfW, place = (m, x, z) => { m.root.position.x = ease(m.root.position.x, x, dt, 3); m.root.position.z = ease(m.root.position.z, z, dt, 3); m.root.rotation.y = Math.atan2(-m.root.position.x * .6, zm - m.root.position.z) ; };
+    place(this.hall.davulcu, hw + 1.0, zm + .45); place(this.hall.zurnaci, hw + 1.85, zm + .75);
+    this.zoom = ease(this.zoom || hw, hw, dt, 2);
+    if (so) this.dir.focus(() => this.solo && this.d.get(this.solo.id) === so ? shot(so.pos[0], so.pos[1], 0, 1.5, 2.9, Math.sin(T * .5) * .5) : null, 8, 3, so.p, 'ortada oynuyor 💸'); /* ortaya çıkan: süre boyunca onda kal */
+    // geniş plan: sıranın karşısında, göz hizasında duran kameraman; sıra uzadıkça geri çekilir
+    this.dir.update(dt, this.cam, { p: [.8 + Math.sin(T * .17) * .7, 1.7, zm + 3.0 + (this.zoom + .9) * 2.35], l: [.8, 1.05, zm] });
   },
   draw() {
     if (!this.list.length) bar(140, 452, 800, 70, 0, C.cyan, C.pink, 'Pist seni bekliyor: ilk Gülü at, halaya gir! 🥁');
     if (this.built) this.hall.draw(this.cam);
     if (this.built) { // etiketler: soldan sağa dizilir, yan yana gelenler üç kata kaydırılır ki adlar üst üste binmesin
-      const tags = (this.vis || []).filter(d => !d.ghost).map(d => { const [x, y] = proj(this.cam, d.pos[0], 2.12, d.pos[1]); return { d, x, y, lv: 0 }; }).sort((a, b) => a.x - b.x);
-      tags.forEach((t, i) => { const near = tags.slice(Math.max(0, i - 2), i).filter(o => t.x - o.x < 118).map(o => o.lv); let lv = 0; while (near.includes(lv)) lv++; t.lv = lv; });
+      const tags = (this.vis || []).filter(d => !d.ghost).map(d => { const [x, y] = proj(this.cam, d.pos[0], 2.05, d.pos[1]); return { d, x, y, lv: 0 }; }).sort((a, b) => a.x - b.x);
+      tags.forEach((t, i) => { const near = tags.slice(Math.max(0, i - 3), i).filter(o => t.x - o.x < 118).map(o => o.lv); let lv = 0; while (near.includes(lv)) lv++; t.lv = lv; });
       for (const { d, x, y: y0, lv } of tags) {
         const lead = d.slot === 0, solo = d.slot < 0, y = y0 - lv * 62 - (solo ? 10 : 0), r = solo ? 40 : 26;
         if (lv) { ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(x - 1.5, y + r, 3, y0 - y - r + 6); } // kaydırılan etiketi sahibine bağlayan çizgi
@@ -1140,6 +1165,7 @@ function frame(now) {
   if (QA) window.__qa = { frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
   if (ready() && !mode.built) { mode.build(); mode.built = true; }
   mode.update(dt);
+  if (QA && window.__qaCam && mode.cam) { const c = window.__qaCam; mode.cam.position.set(c[0], c[1], c[2]); mode.cam.lookAt(c[3], c[4], c[5]); } // görsel denetim: kamerayı elle yerleştir
   if (mode.built) renderer.render(mode.scene, mode.cam);
 
   ctx.clearRect(0, 0, W, H);

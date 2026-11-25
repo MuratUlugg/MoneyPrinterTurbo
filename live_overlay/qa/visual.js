@@ -32,6 +32,12 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
   await wait(5); await gl('halay-1-uc-kisi-genis');
   for (const n of NAMES.slice(3, 12)) await gift(n, 1, 2);
   await wait(6); await gl('halay-2-on-iki-kisi-genis'); await full('halay-2-tam-ekran');
+  /* el ve ayak denetimi: sıranın ortasına yakından bak, adım döngüsünün dört vuruşunu ayrı ayrı çek */
+  const cam = c => p.evaluate(v => { window.__qaCam = v; }, c);
+  await cam([0, 1.25, 1.2, 0, 1.0, -2.4]); await wait(.3); await gl('halay-8-eller-yakin');
+  await cam([0, .9, 2.6, 0, .75, -2.4]);
+  for (let k = 0; k < 4; k++) { await wait(.25); await gl('halay-9-adim-' + k); }
+  await cam(null);
   await wait(1); await gift('Emre', 1); await wait(.5); await gl('halay-3-yakin-halayci');
   await wait(6); await api('/api/simulate', { type: 'comment', name: 'Sibel', text: 'maşallah' }); await wait(.5); await gl('halay-4-yakin-misafir');
   await wait(6); await gift('Elif', 30, 1, 'Donut'); await wait(.5); await gl('halay-5-davulcu-bahsis');

@@ -7,7 +7,9 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 İlk görsel denetimde (20 çekim) bulunanlar, göze batma sırasıyla.
 
 ### Halay
-- [ ] Davulcu yakın planında komşu halaycıların kolları kadraja giriyor, davul görüntünün üçte birini kaplıyor.
+- [ ] Halay geniş planında sıra kadrajın üst yarısında küçük kalıyor, altta boş pist çok; kamera biraz daha yakın ve alçak olabilir.
+- [ ] Halayın tekme vuruşu durağan karede net yakalanmadı; adım döngüsü videoyla doğrulanmalı.
+- [ ] Davulcu yakın planı yeni yerleşimle (çalgıcılar sıranın sağında) yeniden incelenmeli.
 
 ### Takı töreni
 - [ ] Gelinle damat el ele ya da kol kola değil; gelinin kolları hiç oynamıyor (iskeletsiz model).
@@ -62,3 +64,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Finiş çekimi: kazanan belli olunca kamera takın önüne geçip atların çizgiye gelişini karşıdan gösteriyor, alt bantta "finişe geliyor"; kutlama kartı ondan sonra çıkıyor (görsel: `yaris-4`, ilk kez yakalandı; QA geçti).
 - Tribün: yedi sıra, canlı renkli formalar, ten ve saç renkleri, bazıları ayakta; beyaz toplar ve pastel kutular gitti (görsel: `yaris-4` önce/sonra; QA geçti).
 - Hanımlarda çeşitlilik: kısa saç, topuz, uzun saç ya da eşarp; dört ayrı çizme rengi (görsel: `halay-2` önce/sonra, `halay-5`'te topuz ve eşarp görüldü; uzun saç görüntüde yakalanmadı; QA geçti).
+- Halay mekaniği yeniden yazıldı (kullanıcı geri bildirimi): omuz omuza tek sıra, komşuların elleri aynı noktada buluşuyor (kol omuzdan hedefe nişanlanıyor), herkes aynı anda dört vuruşluk adımı atıyor (sağa adım, sol ayağı çek, çök, sol tekme), sıra adımla birlikte kayıyor; baştaki mendil sallıyor, sondakinin eli belinde; davul zurna sıranın sağında (görsel: `halay-2`, `halay-8` el yakın planı, `halay-9` dört vuruş; QA geçti).
