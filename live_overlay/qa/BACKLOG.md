@@ -7,20 +7,20 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 İlk görsel denetimde (20 çekim) bulunanlar, göze batma sırasıyla.
 
 ### Halay
-- [ ] **Geniş planda halaycıların çoğunun sırtı görünüyor.** Tam daire göz hizasından çekilince kameraya yakın yarı sırtını dönüyor, yüzler ve ortadaki davul zurna kapanıyor. Halay kameraya açık bir yay (at nalı) olmalı: herkesin yüzü görünsün, ortası boş kalsın.
-- [ ] **Adlar üst üste biniyor, okunmuyor** ("KerEceMelis"). 8+ kişide etiketler çakışıyor; çakışanlar kaydırılmalı ya da yalnızca fotoğraf kalmalı.
-- [ ] **Ortaya çıkan kişinin önünü bir halaycının sırtı kapatıyor**; kadrajın yarısı pembe bir tişört sırtı.
 - [ ] Halaycıların kolları dümdüz yana açık (T duruşu gibi); el ele / omuz omuza tutuş yok, dirsek kırılmıyor.
 - [ ] Hanımların hepsi aynı çizme ve aynı saç kesimiyle; yalnızca renk değişiyor.
-- [ ] Çekim betiği yakın plan anlarını (halaycı, misafir, davulcuya bahşiş, yer volkanı) yakalayamadı: hepsi geniş plan çıktı. Ya kamera odağı çalışmıyor ya betiğin zamanlaması yanlış; ikisi de doğrulanmalı.
-- [ ] Yer volkanları hâlâ hiçbir görüntüde görülmedi.
+- [ ] Yer volkanları 500 jetonluk hediyede kadrajda yok: kamera ortaya çıkana dönüyor, volkanlar sahnenin önünde arkada kalıyor. Ya volkanlar pistin çevresine alınmalı ya kamera önce geniş planda kalmalı.
+- [ ] **Kasket başın üstünde havada duruyor**, altı kel; şapka başa oturmalı, altından saç görünmeli.
+- [ ] Halay başının mendili yakın planda kocaman, dümdüz beyaz bir levha.
+- [ ] Yakın planda salonun duvarı bitiyor, arkası kapkara boşluk (sol üst).
+- [ ] Büyük hediye bandı, ortaya çıkan kişinin başını kapatıyor.
+- [ ] Davulcu yakın planında komşu halaycıların kolları kadraja giriyor, davul görüntünün üçte birini kaplıyor.
 
 ### Takı töreni
 - [ ] **Altınlar düz sarı leke gibi**: çok büyük, yarısı göğse gömülü, hilal şeklinde kesiliyor, altın gibi parlamıyor. Küçük, parlak, kırmızı kurdeleye asılı altın gibi görünmeli.
 - [ ] **Arka plan soluk ve boş**: bej perde, üstünde balon takının lekeli gölgesi, düz sarı sahne zemini. Balon takı, pankart ve çiçekler kadraja girmiyor.
 - [ ] Damat kolları sarkık, dimdik duruyor; gelin hiç kıpırdamıyor. İkisi birbirine dönük, el ele ya da kol kola durmalı.
 - [ ] En cömertler listesi çiftin ayaklarını ve gelinliğin eteğini kapatıyor.
-- [ ] "Altını gönderen misafire dön" çekimi misafiri değil çifti gösterdi: kamera odağı takıda çalışmıyor olabilir.
 
 ### At yarışı
 - [ ] **Atlar üst üste yığılıyor**: sekiz at çapraz tek bir küme hâlinde, kulvarlar ayırt edilmiyor.
@@ -28,8 +28,8 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - [ ] **Jokey atın boynuna yatmış, bacakları yere sarkıyor**; eyerde oturmuyor ve ata göre fazla büyük.
 - [ ] Atların hepsi aynı kahverengi; don rengi çeşitliliği görünmüyor.
 - [ ] Tribün soluk pastel kutular ve beyaz toplar; seyirci gibi durmuyor. Gökyüzü neredeyse görünmüyor.
+- [ ] Yarışın "dağılmış", "yakın at" ve "finiş" görüntüleri henüz incelenmedi (çekim betiğinin finiş hedefi düzeltildi; bir sonraki çekimde bakılacak).
 - [ ] Pist dokusu iri kareli gürültü.
-- [ ] Çekim betiğinde "dağılmış" sahnesi dağılmadı (finiş hedefi çok yüksek verildi); betik düzeltilmeli. Finiş anı henüz incelenmedi.
 
 ### Genel
 - [ ] Sahneler soluk ve düz: ortam ışığı fazla, kontrast az; kişiler zeminden ve duvardan ayrışmıyor.
@@ -60,3 +60,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Otomatik QA kapısı (`qa/run.sh`): 5 mod, kazanma akışı, yenilemeden sonra geri yükleme, panel.
 - Görsel denetim çekimleri (`qa/visual.js`, 20 an) ve ilk denetim: 20 görsel kusur listeye yazıldı.
 - Bağlantı göstergesi: sunucu ya da TikTok bağlantısı yokken overlay'in sol üstünde küçük nokta, `?kilavuz=1` iken yazı; panel sunucuya ulaşamazsa uyarır (QA: duman testi TikTok'suz durumda göstergenin `tiktok` dediğini kontrol ediyor; sunucu kopması elle denenmedi).
+- Halay kameraya açık yay (at nalı) oldu: geniş planda herkesin yüzü, ortada davul zurna görünüyor; ortaya çıkan kişinin önü açık (görsel: `halay-2`, `halay-7` önce/sonra karşılaştırıldı).
+- Halay ad etiketleri üç kata kaydırılıyor, 12 kişide de okunuyor (görsel: `halay-2`).
+- Çekim betiği anı donduruyor ve oyun saatine göre bekliyor: yakın planların beşi de yakalandı; kamera odağının halayda, masada, davulcuda ve takıda çalıştığı görüldü.
