@@ -823,7 +823,8 @@ if (DEMO) {
   const barEl = document.getElementById('bar'); barEl.hidden = false;
   barEl.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.mode) setMode(b.dataset.mode); else for (let i = 0; i < 8; i++) demoGift();
+    if (b.dataset.mode) setMode(b.dataset.mode);
+    for (let i = 0; i < (b.dataset.mode ? 5 : 8); i++) demoGift(); // mod değişince sahne boş kalmasın
   });
   for (let i = 0; i < 6; i++) demoGift(); // ilk kare dolu görünsün
 }
