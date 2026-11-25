@@ -37,7 +37,10 @@ At yarışında da tribün ve seyirciler vardır.
 
 Hepsi gerçek hediyelere dayanır; sahte bağışçı, sahte geri sayım ya da şans oyunu yoktur.
 
-- **Düşük giriş eşiği:** tek bir Gül bile izleyiciyi sahneye sokar (halaya girer, atı piste çıkar). Dönen ipuçları bunu sürekli hatırlatır.
+- **Hediye menüsü:** başlığın altında, ne gönderirsen ekranda ne olacağını yazan kartlar döner (örneğin "🌹 1+ kalk, halaya gir", "💎 100+ ortaya çık, para saçılsın"). İzleyici neyin karşılığında ne alacağını üç saniyede anlar.
+- **Düşük giriş eşiği:** yorum yazan masaya oturur, tek bir Gül gönderen piste çıkar; kamera ona döner, adı alt bantta yazar.
+- **Kademeli ödüller (halay):** 30+ jeton davulcuya bahşiştir (alnına para yapıştırılır, tempo coşar, kamera davulcuya döner); 100+ ortaya çıkarır ve üstüne para saçılır; 500+ sahnenin önünde yer volkanlarını ateşler.
+- **Çelenkler:** yayının en cömert üç ismi adına sahnenin önünde, üzerinde adları ve jeton sayıları yazan çelenkler durur. Sıra değiştikçe çelenk de el değiştirir.
 - **Seviye rozetleri:** yayın boyunca toplam hediyeye göre Bronz (10), Gümüş (100), Altın (500), Elmas (2000). Her hediye bildiriminde bir sonraki seviyeye kalan miktar yazar.
 - **Liderlik rekabeti:** en çok destekleyen üç kişi hep ekrandadır; altında sıradaki kişinin bir üst sıraya çıkması için gereken net miktar döner. Liderlik el değiştirince "liderliği kaptı, geri almak için X" bildirimi çıkar.
 - **Kombo:** 8 saniye içinde art arda gelen hediyeler oyundaki etkiyi %10'ar artırır (en çok 2 kat). Bir kişinin hediyesi başkalarını da hemen göndermeye çeker.
@@ -82,6 +85,7 @@ Adrese parametre ekleyin, örnek: `/overlay?goal=500&halay=600`
 | `tug` | 300 | Halatı kazanmak için gereken jeton farkı |
 | `karpuzMin` / `karpuzMax` | 120 / 450 | Karpuzun patlayabileceği jeton aralığı |
 | `orta` | 100 | Halayda ortaya çıkmak için tek seferde gereken jeton |
+| `bahsis` | 30 | Halayda davulcuya bahşiş sayılan tek seferlik jeton |
 | `buyuk` | 100 | Büyük hediye gösterisini açan tek seferlik jeton (10 katı "efsane") |
 | `hedef` | 2000 | Yayın hedefi (toplam jeton) |
 | `cift` | MUTLULUKLAR | Sahnedeki pankart yazısı |
@@ -90,15 +94,21 @@ Adrese parametre ekleyin, örnek: `/overlay?goal=500&halay=600`
 | `kalite` | — | `kalite=dusuk` gölgeleri kapatır (zayıf ekran kartları için) |
 | `mode` | — | Overlay'i tek moda sabitler (tablodaki anahtarlardan biri) |
 
-## 3B modeller
+## 3B modeller ve lisans
 
-Modeller `static/models/` klasöründedir ve hepsi [three.js örnek deposundan](https://github.com/mrdoob/three.js/tree/dev/examples/models) alınmıştır:
+Modeller `static/models/` klasöründedir:
 
-- `Groom.glb`: takım elbiseli, papyonlu, yüzlü erkek (Ready Player Me avatarı). Damat, halaycılar, masadaki misafirler, davulcu, zurnacı, halat takımları ve jokeyler bu modelden üretilir; ceket ve pantolon rengi kişiye göre değişir, jokeylere kask takılır.
-- `Bride.glb`: yüzlü kadın modeli (three.js `female02`). Elbisesi beyaza çevrilmiş, üzerine uzun etek, duvak ve buket eklenmiştir. İskeleti yoktur, yerinde durur.
-- `Horse.glb`: dörtnala koşan at (Mirada, ro.me).
+| Dosya | Ne | Kaynak |
+| --- | --- | --- |
+| `Groom.glb` | Takım elbiseli, papyonlu bey (damat ve beyefendi misafirler) | three.js örnek deposu (Ready Player Me avatarı) |
+| `Woman.glb` | Hanım misafir | `wass08/r3f-virtual-girlfriend-frontend` deposu (Ready Player Me avatarı) |
+| `Man.glb` | Genç erkek misafir, jokeyler | `wass08/r3f-lipsync-tutorial` deposu (Ready Player Me avatarı) |
+| `Bride.glb` | Gelin: three.js `female02` modeli, elbisesi beyaza çevrildi, etek, duvak ve buket eklendi | three.js örnek deposu |
+| `Horse.glb` | Dörtnala koşan at | three.js örnek deposu (Mirada, ro.me) |
 
-Her izleyicinin karakteri kimliğinden türetilir ve hep aynı kalır: ceket ve pantolon rengi, fötr / kasket / fes / saç / kel, bıyıklı ya da bıyıksız, ten rengi, boy ve kilo farklıdır. Bilinen sınırlar: hepsi aynı erkek yüz modelinden üretilir ve gelin dışında kadın karakter yoktur (hareket ettirilebilen uygun bir kadın modeli bulunamadı); at modeli düşük poligonludur. Ticari yayında kullanmadan önce modellerin kullanım koşullarını kontrol edin. Kendi modelinizi kullanmak için aynı kemik adlarına (`Hips`, `Spine`, `LeftArm`, `LeftUpLeg`…) sahip bir `.glb` dosyasını `Groom.glb` yerine koyun.
+**Para kazanmadan önce lisansı çözün.** Bu modeller açık depolardan alınmış örnek dosyalardır; hiçbiri için ticari kullanım izni doğrulanmadı. Ready Player Me avatarlarının ticari kullanımı Ready Player Me'nin kendi koşullarına bağlıdır. Gelir getiren bir yayında kullanmadan önce ya koşulları kendiniz doğrulayın ya da lisansını satın aldığınız / kendi oluşturduğunuz modellerle değiştirin. Değiştirmek kolaydır: aynı kemik adlarına (`Hips`, `Spine`, `LeftArm`, `LeftUpLeg`…) ve `Wolf3D_Outfit_Top` gibi parça adlarına sahip bir `.glb` dosyasını aynı adla klasöre koymak yeterlidir.
+
+Her izleyicinin karakteri kimliğinden türetilir ve hep aynı kalır: üç gövdeden biri (bey, hanım, genç), kıyafet ve elbise rengi, saç rengi, fötr / kasket / fes / saç, bıyık, ten rengi, boy ve kilo. Bilinen sınırlar: aynı gövdeyi alan kişilerin yüzü aynıdır, gelin yerinde durur, at modeli düşük poligonludur.
 
 Salon kalabalıkken ekranda 30 kadar hareketli insan modeli olur. Zayıf ekran kartlarında takılma olursa `konuk=0` ile hazır konukları kapatın.
 

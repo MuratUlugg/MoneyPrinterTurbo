@@ -61,6 +61,7 @@ const CFG = {
   orta: num('orta', 100),        // halay: tek hediyede bu kadar jeton 'ortaya çıkarır'
   hedef: num('hedef', 2000),     // yayın hedefi (toplam jeton); dolunca ikiye katlanır
   konuk: Math.round(num('konuk', 6)), // salonda hazır oturan adsız konuk sayısı (en çok 16)
+  bahsis: num('bahsis', 30),     // halay: davulcuya bahşiş sayılan tek hediye
   buyuk: num('buyuk', 100),      // bu kadar jetonluk tek hediye 'büyük hediye' gösterisi açar
 };
 const C = { panel: 'rgba(20,15,46,.78)', ink: '#fff', dim: 'rgba(255,255,255,.7)', pink: '#ff3d7f',
@@ -163,7 +164,7 @@ const snd = { on: qs.get('ses') === '1', ctx: null,
   dum() { this.tone(110, 45, .28, .9); }, tek() { this.noise(.07, .5, 3200); }, coin() { this.tone(1900, 2600, .25, .25, 'triangle'); }, clap() { this.noise(1.6, .5, 1800); },
 };
 function after(sec, fn) { timers.push({ t: sec, fn }); }
-function celebrate(title, p, sub) { cel = { title, p, sub, t: 0 }; champion = p || champion; hall.cheer = 1.5; snd.clap(); confetti(); }
+function celebrate(title, p, sub) { cel = { title, p, sub, t: 0 }; champion = p || champion; hall.cheer = 1.5; hall.boom(3.5); snd.clap(); confetti(); }
 function drawCelebration(dt) {
   if (!cel) return;
   cel.t += dt; if (cel.t > 5.5) { cel = null; return; }
@@ -212,8 +213,13 @@ function drawHeader() {
   ctx.save(); ctx.translate(540, 290); ctx.scale(s, s);
   text(mode.title, 0, 0, 92, C.yellow, 'center', 16);
   ctx.restore();
-  const hints = mode.hints, i = Math.floor(T / 4.5) % hints.length, ph = (T / 4.5) % 1;
-  ctx.globalAlpha = clamp(Math.min(ph * 8, (1 - ph) * 8), 0, 1); text(fit(hints[i], 1000, 36), 540, 356, 36, '#fff', 'center', 9); ctx.globalAlpha = 1;
+  // hediye menüsü: ne gönderirsen ekranda ne olur (ikişer ikişer döner)
+  const m = mode.menu, pages = Math.ceil(m.length / 2), pg = Math.floor(T / 4) % pages, ph = (T / 4) % 1, pair = m.slice(pg * 2, pg * 2 + 2);
+  ctx.globalAlpha = clamp(Math.min(ph * 8, (1 - ph) * 8), 0, 1);
+  setFont(27); const ws = pair.map(c => ctx.measureText(c[0] + '  ' + c[1]).width + 44), tot = ws.reduce((a, b) => a + b, 0) + (pair.length - 1) * 16; let cx = 540 - tot / 2;
+  pair.forEach((c, i) => { panel(cx, 332, ws[i], 44, 22, 'rgba(10,6,30,.8)'); setFont(27); const w0 = ctx.measureText(c[0] + '  ').width;
+    text(c[0], cx + 22, 355, 27, C.yellow, 'left'); text(c[1], cx + 22 + w0, 355, 27, '#fff', 'left'); cx += ws[i] + 16; });
+  ctx.globalAlpha = 1;
   bar(190, 384, 700, 36, session / goal, C.pink, C.yellow, `YAYIN HEDEFİ  💎 ${fmt(session)} / ${fmt(goal)}`);
 }
 function drawCombo(dt) {
@@ -263,7 +269,7 @@ function drawDonors() {
 // =====================================================================
 const THREE = window.THREE, HAS3D = !!(THREE && THREE.GLTFLoader && THREE.SkeletonUtils);
 let renderer = null, glError = HAS3D ? '' : '3B kütüphanesi yüklenemedi (internet bağlantısını kontrol edin)';
-const assets = { horse: null, bot: null, bride: null };
+const assets = { horse: null, bot: null, bride: null, woman: null, man: null };
 if (HAS3D) {
   try {
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gl'), antialias: true });
@@ -275,9 +281,11 @@ if (HAS3D) {
     loader.load('models/Horse.glb' + ext, g => { assets.horse = g; }, undefined, fail);
     loader.load('models/Groom.glb' + ext, g => { assets.bot = g; }, undefined, fail);
     loader.load('models/Bride.glb' + ext, g => { assets.bride = g; }, undefined, fail);
+    loader.load('models/Woman.glb' + ext, g => { assets.woman = g; }, undefined, fail);
+    loader.load('models/Man.glb' + ext, g => { assets.man = g; }, undefined, fail);
   } catch (e) { glError = 'Bu tarayıcıda WebGL açılamadı'; }
 }
-const ready = () => renderer && assets.horse && assets.bot && assets.bride;
+const ready = () => renderer && assets.horse && assets.bot && assets.bride && assets.woman && assets.man;
 const V = HAS3D ? new THREE.Vector3() : null, Q = HAS3D ? new THREE.Quaternion() : null, E = HAS3D ? new THREE.Euler() : null;
 function proj(cam, x, y, z) { V.set(x, y, z).project(cam); return V.z > 1 ? [-9999, -9999] : [VX + (V.x + 1) / 2 * VW, VY + (1 - V.y) / 2 * VH]; }
 // ---- kamera yönetmeni: geniş plan + son hareketi yapan kişiye yakın plan ----
@@ -338,28 +346,32 @@ function lights(scene, x0, x1, y, z, n, sag) { // düğün ışıkları
 }
 
 // ---- insan modelleri: her izleyiciye kimliğinden türeyen farklı bir görünüm ----
+// Üç gövde (takım elbiseli bey, hanım, genç) × kıyafet, saç, şapka, bıyık, ten, boy ve kilo.
 const SKINS = ['#ffffff', '#f3d9c4', '#dcb492', '#b98b68'], HAIRS = ['#1c1512', '#3b2618', '#6b6b6b', '#8a5a2b'], PANTS = ['#8a8a99', '#5c5c6e', '#a39a8c', '#44485a'];
+const DRESS = ['#c0263d', '#1f6f8b', '#7b2d8b', '#0f7a55', '#d98a1f', '#b0306a', '#2b3a8f', '#e8e2d6'], LADYHAIR = ['#ffffff', '#5a3a2a', '#2a1d18', '#c9a36b', '#8a3b2a', '#3a2a22'];
 function lookOf(id) {
   let h = hash('look:' + id); // düz hash'in alt bitleri benzer adlarda aynı kalıyor; karıştır
   h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h = (h ^ (h >>> 16)) >>> 0;
-  return { head: ['fedora', 'hair', 'kasket', 'bald', 'fes', 'hair'][(h >>> 3) % 6], must: (h >>> 7) % 4 !== 0, skin: SKINS[(h >>> 9) % 4],
-    hair: HAIRS[(h >>> 11) % 4], bottom: PANTS[(h >>> 13) % 4], tall: .93 + ((h >>> 15) % 14) / 100, wide: 1 + ((h >>> 19) % 4) * .05 };
+  return { kind: [0, 1, 2, 1, 0, 2, 1, 0][h % 8], head: ['fedora', 'hair', 'kasket', 'fedora', 'fes', 'hair', 'kasket', 'hair', 'bald', 'hair', 'fedora'][(h >>> 3) % 11], must: (h >>> 7) % 4 !== 0, skin: SKINS[(h >>> 9) % 4],
+    hair: HAIRS[(h >>> 11) % 4], bottom: PANTS[(h >>> 13) % 4], dress: DRESS[(h >>> 22) % 8], ladyHair: LADYHAIR[(h >>> 25) % 6], tall: .93 + ((h >>> 15) % 14) / 100, wide: 1 + ((h >>> 19) % 4) * .05 };
 }
 function makeBot(top, o = {}) {
-  const root = THREE.SkeletonUtils.clone(assets.bot.scene), b = {}, rest = {};
+  const kind = o.kind || 0, root = THREE.SkeletonUtils.clone([assets.bot, assets.woman, assets.man][kind].scene), b = {}, rest = {};
   root.traverse(n => {
     if (n.isBone) { b[n.name] = n; rest[n.name] = n.quaternion.clone(); }
     if (!n.isMesh) return;
     n.castShadow = true; n.frustumCulled = false;
-    const tint = c => { n.material = n.material.clone(); n.material.color.set(c); };
-    if (n.name === 'Wolf3D_Outfit_Top') tint(top); else if (n.name === 'Wolf3D_Outfit_Bottom') tint(o.bottom || top);
+    const tint = (c, plain) => { n.material = n.material.clone(); if (plain) n.material.map = null; n.material.color.set(c); };
+    if (n.name === 'Wolf3D_Outfit_Top') tint(kind === 1 ? (o.dress || top) : top, kind > 0); // hanımın siyah elbisesi boyanamaz, gencin tişörtünde logo var: ikisine düz renk verilir
+    else if (n.name === 'Wolf3D_Outfit_Bottom') tint(kind === 1 ? '#3a3038' : (o.bottom || top));
     else if ((n.name === 'Wolf3D_Head' || n.name === 'Wolf3D_Body') && o.skin) tint(o.skin);
+    else if (n.name === 'Wolf3D_Hair') tint(kind === 1 ? (o.ladyHair || '#5a3a2a') : ['#ffffff', '#b8a090', '#70605a', '#ffe2b0'][HAIRS.indexOf(o.hair || HAIRS[0])]);
     else if (n.name === 'Wolf3D_Headwear') n.visible = (o.head || 'fedora') === 'fedora';
     else if (n.name === 'Wolf3D_Beard') n.visible = o.must !== false;
   });
-  const a = { root, b, rest, unit: 1 };
-  {
-    const hair = () => { const m = mesh(new THREE.SphereGeometry(.109, 16, 10, 0, TAU, 0, Math.PI * .52), std(o.hair || HAIRS[0], { roughness: .9 })); m.position.set(0, .105, -.012); m.rotation.x = -.2; b.Head.add(m); };
+  const a = { root, b, rest, kind, unit: 1 };
+  if (kind === 0) { // takım elbiseli bey: fötr yerine saç, kasket ya da fes
+    const hair = () => { const m = mesh(new THREE.SphereGeometry(.111, 18, 12, 0, TAU, 0, Math.PI * .56), std(o.hair || HAIRS[0], { roughness: .95 })); m.position.set(0, .1, -.016); m.rotation.x = -.28; m.scale.z = 1.06; b.Head.add(m); };
     if (o.head === 'hair' || o.head === 'fes') hair();
     if (o.head === 'fes') { const m = mesh(new THREE.CylinderGeometry(.068, .084, .12, 18), std('#b3161b', { roughness: .6 })); m.position.set(0, .225, -.01); b.Head.add(m); }
     if (o.head === 'kasket') { const cap = mesh(new THREE.SphereGeometry(.116, 16, 10, 0, TAU, 0, Math.PI * .5), std('#4a4038', { roughness: .9 })); cap.scale.y = .6; cap.position.set(0, .135, 0); b.Head.add(cap);
@@ -440,7 +452,32 @@ const hall = {
     drum.rotation.z = Math.PI / 2; drum.position.set(0, .1, .38); dv.b.Hips.add(drum);
     const zr = this.zurnaci = makeBot('#5a6fb0', { bottom: '#5a5a66', head: 'fes', must: true }); zr.root.position.set(.5, 0, -.25); zr.root.rotation.y = -.25; s.add(zr.root);
     const zurna = mesh(new THREE.CylinderGeometry(.02, .09, .46, 14), std('#7a4a22', { roughness: .45 })); zurna.rotation.x = -Math.PI / 2 + .35; zurna.position.set(0, 0, .32); zr.b.Head.add(zurna);
+    // sahne ışıkları (renkli spotlar pistte gezer)
+    this.spots = [0xff5aa0, 0x4ad8ff].map((c, i) => { const sp = new THREE.SpotLight(c, 1.1, 22, .34, .7); sp.position.set(i ? 5.5 : -5.5, 6.5, 3); s.add(sp); s.add(sp.target); return sp; });
+    // yer volkanları: büyük anlarda sahnenin önünden fışkırır
+    const N = 700, pos = new Float32Array(N * 3).fill(-50); this.fxV = new Float32Array(N * 3); this.fxL = new Float32Array(N); this.fxI = 0; this.fx = 0;
+    const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    this.sparks = new THREE.Points(pg, new THREE.PointsMaterial({ size: .11, color: 0xffe39a, transparent: true, opacity: .95, blending: THREE.AdditiveBlending, depthWrite: false })); this.sparks.frustumCulled = false; s.add(this.sparks);
+    // çelenkler: yayının en cömert üç ismi adına sahnenin önünde durur
+    this.wreaths = [0, 1, 2].map(i => { const g = new THREE.Group(), cv = document.createElement('canvas'); cv.width = 256; cv.height = 320;
+      const tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding;
+      for (const lx of [-.22, .22]) { const leg = mesh(new THREE.CylinderGeometry(.018, .018, 1.7, 6), std('#3b2a20'), lx, .85, -.08); leg.rotation.x = .1; g.add(leg); }
+      const ring = mesh(new THREE.TorusGeometry(.43, .1, 10, 30), std(['#e0b655', '#d7dbe6', '#d98a55'][i], { roughness: .5 }), 0, 1.38, 0); g.add(ring);
+      for (let k = 0; k < 16; k++) { const a = k / 16 * TAU; g.add(mesh(new THREE.SphereGeometry(.085, 10, 8), std(['#e8436e', '#ffffff', '#f29bb8', '#ffd23f'][k % 4], { roughness: .7 }), Math.cos(a) * .43, 1.38 + Math.sin(a) * .43, .07)); }
+      g.add(mesh(new THREE.PlaneGeometry(.72, .9), new THREE.MeshBasicMaterial({ map: tex, transparent: true }), 0, 1.27, .03, false));
+      g.position.set(-4.0 + i * 1.02, 0, -5.15 + i * .08); g.rotation.y = .22; g.visible = false; s.add(g); return { g, cv, tex, key: '' }; });
+    this.note = mesh(new THREE.PlaneGeometry(.17, .08), std('#5fbf6a', { side: THREE.DoubleSide, roughness: .8 })); this.note.position.set(0, .175, .112); this.note.visible = false; dv.b.Head.add(this.note);
     this.seed();
+  },
+  boom(sec = 2.5) { if (this.scene) this.fx = Math.max(this.fx, sec); },
+  wreath(top) { // en cömert üç kişi değiştikçe çelenk yazılarını yenile
+    this.wreaths.forEach((w, i) => { const p = top[i], key = p ? p.id + ':' + Math.round(p.total) : ''; if (key === w.key) return; w.key = key; w.g.visible = !!p; if (!p) return;
+      const g = w.cv.getContext('2d'); g.clearRect(0, 0, 256, 320);
+      g.beginPath(); g.arc(128, 118, 100, 0, TAU); g.fillStyle = p.color; g.fill(); g.lineWidth = 8; g.strokeStyle = '#fff'; g.stroke();
+      g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '800 120px ' + FONT; g.fillText((p.name.trim()[0] || '?').toLocaleUpperCase('tr-TR'), 128, 126);
+      g.fillStyle = ['#c9982f', '#9aa0ad', '#b5683a'][i]; g.beginPath(); g.roundRect(4, 236, 248, 80, 16); g.fill();
+      g.fillStyle = '#fff'; g.font = '800 34px ' + FONT; let n = p.name; while (n.length > 1 && g.measureText(n).width > 230) n = n.slice(0, -1); g.fillText(n, 128, 260);
+      g.font = '800 26px ' + FONT; g.fillText(`${i + 1}. · ${fmt(p.total)} jeton`, 128, 296); w.tex.needsUpdate = true; });
   },
   seed() { for (let i = 0; i < CFG.konuk; i++) this.sit(null); }, // salon boş görünmesin diye adsız konuklar; izleyici gelince yerlerini ona bırakırlar
   sit(p) {
@@ -470,6 +507,16 @@ const hall = {
     if (dance) { arm(g, 'Left', .2, 1.0 + Math.sin(ph * 2) * .13); arm(g, 'Right', .2, 1.0 + Math.sin(ph * 2) * .13); } else { arm(g, 'Left', -.6, .05); arm(g, 'Right', -.6, .05); }
     br.rotation.y = -.2 + Math.sin(T * .7) * .06; br.position.y = .43 + Math.abs(Math.sin(this.nod[1] * Math.PI * 2)) * .03 * this.nod[1];
     this.bulbs.forEach((m, i) => m.scale.setScalar((i + Math.floor(T * 2.5)) % 3 ? 1.2 : .7));
+    this.spots.forEach((sp, i) => { sp.target.position.set(Math.sin(T * .7 + i * 2.6) * 2.6, 0, Math.cos(T * .9 + i * 1.7) * 2.2); sp.intensity = dance ? 1.1 + this.cheer * .8 : .35; });
+    this.tip = Math.max(0, (this.tip || 0) - dt); this.note.visible = this.tip > 0;
+    if ((this.wT = (this.wT || 0) - dt) <= 0) { this.wT = .5; this.wreath([...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3)); }
+    // yer volkanları
+    this.fx = Math.max(0, this.fx - dt); const P3 = this.sparks.geometry.attributes.position, A = P3.array, SRC = [[-3.9, -5.6], [-1.9, -5.55], [1.9, -5.55], [3.9, -5.6]];
+    if (this.fx > 0) for (let k = 0; k < 14; k++) { const i = this.fxI = (this.fxI + 1) % this.fxL.length, src = SRC[i % 4]; A[i * 3] = src[0]; A[i * 3 + 1] = .45; A[i * 3 + 2] = src[1];
+      this.fxV[i * 3] = rand(-.7, .7); this.fxV[i * 3 + 1] = rand(4.2, 6.8); this.fxV[i * 3 + 2] = rand(-.7, .7); this.fxL[i] = rand(.7, 1.15); }
+    for (let i = 0; i < this.fxL.length; i++) { if (this.fxL[i] <= 0) continue; this.fxL[i] -= dt; if (this.fxL[i] <= 0) { A[i * 3 + 1] = -50; continue; }
+      this.fxV[i * 3 + 1] -= 7 * dt; A[i * 3] += this.fxV[i * 3] * dt; A[i * 3 + 1] += this.fxV[i * 3 + 1] * dt; A[i * 3 + 2] += this.fxV[i * 3 + 2] * dt; }
+    P3.needsUpdate = true;
   },
   draw(cam) { for (const s of this.seats) if (s.g && s.g.p) { const [x, y] = proj(cam, s.x, 1.5, s.z); avatar(s.g.p, x, y, 17); } },
 };
@@ -479,7 +526,7 @@ const hall = {
 // =====================================================================
 const halay = {
   title: 'DÜĞÜN HALAYI',
-  hints: ['💬 Yorum yaz, düğünde masana otur', '🌹 Tek bir Gül at, masadan kalk halaya gir!', `💸 ${CFG.orta}+ 💎 at: ortaya çık, üstüne para saçılsın!`, 'En cömert, mendili sallayan halay başı olur', 'Coşku dolunca halay başı ilan edilir 🔥'],
+  menu: [['💬 Yorum yaz', 'masana otur'], ['🌹 1+', 'kalk, halaya gir'], [`💎 ${CFG.bahsis}+`, 'davulcuya bahşiş, tempo coşar'], [`💎 ${CFG.orta}+`, 'ortaya çık, para saçılsın'], [`💎 ${CFG.buyuk * 5}+`, 'yer volkanları + çelengin sahnede'], ['👑 En cömert', 'mendilli halay başı']],
   build() {
     this.hall = hall.get(); this.scene = this.hall.scene; this.cam = camera(38, 0, 4.6, 10.5, 0, 1.1, -1.2);
     this.mendil = mesh(new THREE.PlaneGeometry(.26, .26), std('#ffffff', { side: THREE.DoubleSide, roughness: .9 }));
@@ -499,6 +546,8 @@ const halay = {
     if (!d) { d = { p, v: 0, ang: null, pos: [0, 0] }; this.d.set(p.id, d); hall.leave(p.id); } // masadan kalkıp piste çıkar
     d.v += raw; d.plus = { a: raw, t: 0 };
     if (raw >= CFG.orta) hall.cheer = 1;
+    else if (raw >= CFG.bahsis && this.built) { hall.tip = 7; floater('DAVULCUYA BAHŞİŞ! 🥁', 540, 760, C.yellow, 64); // tempo coşar, kamera davulcuya döner
+      this.dir.focus(() => hall.tip > 0 ? shot(-.5, -.25, .25, 1.5, 2.1, .45) : null, 3, 2, p, 'davulcuya bahşiş verdi 💵'); }
     if (raw >= CFG.orta && !this.soloQ.includes(p.id) && !(this.solo && this.solo.id === p.id)) this.soloQ.push(p.id);
     this.cosku = Math.min(100, this.cosku + a / CFG.halay * 100);
     if (this.cosku >= 100) {
@@ -511,7 +560,7 @@ const halay = {
   update(dt) {
     if (!this.locked) this.cosku = Math.max(0, this.cosku - dt * .5);
     this.shown = ease(this.shown, this.cosku, dt, 5);
-    const tempo = 3.4 + this.shown / 100 * 4.5;
+    const tempo = 3.4 + this.shown / 100 * 4.5 + (hall.tip > 0 ? 2.6 : 0);
     this.ph += dt * tempo; this.rot += dt * (.22 + this.shown / 100 * .45);
     this.list = [...this.d.values()].sort((a, b) => b.v - a.v);
     if (this.solo && ((this.solo.t -= dt) <= 0 || !this.d.has(this.solo.id))) this.solo = null;
@@ -574,7 +623,7 @@ const COATS = ['#ffffff', '#6a5a50', '#ffe2b8', '#3d3530', '#c8a890', '#8f7a6a',
 const SPAN = 7, SPEED = 9, JY = .78; // JY: jokeyin eyer yüksekliği
 const race = {
   title: 'AT YARIŞI',
-  hints: ['🌹 Tek bir Gül at, atın piste çıksın!', 'Her 💎 atını öne geçirir 🏇', 'Art arda hediyeler KOMBO yapar: atlar daha hızlı koşar', 'Finişi ilk geçen şampiyon ilan edilir 🏆'],
+  menu: [['🌹 1+', 'atın piste çıkar'], ['💎 Her jeton', 'atını öne geçirir'], ['🔥 Kombo', 'art arda hediye = daha hızlı'], ['🏆 Finişi geçen', 'şampiyon ilan edilir']],
   base: 0, focus: 0, spread: 0,
   build() {
     const { s, sun } = baseScene('#4d9be6', '#cfe9ff', { fog: '#cfe9ff', fogNear: 40, fogFar: 130, amb: .9, sun: 1.5, range: 14 });
@@ -634,8 +683,8 @@ const race = {
         const m = assets.horse.scene.children[0].clone(); m.material = m.material.clone(); m.material.color.set(r.coat);
         m.scale.setScalar(.0056); m.rotation.y = Math.PI / 2; m.castShadow = true;
         const mixer = new THREE.AnimationMixer(m); mixer.clipAction(assets.horse.animations[0]).setDuration(.62).play(); mixer.update(rand(.6));
-        const col = `hsl(${r.p.hue},90%,52%)`, j = makeBot(col, Object.assign(lookOf(r.p.id), { bottom: '#ffffff', head: 'bald', tall: 1, wide: 1 })); j.root.scale.setScalar(.74); j.root.rotation.y = Math.PI / 2;
-        const helmet = mesh(new THREE.SphereGeometry(.13, 18, 12, 0, TAU, 0, Math.PI * .6), std(col, { roughness: .3 })); helmet.position.set(0, .1, .02); j.b.Head.add(helmet);
+        const col = `hsl(${r.p.hue},90%,52%)`, j = makeBot(col, Object.assign(lookOf(r.p.id), { kind: 2, bottom: '#ffffff', tall: 1, wide: 1 })); j.root.scale.setScalar(.74); j.root.rotation.y = Math.PI / 2;
+        const helmet = mesh(new THREE.SphereGeometry(.142, 18, 12, 0, TAU, 0, Math.PI * .62), std(col, { roughness: .3 })); helmet.position.set(0, .1, .01); j.b.Head.add(helmet);
         P(j, 'Spine', .55, 0, 0); P(j, 'Spine1', .25, 0, 0); P(j, 'Head', -.6, 0, 0);
         P(j, 'LeftUpLeg', -1.2, 0, -.38); P(j, 'RightUpLeg', -1.2, 0, .38); P(j, 'LeftLeg', 1.75, 0, 0); P(j, 'RightLeg', 1.75, 0, 0);
         arm(j, 'Left', .1, 1.2); arm(j, 'Right', .1, 1.2);
@@ -671,7 +720,7 @@ const race = {
 const TAKI = [[1000, 'beşi bir yerde'], [200, 'bilezik'], [50, 'tam altın'], [10, 'yarım altın'], [0, 'çeyrek altın']];
 const taki = {
   title: 'TAKI TÖRENİ',
-  hints: ['💬 Yorum yaz, düğünde masana otur', 'Hediyen altın olur, gelinle damada takılır', '🌹 Gül = çeyrek · 10+ yarım · 50+ tam altın', '200+ 💎 bilezik · 1000+ beşi bir yerde!', 'Sandık dolunca düğünün en cömerdi ilan edilir'],
+  menu: [['💬 Yorum yaz', 'masana otur'], ['🌹 1+', 'çeyrek altın tak'], ['💎 10+', 'yarım altın'], ['💎 50+', 'tam altın + alkış'], ['💎 200+', 'bilezik'], ['💎 1000+', 'beşi bir yerde']],
   no: 1,
   build() {
     this.hall = hall.get(); this.scene = this.hall.scene; this.cam = camera(30, 0, 2.0, -.9, 0, 1.45, -6.4);
@@ -746,7 +795,7 @@ const taki = {
 // =====================================================================
 const tug = {
   title: 'ÇAY MI KAHVE Mİ?',
-  hints: ['Yoruma ÇAY ya da KAHVE yaz, tarafını seç', 'Her hediye halatı senin tarafına çeker 💪', 'Takımın geride mi? Bir hediye dengeyi değiştirir!', 'Kazanan takımın yıldızı ilan edilir'],
+  menu: [['💬 ÇAY / KAHVE yaz', 'tarafını seç'], ['🌹 1+', 'halata sen de asıl'], ['💎 Her jeton', 'halatı takımına çeker'], ['🏆 Kazanan takımın', 'yıldızı ilan edilir']],
   names: ['ÇAY', 'KAHVE'], cols: ['#ff5a4d', '#e0a368'], tint: ['#e0584e', '#8a6038'],
   build() {
     const { s } = baseScene('#58a8ea', '#d8efff', { amb: .9, sun: 1.45, range: 9 });
@@ -827,7 +876,7 @@ const tug = {
 // =====================================================================
 const karpuz = {
   title: 'KARPUZU PATLAT',
-  hints: ['Her hediye karpuza bir lastik takar 🍉', 'Son lastiği takan kazanır: belki seninki!', 'Karpuz ne zaman patlar? Kimse bilmiyor…'],
+  menu: [['🌹 1+', 'karpuza lastik tak'], ['🍉 Son lastiği takan', 'kazanır'], ['❓ Ne zaman patlar', 'kimse bilmiyor']],
   build() {
     const { s } = baseScene('#3d95e6', '#d6eeff', { amb: .85, sun: 1.5, range: 5 });
     this.scene = s; this.cam = camera(30, 0, 2.2, 6.2, 0, 1.05, 0);
@@ -920,7 +969,7 @@ function onEvent(ev) {
     combo.n = combo.t > 0 ? combo.n + 1 : 1; combo.t = 8;
     pushAlert(p, `${count > 1 ? count + '× ' : ''}${g.name || 'Hediye'} gönderdi  💎${fmt(amount)}`, next ? `${next.name} seviyesine 💎 ${fmt(next.min - p.total)} kaldı` : 'En üst seviye: Elmas 💎');
     if (tier !== before && tier.min >= 100) { floater(`${p.name}: ${tier.name} seviye!`, 540, 1100, tier.color, 50); }
-    if (amount >= CFG.buyuk) { bigs.push({ p, amount, name: g.name || 'Hediye', t: 0 }); hall.cheer = 1.5; }
+    if (amount >= CFG.buyuk) { bigs.push({ p, amount, name: g.name || 'Hediye', t: 0 }); hall.cheer = 1.5; if (amount >= CFG.buyuk * 5) hall.boom(4); }
     const lead = leader(); if (leaderBefore && lead !== leaderBefore && lead === p) pushAlert(p, '👑 Liderliği kaptı!', `${leaderBefore.name} geri almak için 💎 ${fmt(p.total - leaderBefore.total + 1)}`);
     if (session >= goal) { floater('YAYIN HEDEFİ TAMAM! 🎉', 540, 600, C.yellow, 70); confetti(120); goal *= 2; }
     giveToMode(p, amount * comboMult(), amount);
