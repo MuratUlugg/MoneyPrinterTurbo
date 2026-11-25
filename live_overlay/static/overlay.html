@@ -788,20 +788,37 @@ const taki = {
   no: 1,
   build() {
     this.hall = hall.get(); this.scene = this.hall.scene; this.cam = camera(30, 0, 2.0, -.9, 0, 1.45, -6.4);
-    this.gold = std('#ffcf3a', { metalness: .85, roughness: .28, emissive: '#7a5200', emissiveIntensity: .55 });
-    this.coinGeo = new THREE.CylinderGeometry(1, 1, .22, 24); this.coinGeo.rotateX(Math.PI / 2);
-    this.ringGeo = new THREE.TorusGeometry(1, .22, 10, 28);
-    this.target = [this.hall.groom.b.Spine2, this.hall.bride]; this.coins = []; this.dir = makeDirector();
+    // Takılar: kırmızı fiyonklu altınlar, çiftin göğsüne asılan kırmızı takı kurdelesine üçer üçer dizilir.
+    const face = canvasTex(128, 128, (g) => { g.fillStyle = '#f2b824'; g.fillRect(0, 0, 128, 128); g.strokeStyle = '#a8740c'; g.lineWidth = 7; g.beginPath(); g.arc(64, 64, 55, 0, TAU); g.stroke();
+      g.lineWidth = 3; g.beginPath(); g.arc(64, 64, 44, 0, TAU); g.stroke(); g.fillStyle = '#a8740c'; g.beginPath(); g.arc(58, 64, 24, 0, TAU); g.fill(); g.fillStyle = '#f2b824'; g.beginPath(); g.arc(66, 64, 20, 0, TAU); g.fill();
+      g.fillStyle = '#fff3b8'; g.beginPath(); g.arc(40, 36, 9, 0, TAU); g.fill(); });
+    const goldSide = std('#e0a516', { metalness: .4, roughness: .35, emissive: '#6b4a00', emissiveIntensity: .5 }), goldFace = std('#ffffff', { map: face, metalness: .35, roughness: .3, emissive: '#7a5200', emissiveMap: face, emissiveIntensity: .45 });
+    const coinGeo = new THREE.CylinderGeometry(1, 1, .14, 28); coinGeo.rotateX(Math.PI / 2);
+    const ringGeo = new THREE.TorusGeometry(.82, .17, 10, 30), bowGeo = new THREE.BoxGeometry(.5, .34, .1), red = std('#a3001c', { roughness: .85 }); // koyu tutulur: parlak ışıkta açık kırmızı pembeye kaçıyor
+    this.makeTaki = raw => { const g = new THREE.Group(), ring = raw >= 200 && raw < 1000;
+      g.add(ring ? new THREE.Mesh(ringGeo, goldSide) : new THREE.Mesh(coinGeo, [goldSide, goldFace, goldFace]));
+      for (const d of [-1, 1]) { const b = new THREE.Mesh(bowGeo, red); b.position.set(d * .3, 1.12, 0); b.rotation.z = d * .35; g.add(b); }
+      g.userData.size = raw >= 1000 ? .05 : raw >= 200 ? .044 : raw >= 50 ? .038 : raw >= 10 ? .032 : .027; // beşi bir yerde > bilezik > tam > yarım > çeyrek
+      g.traverse(o => { o.castShadow = true; }); return g; };
+    // kurdeleler: [x, üst y, z] çiftin kendi koordinatlarında (y yukarı, z öne)
+    this.ribbon = [[.075, 1.45, .172], [-.01, 1.38, .182]];
+    this.target = [this.hall.groom.root, this.hall.bride];
+    this.target.forEach((t, i) => { if (t.userData.ribbon) return; const [x, top, z] = this.ribbon[i], sh = new THREE.Shape(); // ucu çatallı kurdele
+      sh.moveTo(-.105, 0); sh.lineTo(.105, 0); sh.lineTo(.105, -.47); sh.lineTo(0, -.41); sh.lineTo(-.105, -.47); sh.closePath();
+      const r = mesh(new THREE.ShapeGeometry(sh), new THREE.MeshStandardMaterial({ color: '#a3001c', roughness: .85, side: THREE.DoubleSide }), x, top, z); r.rotation.x = i ? .09 : .03; t.add(r); t.userData.ribbon = r; });
+    this.slot = (side, i) => { const [x, top, z] = this.ribbon[side], row = Math.floor(i / 3) % 6, col = i % 3; return [x + (col - 1) * .066, top - .06 - row * .068, z + .014 + row * (side ? .0065 : .0025)]; };
+    this.coins = []; this.count = [0, 0]; this.dir = makeDirector();
   },
   activity(p, pri) { this.dir.focus(() => { const st = hall.seatOf(p.id); return st ? shot(st.x, st.z, st.face, 1.12, 1.9, .5) : null; }, pri === 2 ? 1.5 : 2.4, pri, p, pri === 2 ? 'takı takıyor 🎗' : pri ? 'düğünde 👋' : 'beğendi ❤'); },
-  clear3d() { if (!this.built) return; for (const c of this.coins) c.parent && c.parent.remove(c); this.coins = []; for (const s of this.shots) if (s.m) this.scene.remove(s.m); },
+  clear3d() { if (!this.built) return; for (const c of this.coins) c.parent && c.parent.remove(c); this.coins = []; this.count = [0, 0]; for (const s of this.shots) if (s.m) this.scene.remove(s.m); },
   reset(keep) {
     if (this.shots) this.clear3d();
     if (!keep) this.no = 1;
     this.max = Math.round(CFG.taki * (1 + .5 * (this.no - 1)));
     this.sum = this.shown = 0; this.g = new Map(); this.shots = []; this.say = null; this.locked = false;
   },
-  gift(p, a, raw) { const side = Math.random() < .5 ? 0 : 1, off = side ? [rand(-.1, .1), rand(1.1, 1.34), .14] : [rand(-.12, .12), rand(-.06, .16), .15];
+  gift(p, a, raw) { const side = this.built && this.count[1] < this.count[0] ? 1 : this.built && this.count[0] < this.count[1] ? 0 : (Math.random() < .5 ? 0 : 1), // iki kurdele dengeli dolsun
+      off = this.built ? this.slot(side, this.count[side]++) : [0, 1.3, .15];
     this.shots.push({ p, a, raw: raw || a, t: 0, side, off, from: [rand(-1.6, 1.6), .9, -1.6], delay: 0, m: null }); hall.sit(p);
     const st = hall.seatOf(p.id), sh = this.shots[this.shots.length - 1]; if (st) { sh.from = [st.x, 1.1, st.z]; sh.delay = 1.0; } }, // altın, gönderenin masasından çıkar; önce kamera ona döner
   land(s) {
@@ -810,8 +827,8 @@ const taki = {
     this.say = { p: s.p, line: `${kind[1]} taktı!`, t: 0 };
     if (this.built) {
       this.hall.nod[s.side] = 1; if (s.raw >= 50) this.hall.cheer = 1; snd.coin();
-      if (s.m) { this.target[s.side].add(s.m); s.m.position.set(s.off[0], s.off[1], s.off[2]); s.m.rotation.set(0, 0, rand(TAU));
-        this.coins.push(s.m); if (this.coins.length > 70) { const old = this.coins.shift(); old.parent && old.parent.remove(old); } }
+      if (s.m) { this.target[s.side].add(s.m); s.m.position.set(s.off[0], s.off[1], s.off[2]); s.m.rotation.set(0, 0, rand(-.12, .12)); s.m.scale.setScalar(s.m.userData.size);
+        this.coins.push(s.m); if (this.coins.length > 36) { const old = this.coins.shift(); old.parent && old.parent.remove(old); } } // kurdeleler dolunca en eski takı yerini yenisine bırakır
       const [x, y] = proj(this.cam, s.side ? .6 : -.55, 1.75, -6.2); burst(x, y, C.yellow, 12, 380);
     }
     if (!this.locked && this.sum >= this.max) {
@@ -828,11 +845,10 @@ const taki = {
       if (s.delay > 0) { s.delay -= dt; return true; }
       s.t += dt * 1.4;
       if (this.built) {
-        if (!s.m) { const ring = s.a >= 200 && s.a < 1000, r = clamp(.035 + Math.sqrt(s.a) * .004, .04, .1);
-          s.m = new THREE.Mesh(ring ? this.ringGeo : this.coinGeo, this.gold); s.m.scale.setScalar(r); s.m.castShadow = true; this.scene.add(s.m); }
+        if (!s.m) { s.m = this.makeTaki(s.raw); this.scene.add(s.m); }
         V.set(s.off[0], s.off[1], s.off[2]); this.target[s.side].localToWorld(V);
         const e = s.t * s.t; s.m.position.set(lerp(s.from[0], V.x, e), lerp(s.from[1], V.y, e) + Math.sin(Math.min(1, s.t) * Math.PI) * .9, lerp(s.from[2], V.z, e));
-        s.m.rotation.y = s.t * 14;
+        s.m.rotation.y = (1 - Math.min(1, s.t)) * 9; s.m.scale.setScalar(s.m.userData.size * (1 + (1 - Math.min(1, s.t)) * 1.6)); // uçarken iri ve dönerek gelir, kurdeleye otururken küçülür
       }
       if (s.t >= 1) { this.land(s); return false; } return true;
     });

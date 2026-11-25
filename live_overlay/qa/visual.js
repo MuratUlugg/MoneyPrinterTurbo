@@ -42,8 +42,9 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
   if (!only || only === 'taki') {
   await api('/api/mode', { mode: 'taki' }); await wait(3); await gl('taki-0-cift');
   await gift('Sibel', 30, 2, 'Donut'); await wait(.3); await gl('taki-1-gonderen-misafir'); await wait(.9); await gl('taki-2-altin-ucuyor');
-  for (const [n, d] of [['Ayşe', 1], ['Mehmet', 10], ['Zeynep', 60], ['Emre', 250], ['Elif', 1200], ['Can', 5], ['Deniz', 20]]) await gift(n, d);
-  await wait(6); await gl('taki-3-takilar-takili'); await full('taki-3-tam-ekran');
+  for (const [n, d] of [['Ayşe', 1], ['Mehmet', 10], ['Zeynep', 60], ['Emre', 250], ['Elif', 1200], ['Can', 5], ['Deniz', 20], ['Selin', 1], ['Burak', 12], ['Ece', 55], ['Kerem', 3], ['Melis', 70]]) await gift(n, d);
+  await wait(9); // büyük hediye bandı kalksın, takılar kurdeleye otursun
+  await gl('taki-3-takilar-takili'); await full('taki-3-tam-ekran');
 
   }
   // ---- AT YARIŞI

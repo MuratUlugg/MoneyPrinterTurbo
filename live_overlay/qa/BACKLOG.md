@@ -17,7 +17,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - [ ] Davulcu yakın planında komşu halaycıların kolları kadraja giriyor, davul görüntünün üçte birini kaplıyor.
 
 ### Takı töreni
-- [ ] **Altınlar düz sarı leke gibi**: çok büyük, yarısı göğse gömülü, hilal şeklinde kesiliyor, altın gibi parlamıyor. Küçük, parlak, kırmızı kurdeleye asılı altın gibi görünmeli.
 - [ ] **Arka plan soluk ve boş**: bej perde, üstünde balon takının lekeli gölgesi, düz sarı sahne zemini. Balon takı, pankart ve çiçekler kadraja girmiyor.
 - [ ] Damat kolları sarkık, dimdik duruyor; gelin hiç kıpırdamıyor. İkisi birbirine dönük, el ele ya da kol kola durmalı.
 - [ ] En cömertler listesi çiftin ayaklarını ve gelinliğin eteğini kapatıyor.
@@ -32,6 +31,7 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - [ ] Pist dokusu iri kareli gürültü.
 
 ### Genel
+- [ ] Takı kurdelesi koyu kırmızı verildiği hâlde ekranda pembeye yakın çıkıyor: pozlama / ton eşlemesi renkleri açıyor (aşağıdaki "soluk" maddesiyle aynı kök).
 - [ ] Sahneler soluk ve düz: ortam ışığı fazla, kontrast az; kişiler zeminden ve duvardan ayrışmıyor.
 
 ## Açık: diğer
@@ -63,3 +63,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Halay kameraya açık yay (at nalı) oldu: geniş planda herkesin yüzü, ortada davul zurna görünüyor; ortaya çıkan kişinin önü açık (görsel: `halay-2`, `halay-7` önce/sonra karşılaştırıldı).
 - Halay ad etiketleri üç kata kaydırılıyor, 12 kişide de okunuyor (görsel: `halay-2`).
 - Çekim betiği anı donduruyor ve oyun saatine göre bekliyor: yakın planların beşi de yakalandı; kamera odağının halayda, masada, davulcuda ve takıda çalıştığı görüldü.
+- Takılar: göğse gömülü sarı lekeler yerine, çiftin göğsündeki ucu çatallı kırmızı kurdeleye üçer üçer dizilen, değerine göre boyu değişen fiyonklu altınlar; iki kurdele dengeli doluyor (görsel: `taki-3` önce/sonra; QA geçti).
