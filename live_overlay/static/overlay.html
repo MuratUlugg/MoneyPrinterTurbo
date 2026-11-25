@@ -734,14 +734,20 @@ const race = {
       for (let i = 0; i < 100; i++) { m.setPosition((i - 50) * 4, .5, z); posts.setMatrixAt(i, m); } posts.castShadow = true; w.add(posts); }
     w.add(mesh(new THREE.BoxGeometry(400, 1.6, 1.2), std('#1f6b2c', { roughness: 1 }), 0, .8, -9.4));
     // tribün: basamaklar ve seyirciler (renkler 8 birimde bir tekrarlar, zemin kayarken sıçrama görünmez)
-    const ROWS = 5, PER = 240, heads = new THREE.InstancedMesh(new THREE.SphereGeometry(.2, 8, 6), std('#fff', { roughness: .9 }), ROWS * PER), bodies = new THREE.InstancedMesh(new THREE.BoxGeometry(.42, .55, .3), std('#fff', { roughness: .9 }), ROWS * PER);
-    const mm = new THREE.Matrix4(), cc = new THREE.Color(), shirts = ['#e5484d', '#3b82f6', '#f5c542', '#ffffff', '#22c55e', '#f97316', '#a855f7', '#111827'], skins = ['#f1c9a5', '#d9a577', '#b98b68'];
-    for (let r = 0; r < ROWS; r++) { w.add(mesh(new THREE.BoxGeometry(400, .6, 1.0), std('#c9ced6', { roughness: .8 }), 0, 1.3 + r * .6, -10.6 - r));
-      for (let i = 0; i < PER; i++) { const k = r * PER + i, x = (i - PER / 2) * .5 + (r % 2) * .25, y = 1.6 + r * .6, z = -10.6 - r, h = hash(r + ':' + (i % 16));
-        mm.setPosition(x, y + .28, z); bodies.setMatrixAt(k, mm); bodies.setColorAt(k, cc.set(shirts[h % 8]));
-        mm.setPosition(x, y + .72, z); heads.setMatrixAt(k, mm); heads.setColorAt(k, cc.set(skins[(h >>> 4) % 3])); } }
+    const ROWS = 7, PER = 260, cnt = ROWS * PER, crowdM = () => std('#fff', { roughness: .9 });
+    const heads = new THREE.InstancedMesh(new THREE.SphereGeometry(.15, 10, 8), crowdM(), cnt), bodies = new THREE.InstancedMesh(new THREE.BoxGeometry(.4, .6, .28), crowdM(), cnt),
+      hairs = new THREE.InstancedMesh(new THREE.SphereGeometry(.16, 10, 6, 0, TAU, 0, Math.PI * .5), crowdM(), cnt);
+    const mm = new THREE.Matrix4(), shirts = ['#d7263d', '#1d4ed8', '#f2b705', '#f4f4f5', '#15803d', '#ea580c', '#7e22ce', '#111827', '#0e7490', '#be185d'].map(lin), skins = ['#e8b88f', '#c98f62', '#9a6a45'].map(lin), hairC = ['#1c1512', '#3b2618', '#6b6b6b', '#8a5a2b', '#111111'].map(lin);
+    for (let r = 0; r < ROWS; r++) { w.add(mesh(new THREE.BoxGeometry(400, .6, 1.0), std('#6f7682', { roughness: .9 }), 0, 1.3 + r * .6, -10.6 - r));
+      for (let i = 0; i < PER; i++) { const k = r * PER + i, x = (i - PER / 2) * .5 + (r % 2) * .25, y = 1.6 + r * .6, z = -10.6 - r;
+        let h = hash(r + ':' + (i % 16)); h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0; h = (h ^ (h >>> 12)) >>> 0; // 16 kişide bir tekrarlar (zemin 8 birim kayar); bitler karıştırılır ki yan yana aynı renk gelmesin
+        const up = (h >>> 20) % 5 === 0 ? .12 : 0; // bazıları ayakta
+        mm.setPosition(x, y + .3 + up, z); bodies.setMatrixAt(k, mm); bodies.setColorAt(k, shirts[h % 10]);
+        mm.setPosition(x, y + .74 + up, z); heads.setMatrixAt(k, mm); heads.setColorAt(k, skins[(h >>> 4) % 3]);
+        mm.setPosition(x, y + .77 + up, z - .03); hairs.setMatrixAt(k, mm); hairs.setColorAt(k, hairC[(h >>> 8) % 5]); } }
+    w.add(hairs);
     w.add(bodies); w.add(heads);
-    w.add(mesh(new THREE.BoxGeometry(400, .25, 6.4), std('#e8eaee', { roughness: .6 }), 0, 6.2, -13));
+    w.add(mesh(new THREE.BoxGeometry(400, .25, 8.6), std('#e8eaee', { roughness: .6 }), 0, 7.6, -14));
     const trees = new THREE.InstancedMesh(new THREE.SphereGeometry(2.4, 20, 14), std('#2a7030', { roughness: 1 }), 50), tm = new THREE.Matrix4();
     for (let i = 0; i < 50; i++) { tm.makeScale(1, rand(1, 1.6), 1); tm.setPosition((i - 25) * 8, 3.0, -24 - (i % 3) * 4); trees.setMatrixAt(i, tm); } w.add(trees);
     const arch = this.arch = new THREE.Group(), red = std('#d62839', { roughness: .5 });
