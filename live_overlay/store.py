@@ -15,7 +15,10 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
-DATA_DIR = Path(__file__).parent / "data"
+import os
+
+# QA ve denemeler gerçek yayın verisine dokunmasın diye klasör ortam değişkeniyle değiştirilebilir.
+DATA_DIR = Path(os.environ.get("LIVE_OVERLAY_DATA") or Path(__file__).parent / "data")
 
 # ---------------------------------------------------------------------------
 # Ayarlar

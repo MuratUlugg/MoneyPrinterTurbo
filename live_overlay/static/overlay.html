@@ -171,7 +171,8 @@ const snd = { on: String(opt('ses', '')) === '1' || opt('ses', false) === true, 
   dum() { this.tone(110, 45, .28, .9); }, tek() { this.noise(.07, .5, 3200); }, coin() { this.tone(1900, 2600, .25, .25, 'triangle'); }, clap() { this.noise(1.6, .5, 1800); },
 };
 function after(sec, fn) { timers.push({ t: sec, fn }); }
-function celebrate(title, p, sub) { cel = { title, p, sub, t: 0 }; champion = p || champion; hall.cheer = 1.5; hall.boom(3.5); snd.clap(); confetti(); }
+let wins = 0;
+function celebrate(title, p, sub) { wins++; cel = { title, p, sub, t: 0 }; champion = p || champion; hall.cheer = 1.5; hall.boom(3.5); snd.clap(); confetti(); }
 function drawCelebration(dt) {
   if (!cel) return;
   cel.t += dt; if (cel.t > 5.5) { cel = null; return; }
@@ -1043,6 +1044,7 @@ function onEvent(ev) {
 }
 
 let lastT = performance.now();
+const QA = qs.get('_qa') === '1';
 const TEST_SPEED = num('_hiz', 1); // yalnızca test: yavaş makinede oyun saatini hızlandırır
 function frame(now) {
   const dt = clamp((now - lastT) / 1000, 0, .05) * TEST_SPEED; lastT = now; T += dt;
@@ -1051,6 +1053,7 @@ function frame(now) {
   if (!mode.locked && pending.length) { const q = pending; pending = []; q.forEach(([p, a, raw]) => giveToMode(p, a, raw)); }
   if (DEMO) demoTick(dt);
   quality.tick(now);
+  if (QA) window.__qa = { mode: modeName, built: !!mode.built, champion: champion && champion.name, wins, session, top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
   if (ready() && !mode.built) { mode.build(); mode.built = true; }
   mode.update(dt);
   if (mode.built) renderer.render(mode.scene, mode.cam);
