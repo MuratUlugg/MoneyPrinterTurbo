@@ -404,7 +404,7 @@ function lookOf(id) {
   let h = hash('look:' + id); // düz hash'in alt bitleri benzer adlarda aynı kalıyor; karıştır
   h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h = (h ^ (h >>> 16)) >>> 0;
   return { kind: [0, 1, 2, 1, 0, 2, 1, 0][h % 8], head: ['fedora', 'hair', 'kasket', 'fedora', 'fes', 'hair', 'kasket', 'hair', 'bald', 'hair', 'fedora'][(h >>> 3) % 11], must: (h >>> 7) % 4 !== 0, skin: SKINS[(h >>> 9) % 4],
-    hair: HAIRS[(h >>> 11) % 4], bottom: PANTS[(h >>> 13) % 4], dress: DRESS[(h >>> 22) % 8], ladyHair: LADYHAIR[(h >>> 25) % 6], tall: .93 + ((h >>> 15) % 14) / 100, wide: 1 + ((h >>> 19) % 4) * .05 };
+    hair: HAIRS[(h >>> 11) % 4], bottom: PANTS[(h >>> 13) % 4], dress: DRESS[(h >>> 22) % 8], ladyHair: LADYHAIR[(h >>> 25) % 6], ladyHead: ['bob', 'topuz', 'esarp', 'topuz', 'bob', 'esarp', 'uzun'][(h >>> 27) % 7], shoe: ['#16110f', '#c9a37f', '#7a1230', '#f1ede4'][(h >>> 5) % 4], scarf: DRESS[(h >>> 17) % 8], tall: .93 + ((h >>> 15) % 14) / 100, wide: 1 + ((h >>> 19) % 4) * .05 };
 }
 function makeBot(top, o = {}) {
   const kind = o.kind || 0, root = THREE.SkeletonUtils.clone([assets.bot, assets.woman, assets.man][kind].scene), b = {}, rest = {};
@@ -416,11 +416,21 @@ function makeBot(top, o = {}) {
     if (n.name === 'Wolf3D_Outfit_Top') tint(kind === 1 ? (o.dress || top) : top, kind > 0); // hanımın siyah elbisesi boyanamaz, gencin tişörtünde logo var: ikisine düz renk verilir
     else if (n.name === 'Wolf3D_Outfit_Bottom') tint(kind === 1 ? '#3a3038' : (o.bottom || top));
     else if ((n.name === 'Wolf3D_Head' || n.name === 'Wolf3D_Body') && o.skin) tint(o.skin);
+    else if (n.name === 'Wolf3D_Outfit_Footwear' && kind === 1) tint(o.shoe || '#16110f', true);
+    else if (n.name === 'Wolf3D_Hair' && kind === 1 && o.ladyHead === 'esarp') n.visible = false;
     else if (n.name === 'Wolf3D_Hair') tint(kind === 1 ? (o.ladyHair || '#5a3a2a') : ['#ffffff', '#b8a090', '#70605a', '#ffe2b0'][HAIRS.indexOf(o.hair || HAIRS[0])]);
     else if (n.name === 'Wolf3D_Headwear') n.visible = (o.head || 'fedora') === 'fedora';
     else if (n.name === 'Wolf3D_Beard') n.visible = o.must !== false;
   });
   const a = { root, b, rest, kind, unit: 1 };
+  if (kind === 1) { // hanımlar aynı görünmesin: kısa saç, topuz, uzun saç ya da eşarp
+    const hc = o.ladyHair || '#5a3a2a';
+    if (o.ladyHead === 'topuz') { const m = mesh(new THREE.SphereGeometry(.062, 14, 10), std(hc, { roughness: .9 })); m.position.set(0, .215, -.055); b.Head.add(m); }
+    if (o.ladyHead === 'uzun') { const m = mesh(new THREE.CylinderGeometry(.085, .06, .3, 14, 1, false, Math.PI * .5, Math.PI), std(hc, { roughness: .9, side: THREE.DoubleSide })); m.position.set(0, -.03, -.035); b.Head.add(m); }
+    if (o.ladyHead === 'esarp') { const sc = std(o.scarf || '#b0306a', { roughness: .8 });
+      const cap = mesh(new THREE.SphereGeometry(.128, 18, 14), sc); cap.scale.set(1, 1.08, 1.02); cap.position.set(0, .105, -.04); b.Head.add(cap); // yüz önde açık kalır
+      const wrap = mesh(new THREE.CylinderGeometry(.075, .135, .15, 16), sc); wrap.position.set(0, -.045, -.005); b.Head.add(wrap); }
+  }
   if (kind === 0) { // takım elbiseli bey: fötr yerine saç, kasket ya da fes
     const hair = () => { const m = mesh(new THREE.SphereGeometry(.111, 18, 12, 0, TAU, 0, Math.PI * .56), std(o.hair || HAIRS[0], { roughness: .95 })); m.position.set(0, .1, -.016); m.rotation.x = -.28; m.scale.z = 1.06; b.Head.add(m); };
     if (o.head === 'hair' || o.head === 'fes' || o.head === 'kasket') hair(); // şapkanın altı kel kalmasın

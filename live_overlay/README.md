@@ -146,7 +146,7 @@ Modeller `static/models/` klasöründedir:
 
 **Para kazanmadan önce lisansı çözün.** Bu modeller açık depolardan alınmış örnek dosyalardır; hiçbiri için ticari kullanım izni doğrulanmadı. Ready Player Me avatarlarının ticari kullanımı Ready Player Me'nin kendi koşullarına bağlıdır. Gelir getiren bir yayında kullanmadan önce ya koşulları kendiniz doğrulayın ya da lisansını satın aldığınız / kendi oluşturduğunuz modellerle değiştirin. Değiştirmek kolaydır: aynı kemik adlarına (`Hips`, `Spine`, `LeftArm`, `LeftUpLeg`…) ve `Wolf3D_Outfit_Top` gibi parça adlarına sahip bir `.glb` dosyasını aynı adla klasöre koymak yeterlidir.
 
-Her izleyicinin karakteri kimliğinden türetilir ve hep aynı kalır: üç gövdeden biri (bey, hanım, genç), kıyafet ve elbise rengi, saç rengi, fötr / kasket / fes / saç, bıyık, ten rengi, boy ve kilo. Bilinen sınırlar: aynı gövdeyi alan kişilerin yüzü aynıdır, gelin yerinde durur, at modeli düşük poligonludur.
+Her izleyicinin karakteri kimliğinden türetilir ve hep aynı kalır: üç gövdeden biri (bey, hanım, genç), kıyafet ve elbise rengi, saç rengi, fötr / kasket / fes / saç, hanımlarda kısa saç / topuz / uzun saç / eşarp ve çizme rengi, bıyık, ten rengi, boy ve kilo. Bilinen sınırlar: aynı gövdeyi alan kişilerin yüzü aynıdır, gelin yerinde durur, at modeli düşük poligonludur.
 
 ## Bilmeniz gerekenler
 

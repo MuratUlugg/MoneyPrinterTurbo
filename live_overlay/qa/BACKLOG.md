@@ -7,7 +7,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 İlk görsel denetimde (20 çekim) bulunanlar, göze batma sırasıyla.
 
 ### Halay
-- [ ] Hanımların hepsi aynı çizme ve aynı saç kesimiyle; yalnızca renk değişiyor.
 - [ ] Davulcu yakın planında komşu halaycıların kolları kadraja giriyor, davul görüntünün üçte birini kaplıyor.
 
 ### Takı töreni
@@ -62,3 +61,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Yer volkanları: pistin arka kenarına ve sahnenin iki yanına taşındı, kıvılcımlar yumuşak parlak nokta oldu ve sayısı kare hızından bağımsız; ortaya çıkanın arkasında ilk kez görüntülendi (görsel: `halay-6`, `halay-7`; QA geçti).
 - Finiş çekimi: kazanan belli olunca kamera takın önüne geçip atların çizgiye gelişini karşıdan gösteriyor, alt bantta "finişe geliyor"; kutlama kartı ondan sonra çıkıyor (görsel: `yaris-4`, ilk kez yakalandı; QA geçti).
 - Tribün: yedi sıra, canlı renkli formalar, ten ve saç renkleri, bazıları ayakta; beyaz toplar ve pastel kutular gitti (görsel: `yaris-4` önce/sonra; QA geçti).
+- Hanımlarda çeşitlilik: kısa saç, topuz, uzun saç ya da eşarp; dört ayrı çizme rengi (görsel: `halay-2` önce/sonra, `halay-5`'te topuz ve eşarp görüldü; uzun saç görüntüde yakalanmadı; QA geçti).
