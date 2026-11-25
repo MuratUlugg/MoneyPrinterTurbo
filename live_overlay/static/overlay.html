@@ -269,7 +269,7 @@ if (HAS3D) {
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gl'), antialias: true });
     renderer.setPixelRatio(1); renderer.setSize(VW, VH, false);
     renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
-    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.enabled = qs.get('kalite') !== 'dusuk'; renderer.shadowMap.type = THREE.PCFSoftShadowMap; // zayıf ekran kartı: ?kalite=dusuk gölgeleri kapatır
     const loader = new THREE.GLTFLoader(), fail = () => { glError = '3B modeller yüklenemedi'; };
     const ext = window.LIVE_SERVER ? '' : '.wasm'; // sunucusuz önizleme barındırıcısı .glb sunmadığı için aynı dosya orada farklı uzantıyla durur
     loader.load('models/Horse.glb' + ext, g => { assets.horse = g; }, undefined, fail);
@@ -279,7 +279,35 @@ if (HAS3D) {
 }
 const ready = () => renderer && assets.horse && assets.bot && assets.bride;
 const V = HAS3D ? new THREE.Vector3() : null, Q = HAS3D ? new THREE.Quaternion() : null, E = HAS3D ? new THREE.Euler() : null;
-function proj(cam, x, y, z) { V.set(x, y, z).project(cam); return [VX + (V.x + 1) / 2 * VW, VY + (1 - V.y) / 2 * VH]; }
+function proj(cam, x, y, z) { V.set(x, y, z).project(cam); return V.z > 1 ? [-9999, -9999] : [VX + (V.x + 1) / 2 * VW, VY + (1 - V.y) / 2 * VH]; }
+// ---- kamera yönetmeni: geniş plan + son hareketi yapan kişiye yakın plan ----
+// Öncelik: hediye 2, yorum/takip 1, beğeni 0. Düşük öncelikli olaylar geniş planı sürekli bölmesin diye araya bekleme konur.
+function makeDirector() {
+  return { pos: null, look: null, f: null, hold: 0,
+    focus(fn, dur, pri, who, what) {
+      if (this.f && (pri < this.f.pri || (pri === this.f.pri && this.f.age < 1.4))) return;
+      if (!this.f && pri < 2 && this.hold > 0) return;
+      this.f = { fn, dur, pri, age: 0, who, what };
+    },
+    draw() { // yakın plandaki kişinin adı: yayınlardaki alt bant gibi
+      const f = this.f; if (!f || !f.who || f.age < .5) return;
+      ctx.globalAlpha = clamp(Math.min((f.age - .5) * 4, (f.dur - f.age) * 4), 0, 1);
+      panel(70, 1118, 560, 100, 50, 'rgba(10,6,30,.82)'); avatar(f.who, 122, 1168, 40, C.yellow);
+      text(fit(f.who.name, 400, 38), 180, 1150, 38, '#fff', 'left'); text(f.what || '', 180, 1190, 24, C.cyan, 'left');
+      ctx.globalAlpha = 1;
+    },
+    update(dt, cam, wide, ox = 0) { // ox: sahne kayıyorsa (yarış) yumuşatma kayan eksende yapılır
+      this.hold = Math.max(0, this.hold - dt);
+      let t = wide;
+      if (this.f) { this.f.age += dt; const r = this.f.age > this.f.dur ? null : this.f.fn(); if (r) t = r; else { this.hold = this.f.pri ? 2.5 : 5; this.f = null; } }
+      if (!this.pos) { this.pos = new THREE.Vector3(t.p[0] - ox, t.p[1], t.p[2]); this.look = new THREE.Vector3(t.l[0] - ox, t.l[1], t.l[2]); }
+      const k = Math.min(1, dt * 2.4);
+      this.pos.lerp(V.set(t.p[0] - ox, t.p[1], t.p[2]), k); this.look.lerp(V.set(t.l[0] - ox, t.l[1], t.l[2]), k);
+      cam.position.set(this.pos.x + ox, this.pos.y, this.pos.z); cam.lookAt(this.look.x + ox, this.look.y, this.look.z);
+    } };
+}
+// Bir kişiye üçüncü şahıs yakın plan: yüzünün baktığı yönün biraz yanından, baş hizasından
+const shot = (x, z, face, head, dist, ang) => ({ p: [x + Math.sin(face + ang) * dist, head + .18, z + Math.cos(face + ang) * dist], l: [x, head - .08, z] });
 function canvasTex(w, h, fn, rx = 1, ry = 1) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; fn(c.getContext('2d'), w, h);
   const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.anisotropy = 8; return t;
@@ -425,6 +453,7 @@ const hall = {
     P(a, 'LeftUpLeg', -1.5, 0, -.08); P(a, 'RightUpLeg', -1.5, 0, .08); P(a, 'LeftLeg', 1.5, 0, 0); P(a, 'RightLeg', 1.5, 0, 0);
     seat.g = { p, a, t: T, ph: rand(TAU) }; this.scene.add(a.root);
   },
+  seatOf(id) { return this.seats.find(s => s.g && s.g.p && s.g.p.id === id); },
   leave(id) { for (const s of this.seats) if (s.g && s.g.p && s.g.p.id === id) { this.scene.remove(s.g.a.root); s.g = null; } },
   clear() { if (!this.scene) return; for (const s of this.seats) if (s.g) { this.scene.remove(s.g.a.root); s.g = null; } this.seed(); },
   update(dt, ph, dance) {
@@ -454,7 +483,12 @@ const halay = {
   build() {
     this.hall = hall.get(); this.scene = this.hall.scene; this.cam = camera(38, 0, 4.6, 10.5, 0, 1.1, -1.2);
     this.mendil = mesh(new THREE.PlaneGeometry(.26, .26), std('#ffffff', { side: THREE.DoubleSide, roughness: .9 }));
-    this.acts = new Map();
+    this.acts = new Map(); this.dir = makeDirector();
+  },
+  activity(p, pri) { // son hareketi yapan kişiye dön: pistteyse halaycıya, masadaysa masasına
+    this.dir.focus(() => { const d = this.d.get(p.id);
+      if (d && d.slot !== undefined && this.vis && this.vis.includes(d)) return d.slot < 0 ? shot(d.pos[0], d.pos[1], 0, 1.5, 2.9, .25) : shot(d.pos[0], d.pos[1], d.face, 1.5, 1.75, .8);
+      const st = hall.seatOf(p.id); return st ? shot(st.x, st.z, st.face, 1.12, 1.9, .5) : null; }, pri === 2 ? 3.4 : 2.6, pri, p, pri === 2 ? 'hediye gönderdi 🎁' : pri ? 'düğünde 👋' : 'beğendi ❤');
   },
   reset() {
     if (this.acts) { for (const a of this.acts.values()) dispose(this.scene, a); this.acts.clear(); }
@@ -513,7 +547,9 @@ const halay = {
     if (!n && this.mendil.parent) this.mendil.parent.remove(this.mendil);
     this.hall.update(dt, this.ph, true);
     this.zoom = ease(this.zoom || 2, R, dt, 2);
-    this.cam.position.set(Math.sin(T * .2) * 1.1, 2.9 + this.zoom * .8, 6.2 + this.zoom * 2.5); this.cam.lookAt(0, .75, -1.0);
+    if (so) this.dir.focus(() => this.solo && this.d.get(this.solo.id) === so ? shot(so.pos[0], so.pos[1], 0, 1.5, 2.9, Math.sin(T * .5) * .5) : null, 8, 3, so.p, 'ortada oynuyor 💸'); // ortaya çıkan: süre boyunca onda kal
+    // geniş plan: pistin kenarında ayakta duran bir kameraman gibi, herkes kadrajda
+    this.dir.update(dt, this.cam, { p: [Math.sin(T * .17) * 1.6, 2.05, 4.3 + this.zoom * 2.0], l: [0, 1.3, -.5] });
   },
   draw() {
     if (!this.list.length) bar(140, 452, 800, 70, 0, C.cyan, C.pink, 'İlk hediyeyle halayı sen başlat! 🥁');
@@ -586,6 +622,7 @@ const race = {
     }
   },
   like(p, n) { const r = this.r.get(p.id); if (r && !this.locked) r.prog = Math.min(CFG.goal - 1, r.prog + n * .05); },
+  activity(p, pri) { if (this.dir && pri) this.dir.focus(() => { const r = this.r.get(p.id); return r && r.act ? { p: [r.x + 2.6, 1.9, r.z + 4.4], l: [r.x + .5, 1.45, r.z] } : null; }, 2.8, pri, p, pri === 2 ? 'atını kamçıladı 🏇' : 'tezahürat yapıyor 📣'); }, // yayın kamerası o ata yaklaşır
   update(dt) {
     this.list = [...this.r.values()].sort((a, b) => b.prog - a.prog);
     this.base += SPEED * dt;
@@ -609,7 +646,8 @@ const race = {
     if (!this.built) return;
     const f = hi === -Infinity ? this.base + 2 : hi * .62 + lo * .38;
     this.focus = ease(this.focus, f, dt, 3); this.spread = ease(this.spread, hi === -Infinity ? 0 : hi - lo, dt, 3);
-    this.cam.position.set(this.focus + 3.5, 3.3 + this.spread * .16, 9.5 + this.spread * .62); this.cam.lookAt(this.focus + .5, 1.2, 0);
+    this.dir = this.dir || makeDirector();
+    this.dir.update(dt, this.cam, { p: [this.focus + 3.5, 2.6 + this.spread * .14, 9.5 + this.spread * .62], l: [this.focus + .5, 1.3, 0] }, this.base);
     this.world.position.x = Math.round(this.focus / 8) * 8;
     this.sun.position.set(this.focus + 6, 12, 9); this.sun.target.position.set(this.focus, 0, 0);
   },
@@ -640,8 +678,9 @@ const taki = {
     this.gold = std('#ffcf3a', { metalness: .85, roughness: .28, emissive: '#7a5200', emissiveIntensity: .55 });
     this.coinGeo = new THREE.CylinderGeometry(1, 1, .22, 24); this.coinGeo.rotateX(Math.PI / 2);
     this.ringGeo = new THREE.TorusGeometry(1, .22, 10, 28);
-    this.target = [this.hall.groom.b.Spine2, this.hall.bride]; this.coins = [];
+    this.target = [this.hall.groom.b.Spine2, this.hall.bride]; this.coins = []; this.dir = makeDirector();
   },
+  activity(p, pri) { this.dir.focus(() => { const st = hall.seatOf(p.id); return st ? shot(st.x, st.z, st.face, 1.12, 1.9, .5) : null; }, pri === 2 ? 1.5 : 2.4, pri, p, pri === 2 ? 'takı takıyor 🎗' : pri ? 'düğünde 👋' : 'beğendi ❤'); },
   clear3d() { if (!this.built) return; for (const c of this.coins) c.parent && c.parent.remove(c); this.coins = []; for (const s of this.shots) if (s.m) this.scene.remove(s.m); },
   reset(keep) {
     if (this.shots) this.clear3d();
@@ -650,7 +689,8 @@ const taki = {
     this.sum = this.shown = 0; this.g = new Map(); this.shots = []; this.say = null; this.locked = false;
   },
   gift(p, a, raw) { const side = Math.random() < .5 ? 0 : 1, off = side ? [rand(-.1, .1), rand(1.1, 1.34), .14] : [rand(-.12, .12), rand(-.06, .16), .15];
-    this.shots.push({ p, a, raw: raw || a, t: 0, side, off, from: [rand(-1.6, 1.6), .9, -1.6], m: null }); hall.sit(p); },
+    this.shots.push({ p, a, raw: raw || a, t: 0, side, off, from: [rand(-1.6, 1.6), .9, -1.6], delay: 0, m: null }); hall.sit(p);
+    const st = hall.seatOf(p.id), sh = this.shots[this.shots.length - 1]; if (st) { sh.from = [st.x, 1.1, st.z]; sh.delay = 1.0; } }, // altın, gönderenin masasından çıkar; önce kamera ona döner
   land(s) {
     const kind = TAKI.find(k => s.raw >= k[0]);
     this.sum += s.raw; this.g.set(s.p.id, { p: s.p, v: (this.g.get(s.p.id)?.v || 0) + s.raw }); // takıda kombo yok: sayılan gerçek jeton
@@ -670,9 +710,10 @@ const taki = {
   update(dt) {
     this.shown = ease(this.shown, this.sum, dt, 6);
     if (this.say && (this.say.t += dt) > 2.6) this.say = null;
-    if (this.built) { this.hall.update(dt, T * 3.2, false); this.cam.position.x = Math.sin(T * .3) * .35; this.cam.lookAt(0, 1.45, -6.4); }
+    if (this.built) { this.hall.update(dt, T * 3.2, false); this.dir.update(dt, this.cam, { p: [Math.sin(T * .3) * .5, 1.95, -1.2], l: [0, 1.45, -6.4] }); }
     this.shots = this.shots.filter(s => {
-      s.t += dt * 1.7;
+      if (s.delay > 0) { s.delay -= dt; return true; }
+      s.t += dt * 1.4;
       if (this.built) {
         if (!s.m) { const ring = s.a >= 200 && s.a < 1000, r = clamp(.035 + Math.sqrt(s.a) * .004, .04, .1);
           s.m = new THREE.Mesh(ring ? this.ringGeo : this.coinGeo, this.gold); s.m.scale.setScalar(r); s.m.castShadow = true; this.scene.add(s.m); }
@@ -748,6 +789,7 @@ const tug = {
       after(1.4, () => { celebrate(t ? 'KAHVECİLER KAZANDI!' : 'ÇAYCILAR KAZANDI!', mvp.p, `Takımın yıldızı · 💎 ${fmt(mvp.v)}`); this.reset(); });
     }
   },
+  activity(p, pri) { if (this.dir && pri === 2) this.dir.focus(() => { const m = this.vis.flat().find(v => v.p === p); return m && m.x !== undefined ? { p: [m.x * .55, 1.75, 4.2], l: [m.x, 1.3, 0] } : null; }, 2.4, pri, p, 'halata asıldı 💪'); },
   update(dt) {
     this.shown = ease(this.shown, this.pos, dt, 4); this.tugT = Math.max(0, (this.tugT || 0) - dt * 1.5);
     this.vis = [0, 1].map(t => [...this.team[t].values()].sort((a, b) => b.v - a.v).slice(0, 3));
@@ -755,6 +797,7 @@ const tug = {
     const mx = this.shown * 2, ids = new Set(this.vis.flat().map(m => m.p.id));
     for (const [id, a] of this.acts) if (!ids.has(id)) { dispose(this.scene, a); this.acts.delete(id); }
     this.flag.position.x = mx; this.rope.position.x = mx;
+    this.dir = this.dir || makeDirector(); this.dir.update(dt, this.cam, { p: [mx * .3, 2.1, 10.2], l: [mx * .5, 1.2, 0] });
     this.vis.forEach((list, t) => list.forEach((m, i) => {
       let a = this.acts.get(m.p.id);
       if (!a) { a = makeBot(this.tint[t], lookOf(m.p.id)); this.acts.set(m.p.id, a); this.scene.add(a.root); }
@@ -838,7 +881,7 @@ const karpuz = {
     for (const c of this.chunks) { c.v[1] -= 14 * dt; c.m.position.x += c.v[0] * dt; c.m.position.y += c.v[1] * dt; c.m.position.z += c.v[2] * dt;
       if (c.m.position.y < .06) { c.m.position.y = .06; c.v[1] *= -.3; c.v[0] *= .6; c.v[2] *= .6; c.w = c.w.map(x => x * .5); }
       c.m.rotation.x += c.w[0] * dt; c.m.rotation.y += c.w[1] * dt; c.m.rotation.z += c.w[2] * dt; }
-    this.cam.position.x = Math.sin(T * .3) * .5; this.cam.lookAt(0, 1.05, 0);
+    this.dir = this.dir || makeDirector(); this.dir.update(dt, this.cam, this.bump > .2 ? { p: [Math.sin(T * .3) * .4, 1.75, 4.3], l: [0, 1.18, 0] } : { p: [Math.sin(T * .3) * .7, 2.1, 6.2], l: [0, 1.05, 0] });
   },
   draw() {
     const danger = this.size >= CFG.karpuzMin;
@@ -888,11 +931,13 @@ function onEvent(ev) {
   } else if (ev.type === 'follow') pushAlert(p, 'takip etti ⭐');
   else if (ev.type === 'share') pushAlert(p, 'yayını paylaştı 🚀');
   else if (ev.type === 'comment' && mode.comment) mode.comment(p, String(ev.text || ''));
+  if (mode.built && mode.activity) mode.activity(p, ev.type === 'gift' ? 2 : ev.type === 'like' ? 0 : 1);
 }
 
 let lastT = performance.now();
+const TEST_SPEED = num('_hiz', 1); // yalnızca test: yavaş makinede oyun saatini hızlandırır
 function frame(now) {
-  const dt = clamp((now - lastT) / 1000, 0, .05); lastT = now; T += dt;
+  const dt = clamp((now - lastT) / 1000, 0, .05) * TEST_SPEED; lastT = now; T += dt;
   const due = timers.filter(t => (t.t -= dt) <= 0); timers = timers.filter(t => t.t > 0);
   due.forEach(t => t.fn());
   if (!mode.locked && pending.length) { const q = pending; pending = []; q.forEach(([p, a, raw]) => giveToMode(p, a, raw)); }
@@ -905,7 +950,7 @@ function frame(now) {
   if (DEMO) { const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#2a1560'); g.addColorStop(.55, '#140f2e'); g.addColorStop(1, '#0d2b4a'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'destination-out'; panel(VX, VY, VW, VH, 40, '#000'); ctx.globalCompositeOperation = 'source-over'; }
   if (!mode.built) { panel(VX, VY, VW, VH, 40); text(glError || '3B sahne yükleniyor…', 540, 880, 40, glError ? C.yellow : '#fff'); }
-  drawHeader(); mode.draw(); drawCombo(dt); drawDonors(); drawParts(dt); drawAlerts(dt); drawBig(dt); drawCelebration(dt);
+  drawHeader(); mode.draw(); if (mode.dir) mode.dir.draw(); drawCombo(dt); drawDonors(); drawParts(dt); drawAlerts(dt); drawBig(dt); drawCelebration(dt);
   requestAnimationFrame(frame);
 }
 

@@ -12,6 +12,17 @@ Halay ve takı töreni aynı salonda geçer: parke pist, sahnede balon takının
 - Salon boş görünmesin diye birkaç adsız konuk baştan oturur (`konuk` ayarı); izleyiciler geldikçe yerlerini onlara bırakırlar. Bunların adı, fotoğrafı ya da hediyesi yoktur.
 - Sahnedeki pankarta çiftin adı yazılabilir: `/overlay?cift=Ayşe+%26+Mehmet`.
 
+### Kamera
+
+Kamera yukarıdan bakmaz; salondaki bir kameraman gibi çalışır.
+
+- **Geniş plan:** halay, pistin kenarından ve göz hizasına yakın bir yükseklikten, herkes kadrajda olacak uzaklıktan çekilir. Daire büyüdükçe kamera geri çekilir.
+- **Yakın plan:** biri hediye gönderince, yorum yazınca ya da takip edince kamera o kişiye üçüncü şahıs yakın planla döner (pistteyse halaycıya, masadaysa masasına), altta adı ve ne yaptığı yazar, birkaç saniye sonra geniş plana geri çekilir.
+- **Öncelik:** hediye her zaman yorumdan önce gelir; beğeniler yalnızca ortalık sakinken kamerayı çevirir. Art arda gelen olaylar görüntüyü sürekli bölmesin diye araya kısa bekleme konur.
+- **Ortaya çıkan** kişi oynadığı sürece kadrajda kalır.
+- **Takı töreninde** kamera önce altını gönderen misafirin masasına döner, altın oradan havalanır, kamera gelinle damada geri döner.
+- **At yarışında** yayın kamerası hediye gönderenin atına yaklaşır; **halatta** çeken kişiye.
+
 At yarışında da tribün ve seyirciler vardır.
 
 | Mod | Anahtar | Nasıl oynanır |
@@ -76,6 +87,7 @@ Adrese parametre ekleyin, örnek: `/overlay?goal=500&halay=600`
 | `cift` | MUTLULUKLAR | Sahnedeki pankart yazısı |
 | `konuk` | 6 | Baştan oturan adsız konuk sayısı (en çok 16) |
 | `ses` | kapalı | `ses=1` davul vuruşu, altın şıngırtısı ve alkış sesini açar. Müzik içermez; müziği yayıncı kendi çalar |
+| `kalite` | — | `kalite=dusuk` gölgeleri kapatır (zayıf ekran kartları için) |
 | `mode` | — | Overlay'i tek moda sabitler (tablodaki anahtarlardan biri) |
 
 ## 3B modeller
