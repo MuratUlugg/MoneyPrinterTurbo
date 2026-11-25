@@ -1,0 +1,139 @@
+<title>Hediye Arenası Paneli</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Inter:wght@400;600&display=swap">
+<style>
+/* Yerleşim: solda ayar sütunu, sağda 9:16 canlı önizleme; dar ekranda tek sütun. */
+:root {
+  --bg: #140f2e; --panel: #221a4a; --line: #3a3070; --ink: #ffffff; --dim: #b9b2dc;
+  --pink: #ff3d7f; --cyan: #2ee6d6; --yellow: #ffd23f; --red: #ff4d5e; --ok: #46e08a;
+  --display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif; --body: Inter, "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body);
+  padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+main { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
+@media (max-width: 820px) { main { grid-template-columns: minmax(0, 1fr); } }
+h1 { font: 800 34px/1.1 var(--display); margin: 0 0 4px; color: var(--yellow); }
+h2 { font: 800 20px/1.2 var(--display); margin: 0 0 12px; }
+p { margin: 0; color: var(--dim); }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+section { background: var(--panel); border-radius: 16px; padding: 18px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+label { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); display: flex; flex-direction: column; gap: 4px; flex: 1 1 130px; min-width: 0; }
+input, select { font: 600 15px var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; width: 100%; }
+button { font: 800 15px var(--display); color: var(--ink); background: transparent; border: 2px solid var(--line); border-radius: 999px; padding: 7px 16px; cursor: pointer; }
+button:hover { border-color: var(--dim); }
+button.primary { background: var(--pink); border-color: var(--pink); }
+button[aria-pressed="true"] { background: var(--cyan); border-color: var(--cyan); color: var(--bg); }
+:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+#status { font-weight: 600; display: inline-flex; gap: 8px; align-items: center; }
+#status::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--dim); }
+#status[data-s="connected"]::before { background: var(--ok); }
+#status[data-s="connecting"]::before { background: var(--yellow); }
+#status[data-s="error"]::before { background: var(--red); }
+#err { color: var(--red); font-size: 13px; overflow-wrap: anywhere; }
+code { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; overflow-x: auto; white-space: nowrap; user-select: all; }
+iframe { width: 100%; aspect-ratio: 9 / 16; border: 1px solid var(--line); border-radius: 16px; background: #000; display: block; }
+.hint { font-size: 13px; margin-top: 10px; }
+</style>
+
+<main>
+  <div class="col">
+    <header>
+      <h1>Hediye Arenası</h1>
+      <p>TikTok canlı yayınında izleyicilerin hediye göndererek katıldığı animasyonlar.</p>
+    </header>
+
+    <section>
+      <h2>TikTok bağlantısı</h2>
+      <div class="row">
+        <label>Kullanıcı adı<input id="user" placeholder="kullanici_adi" autocomplete="off"></label>
+        <button class="primary" id="connect" type="button">Bağlan</button>
+        <button id="disconnect" type="button">Bağlantıyı kes</button>
+      </div>
+      <p class="hint"><span id="status" data-s="disconnected">Bağlı değil</span></p>
+      <p id="err"></p>
+    </section>
+
+    <section>
+      <h2>Animasyon modu</h2>
+      <div class="row" id="modes"></div>
+      <div class="row" style="margin-top:12px"><button id="reset" type="button">Turu ve sıralamayı sıfırla</button></div>
+    </section>
+
+    <section>
+      <h2>Test olayı gönder</h2>
+      <div class="row">
+        <label>İzleyici adı<input id="sim-name" value="Ayşe" maxlength="40"></label>
+        <label>Hediye<select id="sim-gift">
+          <option value="Gül|1">Gül (1 jeton)</option>
+          <option value="Parmak Kalp|5">Parmak Kalp (5)</option>
+          <option value="Donut|30">Donut (30)</option>
+          <option value="Konfeti|100" selected>Konfeti (100)</option>
+          <option value="Galaksi|1000">Galaksi (1000)</option>
+        </select></label>
+        <label>Adet<input id="sim-count" type="number" min="1" max="1000" value="1"></label>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="primary" id="sim-send" type="button">Hediye gönder</button>
+        <button id="sim-like" type="button">10 beğeni</button>
+        <button id="sim-follow" type="button">Takip</button>
+        <button id="sim-red" type="button">Yorum: kırmızı</button>
+        <button id="sim-blue" type="button">Yorum: mavi</button>
+      </div>
+      <p class="hint">Test olayları yalnızca overlay'e gider; TikTok'a hiçbir şey gönderilmez.</p>
+    </section>
+
+    <section>
+      <h2>Yayına ekleme</h2>
+      <p>OBS'te “Tarayıcı” kaynağı, TikTok Live Studio'da “Bağlantı” kaynağı ekleyin. Genişlik 1080, yükseklik 1920. Zemin şeffaftır.</p>
+      <div class="row" style="margin-top:10px"><code id="url"></code></div>
+      <div class="row" style="margin-top:10px"><button id="copy" type="button">Adresi kopyala</button></div>
+      <p class="hint">Ayarlar adrese eklenir: <b>?goal=500</b> (yarış finişi), <b>bossHp=1000</b>, <b>tug=500</b>, <b>round=60</b> (çark süresi, sn), <b>balloonMin / balloonMax</b>, <b>mode=boss</b> (modu sabitle).</p>
+    </section>
+  </div>
+
+  <aside class="col">
+    <iframe src="/overlay" title="Overlay önizleme"></iframe>
+    <p class="hint">Canlı önizleme. Siyah zemin yayında şeffaf olur.</p>
+  </aside>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const LABELS = { race: 'Yarış', boss: 'Boss Savaşı', tug: 'Halat Çekme', balloon: 'Balon', wheel: 'Şans Çarkı' };
+const STATUS = { disconnected: 'Bağlı değil', connecting: 'Bağlanıyor…', connected: 'Yayına bağlı', error: 'Bağlanamadı, yeniden denenecek' };
+const post = (path, body) => fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
+  .then(async r => { if (!r.ok) throw new Error((await r.json()).detail || r.statusText); return r.json(); })
+  .catch(e => { $('err').textContent = 'İstek başarısız: ' + e.message; });
+
+function render(s) {
+  $('modes').replaceChildren(...s.modes.map(m => {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = LABELS[m] || m;
+    b.setAttribute('aria-pressed', String(m === s.mode)); b.onclick = () => post('/api/mode', { mode: m }); return b;
+  }));
+  const t = s.tiktok;
+  $('status').dataset.s = t.status;
+  $('status').textContent = STATUS[t.status] + (t.user && t.status !== 'disconnected' ? ' · @' + t.user : '');
+  $('err').textContent = t.status === 'error' ? t.error : '';
+  if (t.user && !$('user').value) $('user').value = t.user;
+}
+(function connect() {
+  const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+  ws.onmessage = m => { const d = JSON.parse(m.data); if (d.type === 'state') render(d); };
+  ws.onclose = () => setTimeout(connect, 2000);
+})();
+
+const sim = extra => post('/api/simulate', Object.assign({ name: $('sim-name').value.trim() || 'Test' }, extra));
+$('connect').onclick = () => { const u = $('user').value.trim(); if (u) post('/api/connect', { user: u }); else $('err').textContent = 'Önce TikTok kullanıcı adını yazın.'; };
+$('disconnect').onclick = () => post('/api/disconnect');
+$('reset').onclick = () => post('/api/reset');
+$('sim-send').onclick = () => { const [gift, d] = $('sim-gift').value.split('|');
+  sim({ type: 'gift', gift, diamonds: +d, count: Math.max(1, Math.min(1000, +$('sim-count').value || 1)) }); };
+$('sim-like').onclick = () => sim({ type: 'like', count: 10 });
+$('sim-follow').onclick = () => sim({ type: 'follow' });
+$('sim-red').onclick = () => sim({ type: 'comment', text: 'kırmızı' });
+$('sim-blue').onclick = () => sim({ type: 'comment', text: 'mavi' });
+$('url').textContent = location.origin + '/overlay';
+$('copy').onclick = () => navigator.clipboard.writeText($('url').textContent).then(() => { $('copy').textContent = 'Kopyalandı'; setTimeout(() => $('copy').textContent = 'Adresi kopyala', 1500); }).catch(() => {});
+</script>
