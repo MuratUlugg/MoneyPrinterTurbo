@@ -1064,7 +1064,7 @@ const race = {
     if (!this.built) return;
     shown.forEach(r => {
       // etiket atın tam üstünde, jokeyin başının hemen yukarısında durur: hangi ad hangi ata ait, karışmasın
-      const i = this.list.indexOf(r), focus = this.dir && this.dir.f, [x0, y1] = proj(this.cam, r.x + .1, 1.75, r.z), y0 = y1 - 30 - 26 / (this.far || 1), x = clamp(x0, 110, 970), y = Math.max(585, y0); /* jokeyin başı ekrana izdüşürülür, etiket ekranda onun 30 piksel üstüne konur: yüksek bir noktayı izdüşürmek etiketi arkadaki kulvara kaydırıyordu */
+      const i = this.list.indexOf(r), focus = this.dir && this.dir.f, [x0, y1] = proj(this.cam, r.x + .1, 1.75, r.z), y0 = y1 - 22 - 40 / (this.far || 1), x = clamp(x0, 110, 970), y = Math.max(585, y0); /* jokeyin başı ekrana izdüşürülür, etiket ekranda onun 30 piksel üstüne konur: yüksek bir noktayı izdüşürmek etiketi arkadaki kulvara kaydırıyordu */
       if (focus) return; /* yakın planda ad zaten alt bantta yazar */
       const fn = this.fanN && this.fanN.get(r.p.id), label = `${r.lane + 1} · ${fit(r.p.name, 120, 19)}` + (r.p.rw ? ` ★${r.p.rw}` : '') + (fn ? ` 📣${fn}` : ''); /* numara atın kapı numarasıdır ve yarış boyunca değişmez: taraftar yorumda bunu yazar */ setFont(19); const lw = ctx.measureText(label).width + 44;
       panel(x - lw / 2, y - 15, lw, 30, 15, i ? 'rgba(10,6,30,.72)' : 'rgba(120,80,0,.85)'); avatar(r.p, x - lw / 2 + 15, y, 13, i ? '#fff' : C.yellow);
