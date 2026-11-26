@@ -636,7 +636,7 @@ const hall = {
     for (const q of this.seats) { const g = q.g; if (!g) continue;
       if (g.a) { if (T > g.until) { this.demote(q); continue; } const a = g.a, c = cheering || (dance && Math.sin(T * .6 + g.ph) > .55); // alkış: büyük anlarda herkes, halayda ara ara
         P(a, 'Spine', (q.seated ? .1 : .02) + Math.sin(T * 1.3 + g.ph) * .03, Math.sin(T * .45 + g.ph) * .18, 0); P(a, 'Head', 0, Math.sin(T * .6 + g.ph * 2) * .3, 0);
-        if (c) { arm(a, 'Left', .25, 1.0 + clap); arm(a, 'Right', .25, 1.0 + clap); } else if (q.seated) { arm(a, 'Left', -.35, .55); arm(a, 'Right', -.35, .55); } else { arm(a, 'Left', -.55, .05); arm(a, 'Right', -.55, .05); }
+        if (c) { arm(a, 'Left', -.3, .45 + clap); arm(a, 'Right', -.3, .45 + clap); P(a, 'LeftForeArm', 0, 0, 1.25); P(a, 'RightForeArm', 0, 0, -1.25); } /* alkış: dirsekler kırık, eller göğüs önünde; kollar dümdüz öne uzanınca hortlak gibi duruyordu */ else { P(a, 'LeftForeArm', 0, 0, 0); P(a, 'RightForeArm', 0, 0, 0); if (q.seated) { arm(a, 'Left', -.35, .55); arm(a, 'Right', -.35, .55); } else { arm(a, 'Left', -.55, .05); arm(a, 'Right', -.55, .05); } }
         continue; }
       // kalabalık figürleri: alkışta zıplar, halayda tempo tutar
       const y = cheering ? Math.abs(Math.sin(T * 9 + g.ph)) * .07 : dance ? Math.max(0, Math.sin(ph + g.ph)) * .02 : 0;
@@ -801,7 +801,7 @@ const halay = {
         if (lv) { ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(x - 1.5, y + r, 3, y0 - y - r + 6); } // kaydırılan etiketi sahibine bağlayan çizgi
         avatar(d.p, x, y, r, lead || solo ? C.yellow : '#fff');
         if (lead) text('👑', x, y - 44, 36);
-        if (!many) text(fit(d.p.name, 112, 20), x, y + r + 15, 20, '#fff', 'center', 5); else if (lead) text(fit(d.p.name, 150, 20), Math.max(86, x), y - r - 46, 20, C.yellow, 'center', 5); /* kalabalıkta yalnızca halay başının adı, tacın üstünde */
+        if (!many) text(fit(d.p.name, 112, 20), x, y + r + 15, 20, '#fff', 'center', 5); /* kalabalıkta ad yazılmaz: halay başı taçla belli olur, adı en cömertler şeridinde yazar */
         if (d.plus) { ctx.globalAlpha = 1 - d.plus.t; text('+' + fmt(d.plus.a), x, y - 66 - d.plus.t * 50, 38, C.cyan, 'center', 8); ctx.globalAlpha = 1; }
       }
     }
