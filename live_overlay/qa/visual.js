@@ -52,6 +52,7 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
   await wait(6); await gl('kalabalik-0-halay-genis'); await full('kalabalik-0-tam-ekran'); console.log('durum', JSON.stringify(await qa()));
   await p.evaluate(v => { window.__qaCam = v; }, [0, 6.5, 9.5, 0, .8, -2.5]); await wait(.3); await gl('kalabalik-1-ustten-salon');
   await p.evaluate(v => { window.__qaCam = v; }, null);
+  await p.evaluate(v => { window.__qaCam = v; }, [-4.2, 1.7, 1.2, -7.4, .9, -2.8]); await wait(.3); await gl('kalabalik-4-masa-yakin'); await p.evaluate(v => { window.__qaCam = v; }, null);
   await api('/api/simulate', { type: 'comment', name: 'Misafir200', text: 'maşallah' }); await wait(.6); await gl('kalabalik-2-yakin-misafir');
   await wait(6); await api('/api/mode', { mode: 'taki' }); await wait(3); await gl('kalabalik-3-taki');
   }

@@ -400,17 +400,23 @@ function lights(scene, x0, x1, y, z, n, sag) { // düğün ışıkları
 // bu yüzden 300 kişi de 30 kişi kadar hızlı çizilir. Kamera birine yaklaşınca o kişi geçici olarak ayrıntılı modele çevrilir.
 function makeCrowd(scene, count, seated) {
   const mat = () => std('#fff', { roughness: .85 }), inst = g => { const m = new THREE.InstancedMesh(g, mat(), count); m.castShadow = true; m.frustumCulled = false; scene.add(m); return m; };
-  const body = inst(new THREE.BoxGeometry(.4, seated ? .5 : .6, .25)), head = inst(new THREE.SphereGeometry(.125, 10, 8)), hair = inst(new THREE.SphereGeometry(.136, 10, 6, 0, TAU, 0, Math.PI * .55)), legs = seated ? null : inst(new THREE.BoxGeometry(.3, .8, .2));
-  const Y = seated ? { body: .74, head: 1.13, hair: 1.16 } : { body: 1.1, head: 1.55, hair: 1.58, legs: .4 };
+  // gövde: omuzları geniş, beli ince döner profil (kutu değil); kollar ve bacaklar ayrı parçalar
+  const torso = new THREE.LatheGeometry([[0, -.3], [.15, -.3], [.165, -.06], [.2, .17], [.18, .25], [.07, .3], [0, .3]].map(q => new THREE.Vector2(q[0], q[1])), 14); torso.scale(1.15, seated ? .85 : 1, .72);
+  const armG = new THREE.CylinderGeometry(.05, .04, seated ? .4 : .52, 8), legG = new THREE.CylinderGeometry(.075, .06, .8, 8);
+  const B = seated ? .74 : 1.1, HD = seated ? 1.11 : 1.52;
+  // [örgü, yükseklik, yana kayma, renk grubu]
+  const parts = [[inst(torso), B, 0, 'top'], [inst(new THREE.SphereGeometry(.115, 12, 9)), HD, 0, 'skin'], [inst(new THREE.SphereGeometry(.125, 12, 7, 0, TAU, 0, Math.PI * .55)), HD + .025, 0, 'hair'],
+    [inst(armG), B + (seated ? .02 : -.03), -.245, 'top'], [inst(armG), B + (seated ? .02 : -.03), .245, 'top']];
+  if (!seated) parts.push([inst(legG), .4, -.085, 'leg'], [inst(legG), .4, .085, 'leg']);
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1), pos = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), zero = new THREE.Matrix4().makeScale(0, 0, 0), who = new Array(count).fill(null);
-  const parts = [[body, 'body'], [head, 'head'], [hair, 'hair']].concat(legs ? [[legs, 'legs']] : []);
   const grey = new THREE.Color(.5, .5, .5); // renk dizisi ilk çizimden önce var olmalı; yoksa gölgelendirici kişi renklerini hiç okumaz ve herkes beyaz kalır
   for (let i = 0; i < count; i++) for (const [m] of parts) { m.setMatrixAt(i, zero); m.setColorAt(i, grey); }
   return { count,
-    set(i, x, y, z, rot, id, hue, sat = 70) { q.setFromAxisAngle(up, rot);
-      for (const [m, k] of parts) { m4.compose(pos.set(x, y + Y[k], z), q, one); m.setMatrixAt(i, m4); }
-      if (who[i] !== id) { who[i] = id; const L = lookOf(id); body.setColorAt(i, lin(`hsl(${hue},${sat}%,52%)`)); head.setColorAt(i, lin(L.skin === '#ffffff' ? '#e8b88f' : L.skin)); hair.setColorAt(i, lin(L.kind === 1 ? (L.ladyHead === 'esarp' ? L.scarf : L.ladyHair === '#ffffff' ? '#5a3a2a' : L.ladyHair) : L.hair)); if (legs) legs.setColorAt(i, lin(L.kind === 1 ? '#2a2228' : L.bottom));
-        for (const [m] of parts) if (m.instanceColor) m.instanceColor.needsUpdate = true; } },
+    set(i, x, y, z, rot, id, hue, sat = 70, lift = 0) { q.setFromAxisAngle(up, rot); const cx = Math.cos(rot), sx = Math.sin(rot); // lift: sol bacağın kalkışı (halay adımı)
+      parts.forEach(([m, h, xo], k) => { m4.compose(pos.set(x + cx * xo, y + h + (k === 5 ? lift : 0), z - sx * xo), q, one); m.setMatrixAt(i, m4); });
+      if (who[i] !== id) { who[i] = id; const L = lookOf(id), col = { top: lin(`hsl(${hue},${sat}%,52%)`), skin: lin(L.skin === '#ffffff' ? '#e8b88f' : L.skin),
+          hair: lin(L.kind === 1 ? (L.ladyHead === 'esarp' ? L.scarf : L.ladyHair === '#ffffff' ? '#5a3a2a' : L.ladyHair) : L.hair), leg: lin(L.kind === 1 ? '#2a2228' : L.bottom) };
+        for (const [m, , , c] of parts) { m.setColorAt(i, col[c]); m.instanceColor.needsUpdate = true; } } },
     hide(i) { if (who[i] === null) return; who[i] = null; for (const [m] of parts) m.setMatrixAt(i, zero); },
     flush() { for (const [m] of parts) m.instanceMatrix.needsUpdate = true; } };
 }
@@ -736,10 +742,10 @@ const halay = {
     }
     // Arka sıralar: ön sıraya sığmayan halaycılar (en çok 48) arkada üç sıra hâlinde aynı adımı atar.
     // Ön sıra en çok hediye gönderenlerindir; arkadaki, öndekini geçince yer değiştirir.
-    { const rest = this.list.filter(d => !ring.includes(d) && d !== so).slice(0, 48), stepY = ring[0] && ring[0].y || 0; this.backN = rest.length;
+    { const rest = this.list.filter(d => !ring.includes(d) && d !== so).slice(0, 48), stepY = ring[0] && ring[0].y || 0; this.backN = rest.length; const bt4 = Math.floor(t4);
       for (let j = 0; j < 48; j++) { const d = rest[j]; if (!d) { this.back.hide(j); continue; }
         const row = Math.floor(j / 16), cnt = Math.min(16, rest.length - row * 16), Rb = R + .85 * (row + 1), ang = Math.PI + ((cnt - 1) / 2 - (j % 16)) * (.6 / Rb) + drift / Rb;
-        this.back.set(j, Math.sin(ang) * Rb, stepY, Math.cos(ang) * Rb, ang + Math.PI, d.p.id, d.p.hue); }
+        this.back.set(j, Math.sin(ang) * Rb, stepY, Math.cos(ang) * Rb, ang + Math.PI, d.p.id, d.p.hue, 70, bt4 === 3 ? Math.sin((t4 - 3) * Math.PI) * .32 : bt4 === 1 ? Math.sin((t4 - 1) * Math.PI) * .1 : 0); } /* arka sıra da sol ayağını ön sırayla birlikte kaldırır */
       this.back.flush(); }
     // kollar: komşuyla el ele (iki el aynı noktada buluşur); halay başının serbest eli mendil sallar, sondakinin eli belinde
     const swing = (Math.floor(t4) === 3 ? Math.sin((t4 - 3) * Math.PI) : 0) * .1, hy = .92;
@@ -779,7 +785,7 @@ const halay = {
       }
     }
     const front = (this.vis || []).filter(d => !d.ghost && d.slot >= 0).sort((a, b) => a.v - b.v)[0], behind = this.list.length - (this.vis || []).filter(d => !d.ghost).length;
-    if (behind > 0 && front) text(fit(`Halayda ${fmt(this.list.length)} kişi · ön sıraya geçmek için 💎 ${fmt(front.v + 1)}`, 900, 26), 540, 1218, 26, '#fff', 'center', 6);
+    if (behind > 0 && front && !(this.dir && this.dir.f)) text(fit(`Halayda ${fmt(this.list.length)} kişi · ön sıraya geçmek için 💎 ${fmt(front.v + 1)}`, 900, 26), 540, 1218, 26, '#fff', 'center', 6);
     bar(120, 1246, 840, 62, this.shown / 100, C.cyan, C.pink, this.locked ? 'COŞKU TAVAN! 🔥' : `COŞKU  %${Math.floor(this.shown)}`);
   },
 };
