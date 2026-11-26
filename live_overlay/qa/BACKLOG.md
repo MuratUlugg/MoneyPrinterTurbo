@@ -11,7 +11,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 
 ### Takı töreni
 - [ ] Gelinle damat el ele ya da kol kola değil; gelinin kolları hiç oynamıyor (iskeletsiz model).
-- [ ] Takı yokken kurdeleler göğüste boş kırmızı dikdörtgen gibi duruyor; ilk takıya kadar gizlenebilir ya da daha ince olabilir.
 
 ### At yarışı
 - [ ] Yakın at planında öndeki kulvardaki at kadrajın altını kaplayabiliyor.
@@ -71,3 +70,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Ölçek (kullanıcı geri bildirimi): 16 masa × 8 sandalye (128 oturan) + duvar diplerinde 88 ayakta misafir; halayda 14 kişilik ön sıra + 48 kişilik arka sıralar; kalabalık birkaç çizim çağrısıyla çiziliyor, kameranın döndüğü misafir ve komşuları ayrıntılı modele çevriliyor; "Düğünde N misafir" sayacı ve "ön sıraya geçmek için" çağrısı (görsel: `kalabalik-0..3`, 330 kişiyle; QA geçti).
 - Kalabalık figürleri: kutu yerine omuzlu gövde, kollar ve ayrı bacaklar; yakın planda odaktaki misafirin komşuları da ayrıntılı modele çevriliyor, alt bantla çakışan yazı gizleniyor (görsel: `kalabalik-0`, `-2`, `-4` önce/sonra; QA geçti).
 - Grafik turu (kullanıcı geri bildirimi; sahneler tam çözünürlükte tek tek incelendi): çalgıcıların zombi gibi dümdüz kolları dirsekten kırıldı, zurna inceldi ve ellerde; kasket başa oturdu; halay ve takı kadrajı yaklaştı; misafir sayacı sahnenin ortasından başlığa taşındı; çubukların başındaki yuvarlak leke kalktı; büyük hediyede sahneye saçılan renkli noktalar azaltıldı; yarış etiketleri küçüldü ve atları kapatmıyor; takı sıralaması kenardan taşmıyor (görsel: halay-1, halay-2, taki-3, yaris-2 önce/sonra; QA geçti).
+- Takı kurdelesi ilk takıyla beliriyor ve takı sırası arttıkça uzuyor; boşken göğüste kırmızı levha yok (görsel: `taki-0`, `taki-2`, `taki-3`; QA geçti).
