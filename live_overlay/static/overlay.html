@@ -546,6 +546,13 @@ const hall = {
     const chairLeg = new THREE.InstancedMesh(new THREE.BoxGeometry(.04, .46, .04), gold, 512); // ayaksız sandalye havada duran levha gibi görünüyordu
     this.seats.forEach((q, i) => { [[-.18, -.18], [.18, -.18], [-.18, .18], [.18, .18]].forEach(([lx, lz], k) => { const c = Math.cos(q.face), sn = Math.sin(q.face); cm.makeTranslation(q.x + c * lx + sn * lz, .23, q.z - sn * lx + c * lz); chairLeg.setMatrixAt(i * 4 + k, cm); }); });
     chairSeat.castShadow = chairBack.castShadow = true; s.add(chairSeat); s.add(chairBack); s.add(chairLeg);
+    // sofra: her sandalyenin önünde tabak, bardak ve peçete (masalar boş beyaz yüzey gibi durmasın)
+    const plate = new THREE.InstancedMesh(new THREE.CylinderGeometry(.13, .1, .02, 18), std('#ffffff', { roughness: .25 }), 128), plateRim = new THREE.InstancedMesh(new THREE.TorusGeometry(.125, .008, 6, 20), gold, 128),
+      glass = new THREE.InstancedMesh(new THREE.CylinderGeometry(.035, .028, .11, 10), new THREE.MeshStandardMaterial({ color: lin('#bfe3f2'), transparent: true, opacity: .55, roughness: .1 }), 128), napkin = new THREE.InstancedMesh(new THREE.BoxGeometry(.09, .012, .13), std('#a3152f', { roughness: .9 }), 128), flat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+    this.seats.filter(q => q.seated).forEach((q, i) => { const fx = Math.sin(q.face), fz = Math.cos(q.face), px = q.x + fx * .66, pz = q.z + fz * .66; cq.setFromAxisAngle(cup, q.face);
+      cm.makeTranslation(px, .8, pz); plate.setMatrixAt(i, cm); cm.compose(cp.set(px, .812, pz), flat, c1); plateRim.setMatrixAt(i, cm);
+      cm.makeTranslation(px + fz * .19 + fx * .1, .845, pz - fx * .19 + fz * .1); glass.setMatrixAt(i, cm); cm.compose(cp.set(px - fz * .19, .797, pz + fx * .19), cq, c1); napkin.setMatrixAt(i, cm); });
+    s.add(plate); s.add(plateRim); s.add(glass); s.add(napkin);
     for (const d of [-1, 1]) { for (let k = 0; k < 34; k++) this.seats.push({ x: d * (10.1 - (k % 2) * .55), z: -7.4 + k * .31, face: -d * Math.PI / 2, h: 1.55, seated: false, i: 0, g: null });
       for (let k = 0; k < 10; k++) this.seats.push({ x: d * (5.4 + k * .46), z: -8.6 + (k % 2) * .4, face: 0, h: 1.55, seated: false, i: 0, g: null }); }
     this.seats.filter(q => !q.seated).forEach((q, i) => { q.i = i; });
