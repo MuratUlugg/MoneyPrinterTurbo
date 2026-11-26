@@ -928,14 +928,15 @@ const race = {
   draw() {
     const shown = this.list.filter(r => r.act), lead = this.list[0];
     if (!lead) bar(140, 452, 800, 70, 0, C.cyan, C.pink, 'İlk hediyeyi gönder, atını piste çıkar! 🏇');
-    else bar(140, 452, 800, 70, lead.shown / CFG.goal, C.yellow, C.pink, this.locked ? '🏁 FİNİŞ!' : `🏁 ${fit(lead.p.name, 300, 34)} önde · finişe %${Math.max(1, Math.ceil((1 - lead.prog / CFG.goal) * 100))} kaldı`);
+    else bar(140, 452, 800, 70, lead.shown / CFG.goal, C.yellow, C.pink, this.locked ? '🏁 FİNİŞ!' : `🏁 ${fit(lead.p.name, 300, 34)} önde · finişe %${clamp(Math.ceil((1 - lead.prog / CFG.goal) * 100), 1, 99)} kaldı`);
     if (!this.built) return;
     shown.forEach(r => {
-      const i = this.list.indexOf(r), focus = this.dir && this.dir.f, [x0, y0] = proj(this.cam, r.x - 2.1, 1.2, r.z), x = Math.max(70, x0), y = Math.max(560, y0);
-      if (focus) return; /* yakın planda ad zaten alt bantta yazar; etiket atın uzağında kalıyordu */
-      avatar(r.p, x, y, 18, i ? '#fff' : C.yellow); // etiket atın arkasında, kendi kulvarının hizasında durur
-      if (x < 230) text(`${i + 1}. ${fit(r.p.name, 150, 20)}`, x + 25, y, 20, i ? '#fff' : C.yellow, 'left', 6); // sol kenarda ad kesilmesin: fotoğrafın sağına yaz
-      else text(`${i + 1}. ${fit(r.p.name, 150, 20)}`, x - 25, y, 20, i ? '#fff' : C.yellow, 'right', 6);
+      // etiket atın tam üstünde, jokeyin başının hemen yukarısında durur: hangi ad hangi ata ait, karışmasın
+      const i = this.list.indexOf(r), focus = this.dir && this.dir.f, [x0, y1] = proj(this.cam, r.x + .1, 1.75, r.z), y0 = y1 - 42, x = clamp(x0, 110, 970), y = Math.max(585, y0); /* jokeyin başı ekrana izdüşürülür, etiket ekranda onun 30 piksel üstüne konur: yüksek bir noktayı izdüşürmek etiketi arkadaki kulvara kaydırıyordu */
+      if (focus) return; /* yakın planda ad zaten alt bantta yazar */
+      const label = `${i + 1}. ${fit(r.p.name, 120, 19)}`; setFont(19); const lw = ctx.measureText(label).width + 44;
+      panel(x - lw / 2, y - 15, lw, 30, 15, i ? 'rgba(10,6,30,.72)' : 'rgba(120,80,0,.85)'); avatar(r.p, x - lw / 2 + 15, y, 13, i ? '#fff' : C.yellow);
+      text(label, x - lw / 2 + 33, y + 1, 19, i ? '#fff' : C.yellow, 'left');
     });
     if (this.list.length > 8) text(`+${this.list.length - 8} at daha koşuyor`, 540, 1296, 26, '#fff', 'center', 6);
   },
