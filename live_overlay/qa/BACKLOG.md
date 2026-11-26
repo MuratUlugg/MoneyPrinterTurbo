@@ -7,7 +7,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 İlk görsel denetimde (20 çekim) bulunanlar, göze batma sırasıyla.
 
 ### Halay
-- [ ] Halayın tekme vuruşu durağan karede net yakalanmadı; adım döngüsü videoyla doğrulanmalı.
 
 ### Takı töreni
 - [ ] Gelinle damat el ele ya da kol kola değil; gelinin kolları hiç oynamıyor (iskeletsiz model).
@@ -74,3 +73,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Yakın plan ayrıntıları: sandalyelere ayak eklendi (havada duran levha gibiydi), kasket saçı örtüyor, davul küçüldü ve kadrajı kaplamıyor, bahşiş parası kasketin önüne iliştirildi, topuz küçüldü, kadrajın üstünde kesilen ad etiketi çizilmiyor (görsel: `halay-3`, `halay-5` önce/sonra; QA geçti).
 - [not] Kasketin altında şakakta gri saç şeridi görünüyor; davulcunun sol eli davula tam değmiyor.
 - Yarış: jokeyin altına eyer ve kendi renginde eyer örtüsü eklendi; yakın planda atın uzağında kalan ad etiketi kaldırıldı (görsel: `yaris-3` önce/sonra; QA geçti). Dizgin iki kez denendi, atın başından ileri taşan çubuklar gibi durduğu için geri alındı: atın başı canlandırma ile oynadığından sabit bir çubuk tutmuyor.
+- Halay adımı doğrulandı: çekim betiği her vuruşu tam ortasında donduruyor; sağa adım, çökme ve sol tekme karelerinde herkesin aynı anda aynı hareketi yaptığı görüldü. Eller yaklaştırıldı (omuz aralığı .5), geniş plan soldaki halaycıları kesmiyor ve çalgıcıları da alıyor (görsel: `halay-2`, `halay-9-adim-0/2/3`; QA geçti). Geniş planın son uzaklık ayarı (biraz yaklaştırma) yeniden çekilmedi.

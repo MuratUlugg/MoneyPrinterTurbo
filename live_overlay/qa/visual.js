@@ -36,7 +36,7 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
   const cam = c => p.evaluate(v => { window.__qaCam = v; }, c);
   await cam([0, 1.25, 1.2, 0, 1.0, -2.4]); await wait(.3); await gl('halay-8-eller-yakin');
   await cam([0, .9, 2.6, 0, .75, -2.4]);
-  for (let k = 0; k < 4; k++) { await wait(.25); await gl('halay-9-adim-' + k); }
+  for (let k = 0; k < 4; k++) { await p.evaluate(v => { window.__qaStopAt = v; }, k); for (let i = 0; i < 120 && !(await p.evaluate(() => window.__qaPause)); i++) await p.waitForTimeout(150); await gl('halay-9-adim-' + k); } /* her vuruş tam ortasında dondurulup çekilir */
   await cam(null);
   await wait(1); await gift('Emre', 1); await wait(.5); await gl('halay-3-yakin-halayci');
   await wait(6); await api('/api/simulate', { type: 'comment', name: 'Sibel', text: 'maşallah' }); await wait(.5); await gl('halay-4-yakin-misafir');
