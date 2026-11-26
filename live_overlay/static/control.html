@@ -118,6 +118,7 @@ iframe { width: 100%; max-width: 300px; aspect-ratio: 9 / 16; border: 1px solid 
       <div class="row">
         <label class="check"><input type="checkbox" id="ses"> Davul, altın ve alkış sesi</label>
         <label class="check"><input type="checkbox" id="anons"> Hediyeleri sesli oku</label>
+        <label class="check"><input type="checkbox" id="balon"> Yorumları konuşma balonunda göster</label>
         <label>Sesli okuma için en az jeton<input id="anonsMin" type="number" min="1"></label>
         <label>Görüntü kalitesi<select id="kalite"><option value="oto">Otomatik (takılırsa kendisi kısar)</option><option value="yuksek">Hep yüksek</option><option value="dusuk">Düşük</option></select></label>
       </div>
@@ -213,12 +214,12 @@ function stepRow(step) {
 }
 function loadForm(s) {
   NUMS.forEach(k => { $(k).value = s[k]; });
-  $('cift').value = s.cift; $('ses').checked = s.ses; $('anons').checked = s.anons; $('kalite').value = s.kalite; $('program_on').checked = s.program_on;
+  $('cift').value = s.cift; $('ses').checked = s.ses; $('anons').checked = s.anons; $('balon').checked = s.balon !== false; $('kalite').value = s.kalite; $('program_on').checked = s.program_on;
   $('yasak').value = s.yasak.join(', '); $('gizli').value = s.gizli.join(', ');
   $('steps').replaceChildren(...s.program.map(stepRow)); formLoaded = true;
 }
 function readForm() {
-  const s = { cift: $('cift').value, ses: $('ses').checked, anons: $('anons').checked, kalite: $('kalite').value, program_on: $('program_on').checked, yasak: $('yasak').value, gizli: $('gizli').value };
+  const s = { cift: $('cift').value, ses: $('ses').checked, anons: $('anons').checked, balon: $('balon').checked, kalite: $('kalite').value, program_on: $('program_on').checked, yasak: $('yasak').value, gizli: $('gizli').value };
   NUMS.forEach(k => { s[k] = $(k).value; });
   s.program = [...$('steps').children].map(d => ({ mode: d.children[0].value, min: d.children[1].value }));
   return s;

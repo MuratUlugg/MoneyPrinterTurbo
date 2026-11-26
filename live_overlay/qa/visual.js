@@ -61,6 +61,12 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
   await wait(6); await api('/api/mode', { mode: 'taki' }); await wait(3); await gl('kalabalik-3-taki');
   }
   // ---- TAKI
+  if (!only || only === 'balon') { /* yorum balonu: masadaki misafirin yakın planında, geniş planda ve halaycının başında */
+    await api('/api/mode', { mode: 'halay' }); await wait(2); for (const n of NAMES.slice(0, 4)) await gift(n, 2); await wait(6);
+    await api('/api/simulate', { type: 'comment', name: 'Sibel', text: 'maşallah çok güzel düğün olmuş' }); await wait(.7); await gl('balon-0-yakin-misafir');
+    await wait(2.6); await gl('balon-1-genis');
+    await wait(4); await api('/api/simulate', { type: 'comment', name: 'Ayşe', text: 'Allah bir yastıkta kocatsın, darısı bekarların başına inşallah' }); await wait(.7); await gl('balon-2-halayci-uzun'); await wait(2.6); await full('balon-3-tam-ekran');
+  }
   if (only === 'poz') { /* duruş laboratuvarı: QA_POZ='[[oyun,[kaldırma,salınım,öne,x,y,z]],...]' ile serbest oyunların kol duruşu tek oturumda denenir */
     await api('/api/mode', { mode: 'halay' }); await wait(2); for (const n of NAMES.slice(0, 5)) await gift(n, 2); await wait(5);
     let cur = 0; for (const [i, [st, k]] of JSON.parse(process.env.QA_POZ || '[]').entries()) {

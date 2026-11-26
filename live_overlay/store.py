@@ -49,6 +49,7 @@ def default_settings() -> dict[str, Any]:
         cift="",            # sahnedeki pankart
         ses=False,          # davul, altın, alkış sesi
         anons=False,        # hediyeleri sesli oku
+        balon=True,         # yorumları misafirin başında konuşma balonunda göster
         kalite="oto",       # oto | yuksek | dusuk
         yasak=[],           # adlarda geçmesi yasak kelimeler
         gizli=[],           # adı gizlenecek kullanıcı kimlikleri
@@ -71,7 +72,7 @@ def clean_settings(raw: dict[str, Any], modes: tuple[str, ...], base: Optional[d
         s["karpuzMax"] = s["karpuzMin"] + 10
     if "cift" in raw:
         s["cift"] = str(raw["cift"] or "").strip()[:28]
-    for key in ("ses", "anons", "program_on"):
+    for key in ("ses", "anons", "balon", "program_on"):
         if key in raw:
             s[key] = bool(raw[key])
     if raw.get("kalite") in ("oto", "yuksek", "dusuk"):
@@ -141,6 +142,19 @@ def clean_name(name: str, extra_blocked: tuple[str, ...] | list[str] = ()) -> st
         if (len(bad_n) <= 3 and bad_n in words) or (len(bad_n) > 3 and bad_n in flat):
             return SAFE_NAME
     return name
+
+
+def clean_text(text: str, extra_blocked: tuple[str, ...] | list[str] = ()) -> str:
+    """Yorumu ekranda gösterilecek hale getirir; reklam, telefon ya da yasak kelime varsa boş döner (hiç gösterilmez)."""
+    text = re.sub(r"\s+", " ", re.sub(r"[\x00-\x1f\u200b-\u200f\u202a-\u202e\u2066-\u2069]", " ", str(text or ""))).strip()
+    if not text:
+        return ""
+    # clean_name yalnızca ilk 24 karaktere bakar; uzun yorumun tamamı aynı süzgeçten parça parça geçer
+    for i in range(0, len(text), 16):
+        part = text[i : i + 24]
+        if clean_name(part, extra_blocked) == SAFE_NAME and part != SAFE_NAME:
+            return ""
+    return text[:60]
 
 
 # ---------------------------------------------------------------------------

@@ -112,6 +112,8 @@ async def emit(event: dict[str, Any]) -> None:
         else:
             user["name"] = store.clean_name(user["name"], settings["yasak"])
     kind = event["type"]
+    if kind == "comment":  # ekranda balon olarak görünebilir: ad ile aynı süzgeçten geçer, uygunsuzsa boşaltılır
+        event["text"] = store.clean_text(event.get("text", ""), settings["yasak"])
     if kind == "gift" and user:
         user["alltime"] = ledger.add_gift(user, event["gift"], event["total"], hub.mode)  # önceki yayınlardaki toplamı
     else:

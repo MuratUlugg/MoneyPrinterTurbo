@@ -47,6 +47,7 @@ At yarışında da tribün ve seyirciler vardır.
 
 Hepsi gerçek hediyelere dayanır; sahte bağışçı, sahte geri sayım ya da şans oyunu yoktur.
 
+- **Yorum balonu:** yorum yazan izleyici salonda masasına oturur, kamera ona döner ve yazdığı şey başının üstünde konuşma balonunda beş saniye görünür (en çok 60 karakter, iki satır). Yorum, adlarla aynı süzgeçten geçer: bağlantı, telefon numarası ya da yasak kelime içeriyorsa hiç gösterilmez. Panelden kapatılabilir.
 - **Hediye menüsü:** başlığın altında, ne gönderirsen ekranda ne olacağını yazan kartlar döner (örneğin "🌹 1+ kalk, halaya gir", "💎 100+ ortaya çık, para saçılsın"). İzleyici neyin karşılığında ne alacağını üç saniyede anlar.
 - **Düşük giriş eşiği:** yorum yazan masaya oturur, tek bir Gül gönderen piste çıkar; kamera ona döner, adı alt bantta yazar.
 - **Kademeli ödüller (halay):** 30+ jeton davulcuya bahşiştir (kasketine para iliştirilir, tempo coşar, kamera davulcuya döner); 50+ **oyun havasını değiştirir** (çiftetelli → horon → zeybek sırayla; 25 saniye sürer, sonra halaya dönülür; sahnenin üstünde "HORON · Ayşe açtırdı · 20 sn" yazar; her oyunun adımı ve kol duruşu ayrıdır); 100+ ortaya çıkarır ve üstüne para saçılır; 500+ sahnenin önünde yer volkanlarını ateşler.
@@ -137,6 +138,7 @@ Ayarların hepsi panelden yapılır. Aynı adlar adres çubuğundan da verilebil
 | `hedef` | 2000 | Yayın hedefi (toplam jeton) |
 | `cift` | MUTLULUKLAR | Sahnedeki pankart yazısı |
 | `konuk` | 6 | Baştan oturan adsız konuk sayısı (en çok 16) |
+| `balon` | açık | Yorumları yazan misafirin başının üstünde konuşma balonunda gösterir (süzgeçten geçemeyen yorum gösterilmez) |
 | `ses` | kapalı | Davul vuruşu, altın şıngırtısı ve alkış sesi |
 | `kalite` | oto | `oto` takılırsa kendisi kısar, `yuksek` hiç kısmaz, `dusuk` gölgesiz ve düşük çözünürlükle başlar |
 | `anons` / `anonsMin` | kapalı / 10 | Sesli anons ve okunacak en küçük hediye |

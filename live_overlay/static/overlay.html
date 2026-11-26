@@ -105,6 +105,25 @@ function fit(s, maxW, size, weight = 800) {
   return s + '…';
 }
 function panel(x, y, w, h, r, fill = C.panel) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fillStyle = fill; ctx.fill(); }
+const says = new Map(); // id → { p, s, t }: son yorumlar (konuşma balonu)
+function bubble(s, x, y, alpha, noTail) { // (x, y): balonun kuyruğunun ucu, yani konuşanın başının üstü
+  const size = 30; ctx.font = `800 ${size}px ${FONT}`; const words = s.split(' '), lines = ['']; /* en çok iki satır, 360 piksel */
+  for (const w of words) { const t = (lines[lines.length - 1] + ' ' + w).trim(); if (ctx.measureText(t).width <= 360 || !lines[lines.length - 1]) lines[lines.length - 1] = t; else if (lines.length < 2) lines.push(w); else { lines[1] = fit(lines[1] + ' ' + w, 360, size); break; } }
+  lines[0] = fit(lines[0], 360, size); const w = Math.max(...lines.map(l => ctx.measureText(l).width)) + 44, h = lines.length * 36 + 22;
+  const bx = clamp(x - w / 2, VX + 14, VX + VW - w - 14), by = clamp(y - h - 22, VY + 96, VY + VH - h - (noTail ? 108 : 240)), tx = clamp(x, bx + 26, bx + w - 26);
+  ctx.save(); ctx.globalAlpha = alpha; ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 4; ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.roundRect(bx, by, w, h, 22); ctx.fill(); ctx.shadowColor = 'transparent'; if (!noTail) { ctx.beginPath(); ctx.moveTo(tx - 13, by + h - 2); ctx.lineTo(tx + 13, by + h - 2); ctx.lineTo(tx, by + h + 18); ctx.closePath(); ctx.fill(); }
+  lines.forEach((l, i) => text(l, bx + w / 2, by + 30 + i * 36, size, '#2a1640')); ctx.restore();
+}
+function drawSays() { /* konuşma balonları: en yeni üç yorum, yazanın başının üstünde; yakın planda yalnızca odaktaki kişininki. Etiketlerin üstünde kalsın diye bölümden sonra çizilir */
+  const cam = mode.cam; if (!cam || !mode.hall || !mode.built) { says.clear(); return; }
+  const f = mode.dir && mode.dir.f, live = [...says.values()].filter(v => T - v.t < 5 || (says.delete(v.p.id), false)).sort((a, b) => b.t - a.t).slice(0, 3); let edge = 0;
+  for (const v of live) { if (f && f.who !== v.p) continue; const q = hall.where.get(v.p.id), d = !q && mode.d && mode.d.get && mode.d.get(v.p.id); if (!q && !(d && d.pos)) continue;
+    let [x, y] = q ? proj(cam, q.x, q.h + .38, q.z) : proj(cam, d.pos[0], f ? 2.05 : 2.7, d.pos[1]); const al = clamp(Math.min((T - v.t) * 6, (5 - (T - v.t)) * 3), 0, 1); /* geniş planda halaycının balonu ad rozetinin üstünde durur */
+    const off = x < VX + 30 || x > VX + VW - 30 || y < VY + 120 || y > VY + VH - 240; /* yazan kişi kadrajda değilse (masası yanda kalır) balon, adıyla birlikte ona yakın kenarda, boş pist zemininin üstünde durur: yorum hiçbir zaman kaybolmaz */
+    if (off) { x = x > VX + VW / 2 ? VX + VW - 80 : VX + 80; y = VY + VH - 90 - edge++ * 100; }
+    bubble(off ? v.p.name + ': ' + v.s : v.s, x, y, al, off); }
+}
 function avatar(p, x, y, r, ring = '#fff') {
   ctx.save();
   ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fillStyle = p.color; ctx.fill();
@@ -1264,7 +1283,7 @@ function onEvent(ev) {
     if (mode.like && !mode.locked) mode.like(p, n);
   } else if (ev.type === 'follow') { pushAlert(p, 'takip etti ⭐', 'salon alkışlıyor'); hall.cheer = Math.max(hall.cheer, .8); if (mode.bonus) mode.bonus(2); }
   else if (ev.type === 'share') { pushAlert(p, 'yayını paylaştı 🚀', 'onun şerefine yer volkanı'); hall.boom(1.4); hall.cheer = Math.max(hall.cheer, .8); if (mode.bonus) mode.bonus(4); }
-  else if (ev.type === 'comment' && mode.comment) mode.comment(p, String(ev.text || ''));
+  else if (ev.type === 'comment') { const s = String(ev.text || '').trim(); if (s && LS.balon !== false) says.set(p.id, { p, s, t: T }); if (mode.comment) mode.comment(p, s); } /* yorum, yazanın başında konuşma balonu olur */
   if (mode.built && mode.activity) mode.activity(p, ev.type === 'gift' ? 2 : ev.type === 'like' ? 0 : 1);
 }
 
@@ -1279,7 +1298,7 @@ function frame(now) {
   if (!mode.locked && pending.length) { const q = pending; pending = []; q.forEach(([p, a, raw]) => giveToMode(p, a, raw)); }
   if (DEMO) demoTick(dt);
   quality.tick(now);
-  if (QA) window.__qa = { seat: (() => { const f = mode.dir && mode.dir.f, q = f && f.who && hall.where.get(f.who.id); if (!q) return null; let fwd = null; if (q.g && q.g.a) { const ft = q.g.a.b.LeftFoot.getWorldPosition(new THREE.Vector3()); fwd = [+((ft.x - q.x) * Math.sin(q.face) + (ft.z - q.z) * Math.cos(q.face)).toFixed(2), +ft.y.toFixed(2), q.g.a.kind]; } return [q.x, q.z, q.face, fwd]; })(), fps: Math.round(quality.fps), guests: hall.where ? hall.where.size : 0, players: players.size, frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, oyun: mode.style ? OYUN[mode.style][0] : null, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
+  if (QA) window.__qa = { seat: (() => { const f = mode.dir && mode.dir.f, q = f && f.who && hall.where.get(f.who.id); if (!q) return null; let fwd = null; if (q.g && q.g.a) { const ft = q.g.a.b.LeftFoot.getWorldPosition(new THREE.Vector3()); fwd = [+((ft.x - q.x) * Math.sin(q.face) + (ft.z - q.z) * Math.cos(q.face)).toFixed(2), +ft.y.toFixed(2), q.g.a.kind]; } return [q.x, q.z, q.face, fwd]; })(), fps: Math.round(quality.fps), guests: hall.where ? hall.where.size : 0, players: players.size, frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, oyun: mode.style ? OYUN[mode.style][0] : null, balon: says.size, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
   if (ready() && !mode.built) { mode.build(); mode.built = true; }
   mode.update(dt);
   if (QA && window.__qaCam && mode.cam) { const c = window.__qaCam; mode.cam.position.set(c[0], c[1], c[2]); mode.cam.lookAt(c[3], c[4], c[5]); } // görsel denetim: kamerayı elle yerleştir
@@ -1289,7 +1308,7 @@ function frame(now) {
   if (DEMO) { const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#2a1560'); g.addColorStop(.55, '#140f2e'); g.addColorStop(1, '#0d2b4a'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'destination-out'; panel(VX, VY, VW, VH, 40, '#000'); ctx.globalCompositeOperation = 'source-over'; }
   if (!mode.built) { panel(VX, VY, VW, VH, 40); text(glError || '3B sahne yükleniyor…', 540, 880, 40, glError ? C.yellow : '#fff'); }
-  drawHeader(); mode.draw(); if (mode.dir) mode.dir.draw(); drawCombo(dt); drawDonors(); drawParts(dt); drawAlerts(dt); drawBig(dt); drawCelebration(dt); link.draw();
+  drawHeader(); mode.draw(); drawSays(); if (mode.dir) mode.dir.draw(); drawCombo(dt); drawDonors(); drawParts(dt); drawAlerts(dt); drawBig(dt); drawCelebration(dt); link.draw();
   requestAnimationFrame(frame);
 }
 

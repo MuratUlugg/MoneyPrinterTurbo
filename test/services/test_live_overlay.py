@@ -117,6 +117,14 @@ class TestNamesAndSettings(unittest.TestCase):
         self.assertEqual(store.clean_settings({"oyun": 0}, server.MODES)["oyun"], 1)
         self.assertEqual(s["program"], [{"mode": "taki", "min": 180}])
 
+    def test_comment_text_is_screened_like_names(self):
+        self.assertEqual(store.clean_text("  maşallah   çok\ngüzel  "), "maşallah çok güzel")
+        self.assertEqual(store.clean_text("takipçi için www.ornek.com"), "")
+        self.assertEqual(store.clean_text("uzun bir yorumun sonunda ara 0532 123 45 67"), "")
+        self.assertEqual(store.clean_text("iyi dilekler bahis sitesi", ["bahis"]), "")
+        self.assertEqual(len(store.clean_text("a" * 200)), 60)
+        self.assertTrue(store.clean_settings({}, server.MODES)["balon"])
+
 
 if __name__ == "__main__":
     unittest.main()
