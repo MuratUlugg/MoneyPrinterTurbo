@@ -90,6 +90,18 @@ class TestLedger(unittest.TestCase):
         self.assertEqual(self._gift(ledger, "ayse", 1), 40)  # geri gelen bağışçı tanınır
         self.assertTrue(list((self.dir / "reports").glob("*.json")))
 
+    def test_race_wins_persist_across_streams(self):
+        ledger = store.Ledger(self.dir)
+        self._gift(ledger, "ayse", 10, mode="race")
+        self.assertEqual(ledger.wins_of("ayse", "race"), 0)
+        self.assertEqual(ledger.add_win("ayse", "Ayse", "race"), 1)
+        ledger.new_stream()
+        again = store.Ledger(self.dir)  # sonraki yayın, sunucu yeniden açıldı
+        self.assertEqual(again.wins_of("ayse", "race"), 1)
+        self.assertEqual(again.add_win("ayse", "Ayse", "race"), 2)
+        self._gift(again, "ayse", 5, mode="race")
+        self.assertEqual(again.snapshot()["users"][0]["wins"], 2)
+
     def test_report_breaks_down_by_mode(self):
         ledger = store.Ledger(self.dir)
         self._gift(ledger, "ayse", 30)

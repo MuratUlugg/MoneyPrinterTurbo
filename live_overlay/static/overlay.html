@@ -74,6 +74,8 @@ const C = { panel: 'rgba(20,15,46,.78)', ink: '#fff', dim: 'rgba(255,255,255,.7)
   cyan: '#2ee6d6', yellow: '#ffd23f', red: '#ff4d5e', blue: '#4d8dff' };
 const FONT = '"Baloo 2","Trebuchet MS","Segoe UI",system-ui,sans-serif';
 const KOL = { 1: [.95, .2, .3, -1.2, 0, 0], 3: [1.0, .08, .05, -.12, 0, 0] }; /* önkol x ile kırılınca el yukarı kalkar (duruş laboratuvarında altı seçenek denenerek bulundu; z ile kol dümdüz kalıyordu) */ window.__kol = KOL; // serbest oyunlarda kol duruşu: [kaldırma, salınım, öne, önkol x, y, z]
+const AT1 = ['Kara', 'Ak', 'Gül', 'Şah', 'Yıldız', 'Demir', 'Altın', 'Bora', 'Poyraz', 'Ateş', 'Şimşek', 'Rüzgar', 'Doru', 'Tuna', 'Ay', 'Gök'], AT2 = ['yel', 'kanat', 'batur', 'han', 'tay', 'nal', 'yele', 'bey', 'kız', 'tuğ', 'er', 'can'];
+const horseName = id => { const h = hash('at:' + id); return AT1[h % 16] + AT2[(h >>> 5) % 12]; }; // her izleyicinin atının adı kimliğinden türer: her yayında aynı kalır
 const HON_X = [-1.3, 1.65, 2.3]; // şeref konuklarının sahnedeki yeri: birinci damadın, ikinci gelinin yanında, üçüncü ikincinin yanında (solda çelenk kadrajı kapatıyor)
 const GATE_T = .2; // start kapısında atın dondurulduğu an (dörtnala canlandırmasının en toplu karesi)
 const OYUN = [['HALAY', '🥁'], ['ÇİFTETELLİ', '💃'], ['HORON', '🎻'], ['ZEYBEK', '🦅']]; // halayda hediyeyle açılan oyun havaları
@@ -151,6 +153,7 @@ function player(u) {
   let p = players.get(id);
   if (!p) { p = { id, name: 'Anonim', hue: hash(id) % 360, total: 0, img: null }; p.color = `hsl(${p.hue} 82% 56%)`; players.set(id, p); }
   if (u.name) p.name = String(u.name);
+  if (u.wins !== undefined) p.rw = Math.max(p.rw || 0, u.wins | 0); /* atının kazandığı yarışlar (sunucudaki defterden) */
   p.seen = T;
   if (players.size > 3000) for (const [k, v] of players) { if (!v.total && T - v.seen > 300) players.delete(k); if (players.size <= 2000) break; } // hediye göndermemiş, 5 dk'dır görünmeyenleri at
   if (!p.img && typeof u.avatar === 'string' && /^https:\/\//.test(u.avatar)) {
@@ -970,7 +973,7 @@ const race = {
   gift(p, a) {
     let r = this.r.get(p.id); const sup = !r && this.backed(p); /* atı olmayan taraftarın hediyesi tuttuğu atı iter */
     if (sup) { r = sup; pushAlert(p, `${sup.lane + 1} numarayı destekledi 📣`, `${sup.p.name} öne geçiyor`); }
-    if (!r) { r = { p, prog: 0, shown: 0, x: this.base, coat: -1, act: null }; this.r.set(p.id, r); this.fans.delete(p.id); }
+    if (!r) { r = { p, prog: 0, shown: 0, x: this.base, coat: -1, act: null, at: horseName(p.id) }; this.r.set(p.id, r); this.fans.delete(p.id); pushAlert(p, `Atı ${r.at} piste çıktı 🐎`, p.rw ? `${p.rw} yarış kazanmış ★` : 'ilk zaferini arıyor'); }
     r.prog += a;
     if (this.phase === 'kapi' && !this.count) { this.count = 3.6; hall.cheer = Math.max(hall.cheer, .5); } /* ilk hediye geri sayımı başlatır: sayım gerçektir, bitince kapılar açılır */
     if (r.prog >= CFG.goal) {
@@ -989,7 +992,7 @@ const race = {
   },
   start() { if (this.phase !== 'kapi') return; this.phase = 'kos'; this.count = 0; this.doors.visible = false; floater('START! 🏇', 540, 760, C.yellow, 110); snd.dum(); hall.cheer = 1; },
   like(p, n) { const r = this.r.get(p.id) || this.backed(p); if (r && !this.locked) r.prog = Math.min(CFG.goal - 1, r.prog + n * .05); },
-  activity(p, pri) { if (this.dir && pri && this.phase === 'kos') this.dir.focus(() => { const r = this.r.get(p.id) || this.backed(p); return r && r.act ? { p: [r.x + 2.2, 3.6, r.z + 4.2], l: [r.x + .4, 1.2, r.z] } : null; }, 2.8, pri, p, pri === 2 ? (this.r.has(p.id) ? 'atını kamçıladı 🏇' : 'tuttuğu atı destekledi 📣') : 'tezahürat yapıyor 📣'); }, // yayın kamerası o ata yaklaşır
+  activity(p, pri) { if (this.dir && pri && this.phase === 'kos') this.dir.focus(() => { const r = this.r.get(p.id) || this.backed(p); return r && r.act ? { p: [r.x + 2.2, 3.6, r.z + 4.2], l: [r.x + .4, 1.2, r.z] } : null; }, 2.8, pri, p, pri === 2 ? (this.r.has(p.id) ? `${this.r.get(p.id).at}'i kamçıladı 🏇` : 'tuttuğu atı destekledi 📣') : 'tezahürat yapıyor 📣'); }, // yayın kamerası o ata yaklaşır
   update(dt) {
     this.list = [...this.r.values()].sort((a, b) => b.prog - a.prog);
     const ph = this.phase;
@@ -999,7 +1002,8 @@ const race = {
     if (ph === 'kursu') { this.kT -= dt; const w = Math.sin(T * 7);
       this.pod.forEach((r, i) => { const j = r.act.j; if (i === 0) { arm(j, 'Left', 1.5 + w * .15, .3); arm(j, 'Right', 1.5 - w * .15, .3); P(j, 'LeftForeArm', -.5, 0, 0); P(j, 'RightForeArm', -.5, 0, 0); j.root.position.y = .9 + Math.abs(w) * .05; }
         else { arm(j, i === 1 ? 'Right' : 'Left', 1.4 + w * .2, .3); P(j, (i === 1 ? 'Right' : 'Left') + 'ForeArm', -.7, 0, 0); arm(j, i === 1 ? 'Left' : 'Right', -.35, .1); P(j, (i === 1 ? 'Left' : 'Right') + 'ForeArm', 0, 0, 0); } });
-      if (this.kT <= 0) { const p = this.pod[0] ? this.pod[0].p : this.list[0].p; celebrate('YARIŞI KAZANDI!', p, 'Hipodromun şampiyonu 🏆'); this.reset(); return; }
+      if (this.kT <= 0) { const w = this.pod[0] || this.list[0], p = w.p; p.rw = (p.rw || 0) + 1; if (sock && sock.readyState === 1) sock.send(JSON.stringify({ type: 'win', mode: 'race', user: p.id })); /* zafer deftere yazılır: sonraki yayında da sayılır */
+        celebrate('YARIŞI KAZANDI!', p, `${w.at} ile · ${p.rw}. zaferi 🏆`); this.reset(); return; }
       this.dir = this.dir || makeDirector(); this.dir.update(dt, this.cam, { p: [this.px + Math.sin(T * .6) * .5, 2.2, 6.6], l: [this.px, 1.3, 0] }, this.base);
       this.sun.position.set(this.px + 6, 12, 9); this.sun.target.position.set(this.px, 0, 0); return; }
     let lo = Infinity, hi = -Infinity;
@@ -1042,7 +1046,7 @@ const race = {
   draw() {
     const shown = this.list.filter(r => r.act), lead = this.list[0];
     if (this.phase === 'kursu') { bar(140, 452, 800, 70, 1, C.yellow, C.pink, '🏆 KÜRSÜ TÖRENİ');
-      if (this.built) this.pod.forEach((r, i) => { const [x, y] = proj(this.cam, this.px + [0, -1.5, 1.5][i], [.9, .62, .42][i] + 1.86, 0), nm = fit(r.p.name, 200, 26); setFont(26); const lw = ctx.measureText(nm).width + 96;
+      if (this.built) this.pod.forEach((r, i) => { const [x, y] = proj(this.cam, this.px + [0, -1.5, 1.5][i], [.9, .62, .42][i] + 1.86, 0), nm = fit(`${r.p.name} · ${r.at}`, 250, 24); setFont(26); const lw = ctx.measureText(nm).width + 96;
         panel(x - lw / 2, y - 24, lw, 48, 24, i ? 'rgba(10,6,30,.78)' : 'rgba(120,80,0,.9)'); text(['🥇', '🥈', '🥉'][i], x - lw / 2 + 26, y + 2, 30); avatar(r.p, x - lw / 2 + 62, y, 17, i ? '#fff' : C.yellow); text(nm, x - lw / 2 + 86, y + 1, 26, i ? '#fff' : C.yellow, 'left'); });
       return; }
     if (!lead) bar(140, 452, 800, 70, 0, C.cyan, C.pink, 'İlk hediyeyi gönder, atın start kapısına girsin! 🏇');
@@ -1054,7 +1058,7 @@ const race = {
       // etiket atın tam üstünde, jokeyin başının hemen yukarısında durur: hangi ad hangi ata ait, karışmasın
       const i = this.list.indexOf(r), focus = this.dir && this.dir.f, [x0, y1] = proj(this.cam, r.x + .1, 1.75, r.z), y0 = y1 - 42, x = clamp(x0, 110, 970), y = Math.max(585, y0); /* jokeyin başı ekrana izdüşürülür, etiket ekranda onun 30 piksel üstüne konur: yüksek bir noktayı izdüşürmek etiketi arkadaki kulvara kaydırıyordu */
       if (focus) return; /* yakın planda ad zaten alt bantta yazar */
-      const fn = this.fanN && this.fanN.get(r.p.id), label = `${r.lane + 1} · ${fit(r.p.name, 120, 19)}` + (fn ? ` 📣${fn}` : ''); /* numara atın kapı numarasıdır ve yarış boyunca değişmez: taraftar yorumda bunu yazar */ setFont(19); const lw = ctx.measureText(label).width + 44;
+      const fn = this.fanN && this.fanN.get(r.p.id), label = `${r.lane + 1} · ${fit(r.p.name, 120, 19)}` + (r.p.rw ? ` ★${r.p.rw}` : '') + (fn ? ` 📣${fn}` : ''); /* numara atın kapı numarasıdır ve yarış boyunca değişmez: taraftar yorumda bunu yazar */ setFont(19); const lw = ctx.measureText(label).width + 44;
       panel(x - lw / 2, y - 15, lw, 30, 15, i ? 'rgba(10,6,30,.72)' : 'rgba(120,80,0,.85)'); avatar(r.p, x - lw / 2 + 15, y, 13, i ? '#fff' : C.yellow);
       text(label, x - lw / 2 + 33, y + 1, 19, i ? '#fff' : C.yellow, 'left');
     });
@@ -1385,7 +1389,7 @@ function frame(now) {
   if (!mode.locked && pending.length) { const q = pending; pending = []; q.forEach(([p, a, raw]) => giveToMode(p, a, raw)); }
   if (DEMO) demoTick(dt);
   quality.tick(now);
-  if (QA) window.__qa = { seat: (() => { const f = mode.dir && mode.dir.f, q = f && f.who && hall.where.get(f.who.id); if (!q) return null; let fwd = null; if (q.g && q.g.a) { const ft = q.g.a.b.LeftFoot.getWorldPosition(new THREE.Vector3()); fwd = [+((ft.x - q.x) * Math.sin(q.face) + (ft.z - q.z) * Math.cos(q.face)).toFixed(2), +ft.y.toFixed(2), q.g.a.kind]; } return [q.x, q.z, q.face, fwd]; })(), fps: Math.round(quality.fps), guests: hall.where ? hall.where.size : 0, players: players.size, frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, oyun: mode.style ? OYUN[mode.style][0] : null, balon: says.size, faz: mode.phase || null, pasta: mode.pastaT > 0, seref: mode.hon ? mode.hon.length : 0, taraftar: mode.fans ? mode.fans.size : 0, atlar: mode.r && mode.r.size !== undefined ? mode.r.size : null, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
+  if (QA) window.__qa = { seat: (() => { const f = mode.dir && mode.dir.f, q = f && f.who && hall.where.get(f.who.id); if (!q) return null; let fwd = null; if (q.g && q.g.a) { const ft = q.g.a.b.LeftFoot.getWorldPosition(new THREE.Vector3()); fwd = [+((ft.x - q.x) * Math.sin(q.face) + (ft.z - q.z) * Math.cos(q.face)).toFixed(2), +ft.y.toFixed(2), q.g.a.kind]; } return [q.x, q.z, q.face, fwd]; })(), fps: Math.round(quality.fps), guests: hall.where ? hall.where.size : 0, players: players.size, frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, oyun: mode.style ? OYUN[mode.style][0] : null, balon: says.size, faz: mode.phase || null, pasta: mode.pastaT > 0, seref: mode.hon ? mode.hon.length : 0, zafer: champion ? champion.rw || 0 : 0, zaferTop: Math.max(0, ...[...players.values()].map(v => v.rw || 0)), taraftar: mode.fans ? mode.fans.size : 0, atlar: mode.r && mode.r.size !== undefined ? mode.r.size : null, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
   if (ready() && !mode.built) { mode.build(); mode.built = true; }
   mode.update(dt);
   if (QA && window.__qaCam && mode.cam) { const c = window.__qaCam; mode.cam.position.set(c[0], c[1], c[2]); mode.cam.lookAt(c[3], c[4], c[5]); } // görsel denetim: kamerayı elle yerleştir

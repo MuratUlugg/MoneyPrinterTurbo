@@ -116,6 +116,7 @@ async def emit(event: dict[str, Any]) -> None:
         event["text"] = store.clean_text(event.get("text", ""), settings["yasak"])
     if kind == "gift" and user:
         user["alltime"] = ledger.add_gift(user, event["gift"], event["total"], hub.mode)  # önceki yayınlardaki toplamı
+        user["wins"] = ledger.wins_of(user["id"], "race")  # atının kazandığı yarışlar (yayınlar arası)
     else:
         ledger.count(kind, int(event.get("count", 1)) if kind == "like" else 1)
     await hub.broadcast(event)
@@ -473,6 +474,10 @@ async def ws_endpoint(ws: WebSocket) -> None:
                 msg = json.loads(raw)
                 if msg.get("type") == "stats":
                     hub.stats = {"fps": float(msg.get("fps", 0)), "quality": str(msg.get("quality", ""))[:12], "ts": time.time()}
+                elif msg.get("type") == "win" and msg.get("mode") in MODES:
+                    uid = str(msg.get("user", ""))[:120]  # yalnızca bu yayında hediye göndermiş biri kazanmış olabilir
+                    if uid in ledger.users:
+                        ledger.add_win(uid, ledger.users[uid]["name"], msg["mode"])
             except (ValueError, TypeError, AttributeError):
                 pass
     except WebSocketDisconnect:

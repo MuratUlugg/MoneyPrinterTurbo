@@ -214,6 +214,17 @@ class Ledger:
         self.dirty = True
         return int(self.alltime.get(uid, {}).get("total", 0))
 
+    def add_win(self, uid: str, name: str, mode: str) -> int:
+        """Bir bölümü kazananın zaferini kalıcı olarak sayar (yayınlar arası); yeni sayıyı döndürür."""
+        a = self.alltime.setdefault(uid, {"name": name, "total": 0, "streams": 0})
+        wins = a.setdefault("wins", {})
+        wins[mode] = int(wins.get(mode, 0)) + 1
+        _write(self.dir / "alltime.json", self.alltime)
+        return wins[mode]
+
+    def wins_of(self, uid: str, mode: str) -> int:
+        return int(self.alltime.get(uid, {}).get("wins", {}).get(mode, 0))
+
     # -- okuma --
     def snapshot(self) -> dict[str, Any]:
         """Overlay açıldığında sıralamayı geri kurması için."""
@@ -221,7 +232,7 @@ class Ledger:
         return {
             "type": "restore",
             "total": self.total,
-            "users": [{"id": uid, "name": u["name"], "avatar": u["avatar"], "total": u["total"]} for uid, u in top],
+            "users": [{"id": uid, "name": u["name"], "avatar": u["avatar"], "total": u["total"], "wins": self.wins_of(uid, "race")} for uid, u in top],
             "catalog": sorted(({"name": n, **g} for n, g in self.catalog.items()), key=lambda g: g["diamonds"]),
         }
 

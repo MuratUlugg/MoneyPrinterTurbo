@@ -100,6 +100,8 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
   await wait(1.5); await gl('yaris-2b-taraftar'); await wait(3.4); await gl('yaris-2c-taraftar-etiket'); await full('yaris-2c-tam-ekran');
   await wait(4); await gift('Ayşe', 10); await wait(.5); await gl('yaris-3-yakin-at');
   await wait(4); await gift('Selin', 40000, 1, 'Galaksi'); await wait(1.5); /* kazanan takın altından geçerken */ await gl('yaris-4-finis'); await wait(2.6); await gl('yaris-5-kursu'); await full('yaris-5-tam-ekran');
+  for (let i = 0; i < 200 && (await qa()).faz === 'kursu'; i++) await p.waitForTimeout(150); await wait(1.2); await gl('yaris-6-kazanan-karti'); /* kartta atın adı ve kaçıncı zaferi olduğu yazar */
+  await wait(6); await gift('Selin', 5); await wait(4.5); await gl('yaris-7-ikinci-yaris-yildiz'); /* yeni yarışta kazananın etiketinde ★1 */
   }
   await b.close();
 })();

@@ -37,7 +37,7 @@ const MODES = ['halay', 'race', 'taki', 'tug', 'karpuz'];
     let won = false, sawPodium = false, sawCake = false; for (let i = 0; i < 70 && !won; i++) /* kazanan, törenden (pasta, kürsü) sonra ilan edilir; yavaş makinede oyun saati geride kalır */ { await p.waitForTimeout(1000); q = await p.evaluate(() => window.__qa || null); won = !!(q && q.wins > before && q.champion === 'Zeynep'); if (q && q.faz === 'kursu') sawPodium = true; if (q && q.pasta) sawCake = true; }
     await p.screenshot({ path: `${OUT}/${m}-2-kazanan.png` });
     check(won, `${m}: büyük hediyeden sonra kazanan ilan edildi`);
-    if (m === 'race') check(sawPodium, 'race: kazanandan önce kürsü töreni yapıldı');
+    if (m === 'race') { check(sawPodium, 'race: kazanandan önce kürsü töreni yapıldı'); check(q.zafer === 1, `race: kazananın zaferi sayıldı (${q.zafer})`); }
     if (m === 'halay') check(sawCake, 'halay: coşku dolunca pasta kesme töreni yapıldı');
     await p.waitForTimeout(4500);
   }
@@ -45,6 +45,7 @@ const MODES = ['halay', 'race', 'taki', 'tug', 'karpuz'];
   // kalıcılık: sayfa yenilenince sıralama defterden geri gelmeli
   await p.reload(); await p.waitForTimeout(7000);
   const q = await p.evaluate(() => window.__qa || null), rep = await api('/api/report', undefined, 'GET');
+  check(q && q.zaferTop === 1, `yenilemeden sonra yarış zaferi sunucudaki defterden geri geldi (${q && q.zaferTop})`);
   check(q && q.top[0] === 'Zeynep' && q.session === rep.total && rep.total > 0, `yenilemeden sonra sıralama ve toplam geri geldi (${q && q.session} = ${rep.total})`);
   check(rep.gifters === 6 && Object.keys(rep.by_mode).length === MODES.length, `rapor: 6 bağışçı (biri taraftar), 5 bölüm (${rep.gifters})`);
   await p.screenshot({ path: `${OUT}/son-yenileme.png` });
