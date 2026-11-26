@@ -24,6 +24,7 @@ const MODES = ['halay', 'race', 'taki', 'tug', 'karpuz'];
     await p.waitForTimeout(3500); await p.screenshot({ path: `${OUT}/${m}-1-oyun.png` });
     let q = await p.evaluate(() => window.__qa || null);
     check(q && q.mode === m && q.built, `${m}: 3B sahne kuruldu`);
+    if (m === 'taki') { for (let i = 0; i < 40 && q.seref < 3; i++) { await p.waitForTimeout(700); q = await p.evaluate(() => window.__qa || null); } check(q.seref === 3, `taki: en çok takı takan üç kişi şeref konuğu olarak sahneye çıktı (${q.seref})`); }
     if (m === 'race') { for (let i = 0; i < 12 && q.faz !== 'kos'; i++) { await p.waitForTimeout(700); q = await p.evaluate(() => window.__qa || null); } check(q.faz === 'kos', `race: geri sayımdan sonra kapılar açıldı (${q.faz})`);
       const n0 = q.atlar; await api('/api/simulate', { type: 'comment', name: 'Taraftar', text: '4' }); await p.waitForTimeout(600); await api('/api/simulate', { name: 'Taraftar', gift: 'Gül', diamonds: 5 }); await p.waitForTimeout(600); q = await p.evaluate(() => window.__qa || null);
       check(q.taraftar === 1 && q.atlar === n0, `race: yorumla taraf olundu, taraftarın hediyesi yeni at açmadı (${q.taraftar} taraftar, ${q.atlar}/${n0} at)`); }

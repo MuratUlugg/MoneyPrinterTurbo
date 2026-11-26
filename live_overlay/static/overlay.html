@@ -74,6 +74,7 @@ const C = { panel: 'rgba(20,15,46,.78)', ink: '#fff', dim: 'rgba(255,255,255,.7)
   cyan: '#2ee6d6', yellow: '#ffd23f', red: '#ff4d5e', blue: '#4d8dff' };
 const FONT = '"Baloo 2","Trebuchet MS","Segoe UI",system-ui,sans-serif';
 const KOL = { 1: [.95, .2, .3, -1.2, 0, 0], 3: [1.0, .08, .05, -.12, 0, 0] }; /* önkol x ile kırılınca el yukarı kalkar (duruş laboratuvarında altı seçenek denenerek bulundu; z ile kol dümdüz kalıyordu) */ window.__kol = KOL; // serbest oyunlarda kol duruşu: [kaldırma, salınım, öne, önkol x, y, z]
+const HON_X = [-1.3, 1.65, 2.3]; // şeref konuklarının sahnedeki yeri: birinci damadın, ikinci gelinin yanında, üçüncü ikincinin yanında (solda çelenk kadrajı kapatıyor)
 const GATE_T = .2; // start kapısında atın dondurulduğu an (dörtnala canlandırmasının en toplu karesi)
 const OYUN = [['HALAY', '🥁'], ['ÇİFTETELLİ', '💃'], ['HORON', '🎻'], ['ZEYBEK', '🦅']]; // halayda hediyeyle açılan oyun havaları
 if (!DEMO) document.documentElement.classList.add('live');
@@ -838,7 +839,7 @@ const halay = {
         this.mendil.rotation.set(Math.sin(this.ph * 2) * .6, 0, Math.cos(this.ph * 2) * .5); }
     }
     if (!n && this.mendil.parent) this.mendil.parent.remove(this.mendil);
-    this.hall.update(dt, this.ph, true);
+    this.hall.update(dt, this.ph, true); this.hall.davulcu.root.visible = this.hall.zurnaci.root.visible = true;
     // davul zurna sıranın sağ önünde durur, halaycılara döner (sıranın önünü kapatmaz)
     const zm = this.zmid, hw = this.halfW, place = (m, x, z) => { m.root.position.x = ease(m.root.position.x, x, dt, 3); m.root.position.z = ease(m.root.position.z, z, dt, 3); m.root.rotation.y = Math.atan2(-m.root.position.x * .6, zm - m.root.position.z) ; };
     place(this.hall.davulcu, hw + 1.0, zm + .45); place(this.hall.zurnaci, hw + 1.85, zm + .75);
@@ -1092,8 +1093,15 @@ const taki = {
     this.slot = (side, i) => { const [x, top, z] = this.ribbon[side], row = Math.floor(i / 3) % 6, col = i % 3; return [x + (col - 1) * .066, top - .06 - row * .068, z + .014 + row * (side ? .0065 : .0025)]; };
     this.coins = []; this.count = [0, 0]; this.dir = makeDirector();
   },
-  activity(p, pri) { this.dir.focus(() => { const st = hall.seatOf(p.id); return st ? shot(st.x, st.z, st.face, st.h, 1.9, .5) : null; }, pri === 2 ? 1.5 : 2.4, pri, p, pri === 2 ? 'takı takıyor 🎗' : pri ? 'düğünde 👋' : 'beğendi ❤'); },
-  clear3d() { if (!this.built) return; for (const c of this.coins) c.parent && c.parent.remove(c); this.coins = []; this.count = [0, 0]; for (const s of this.shots) if (s.m) this.scene.remove(s.m); },
+  activity(p, pri) { if (this.hon && this.hon.some(h => h.p === p)) return; /* şeref konuğu zaten çiftin yanında, kadrajda */
+    this.dir.focus(() => { const st = hall.seatOf(p.id); return st ? shot(st.x, st.z, st.face, st.h, 1.9, .5) : null; }, pri === 2 ? 1.5 : 2.4, pri, p, pri === 2 ? 'takı takıyor 🎗' : pri ? 'düğünde 👋' : 'beğendi ❤'); },
+  // Şeref konukları: bu düğünde en çok takı takan üç kişi masasından kalkıp sahneye, gelinle damadın yanına çıkar. Sıralama değişince yer değişir.
+  honour() { if (!this.built) return; const top = [...this.g.values()].sort((a, b) => b.v - a.v).slice(0, 3).map(g => g.p), old = this.hon || [];
+    for (const h of old) if (!top.includes(h.p)) { dispose(this.scene, h.a); hall.sit(h.p); } /* sıradan düşen masasına döner */
+    this.hon = top.map((p, i) => { let h = old.find(o => o.p === p);
+      if (!h) { hall.leave(p.id); const a = makeBot(`hsl(${p.hue},70%,58%)`, lookOf(p.id)); a.root.position.set(HON_X[i] * 1.6, .43, -6.2); this.scene.add(a.root); h = { p, a }; pushAlert(p, 'Şeref konuğu oldu 🎖', 'gelinle damadın yanında'); }
+      h.i = i; return h; }); },
+  clear3d() { for (const h of this.hon || []) dispose(this.scene, h.a); this.hon = []; if (!this.built) return; for (const c of this.coins) c.parent && c.parent.remove(c); this.coins = []; this.count = [0, 0]; for (const s of this.shots) if (s.m) this.scene.remove(s.m); },
   reset(keep) {
     if (this.shots) this.clear3d();
     if (!keep) this.no = 1;
@@ -1107,7 +1115,7 @@ const taki = {
   land(s) {
     const kind = TAKI.find(k => s.raw >= k[0]);
     this.sum += s.raw; this.g.set(s.p.id, { p: s.p, v: (this.g.get(s.p.id)?.v || 0) + s.raw }); // takıda kombo yok: sayılan gerçek jeton
-    this.say = { p: s.p, line: `${kind[1]} taktı!`, t: 0 };
+    this.say = { p: s.p, line: `${kind[1]} taktı!`, t: 0 }; this.honour();
     if (this.built) {
       this.hall.nod[s.side] = 1; if (s.raw >= 50) this.hall.cheer = 1; snd.coin();
       if (s.m) { this.target[s.side].add(s.m); s.m.position.set(s.off[0], s.off[1], s.off[2]); s.m.rotation.set(0, 0, rand(-.12, .12)); s.m.scale.setScalar(s.m.userData.size);
@@ -1124,7 +1132,14 @@ const taki = {
     this.shown = ease(this.shown, this.sum, dt, 6);
     if (this.say && (this.say.t += dt) > 2.6) this.say = null;
     if (this.built) { this.target.forEach((t, i) => { const r = t.userData.ribbon, n = Math.min(18, this.count[i]); r.visible = n > 0; r.scale.y = ease(r.scale.y, (.2 + Math.ceil(n / 3) * .068) / .47, dt, 6); }); /* kurdele ilk takıyla belirir ve takı sırası arttıkça uzar; boşken göğüste kırmızı levha gibi durmaz */
-      this.hall.update(dt, T * 3.2, false); this.dir.update(dt, this.cam, { p: [Math.sin(T * .3) * .5, 1.75, -2.5], l: [0, 1.42, -6.4] } /* çiftin ayakları alttaki sıralama şeridinin üstünde kalsın */); }
+      this.hall.update(dt, T * 3.2, false); this.hall.davulcu.root.visible = this.hall.zurnaci.root.visible = false; /* kamera geri çekilince çalgıcılar kadrajın köşesine giriyordu; takıda çalmıyorlar */
+      const hon = this.hon || [], clap = this.hall.cheer > 0 || this.hall.nod[0] > 0 || this.hall.nod[1] > 0, cw = Math.sin(T * 15) * .13;
+      for (const h of hon) { const a = h.a, tx = HON_X[h.i]; a.root.position.x = ease(a.root.position.x, tx, dt, 3); a.root.position.z = ease(a.root.position.z, -6.5, dt, 3); a.root.rotation.y = -tx * .16; /* hafifçe çifte dönük */
+        P(a, 'Spine', Math.sin(T * 1.5 + h.i) * .02, 0, Math.sin(T * .9 + h.i) * .03);
+        if (clap) { arm(a, 'Left', -.3, .45 + cw); P(a, 'LeftForeArm', 0, 0, 1.25); arm(a, 'Right', -.3, .45 + cw); P(a, 'RightForeArm', 0, 0, -1.25); }
+        else { arm(a, 'Left', -.5, .2); P(a, 'LeftForeArm', 0, 0, .4); arm(a, 'Right', -.5, .2); P(a, 'RightForeArm', 0, 0, -.4); } }
+      this.wide = ease(this.wide || 1.58, [1.58, 1.9, 2.25, 2.35][hon.length], dt, 2); this.cx = ease(this.cx || 0, [0, 0, .15, .5][hon.length], dt, 2); /* kadrajın yarı genişliği ve merkezi: şeref konukları geldikçe kamera geri çekilir ve onlara doğru kayar */
+      this.dir.update(dt, this.cam, { p: [this.cx + Math.sin(T * .3) * .4, 1.75, -6.4 + this.wide / .405], l: [this.cx, 1.42, -6.4] } /* çiftin ayakları alttaki sıralama şeridinin üstünde kalsın */); }
     this.shots = this.shots.filter(s => {
       if (s.delay > 0) { s.delay -= dt; return true; }
       s.t += dt * 1.4;
@@ -1139,6 +1154,8 @@ const taki = {
   },
   draw() {
     if (this.built) this.hall.draw(this.cam);
+    if (this.built && !(this.dir && this.dir.f)) for (const h of this.hon || []) { const [x, y] = proj(this.cam, h.a.root.position.x, 2.42, h.a.root.position.z), nm = fit(h.p.name, 150, 22); setFont(22); const lw = ctx.measureText(nm).width + 52; /* şeref konuğunun adı ve madalyası başının üstünde */
+      panel(x - lw / 2, y - 19, lw, 38, 19, h.i ? 'rgba(10,6,30,.74)' : 'rgba(120,80,0,.88)'); text(['🥇', '🥈', '🥉'][h.i], x - lw / 2 + 22, y + 2, 24); text(nm, x - lw / 2 + 42, y + 1, 22, h.i ? '#fff' : C.yellow, 'left'); }
     bar(120, 452, 840, 66, this.shown / this.max, '#c98a12', C.yellow, `${this.no}. DÜĞÜN  ·  TAKI 💎 ${fmt(this.shown)} / ${fmt(this.max)}`);
     if (this.say) { ctx.globalAlpha = clamp(Math.min(this.say.t * 6, (2.6 - this.say.t) * 4), 0, 1);
       panel(170, 528, 740, 66, 33, '#fff'); avatar(this.say.p, 206, 561, 25, C.yellow); /* damadın şapkasının üstünde biter; eski boyuyla şapkayı kesiyordu */
@@ -1368,7 +1385,7 @@ function frame(now) {
   if (!mode.locked && pending.length) { const q = pending; pending = []; q.forEach(([p, a, raw]) => giveToMode(p, a, raw)); }
   if (DEMO) demoTick(dt);
   quality.tick(now);
-  if (QA) window.__qa = { seat: (() => { const f = mode.dir && mode.dir.f, q = f && f.who && hall.where.get(f.who.id); if (!q) return null; let fwd = null; if (q.g && q.g.a) { const ft = q.g.a.b.LeftFoot.getWorldPosition(new THREE.Vector3()); fwd = [+((ft.x - q.x) * Math.sin(q.face) + (ft.z - q.z) * Math.cos(q.face)).toFixed(2), +ft.y.toFixed(2), q.g.a.kind]; } return [q.x, q.z, q.face, fwd]; })(), fps: Math.round(quality.fps), guests: hall.where ? hall.where.size : 0, players: players.size, frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, oyun: mode.style ? OYUN[mode.style][0] : null, balon: says.size, faz: mode.phase || null, pasta: mode.pastaT > 0, taraftar: mode.fans ? mode.fans.size : 0, atlar: mode.r && mode.r.size !== undefined ? mode.r.size : null, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
+  if (QA) window.__qa = { seat: (() => { const f = mode.dir && mode.dir.f, q = f && f.who && hall.where.get(f.who.id); if (!q) return null; let fwd = null; if (q.g && q.g.a) { const ft = q.g.a.b.LeftFoot.getWorldPosition(new THREE.Vector3()); fwd = [+((ft.x - q.x) * Math.sin(q.face) + (ft.z - q.z) * Math.cos(q.face)).toFixed(2), +ft.y.toFixed(2), q.g.a.kind]; } return [q.x, q.z, q.face, fwd]; })(), fps: Math.round(quality.fps), guests: hall.where ? hall.where.size : 0, players: players.size, frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, oyun: mode.style ? OYUN[mode.style][0] : null, balon: says.size, faz: mode.phase || null, pasta: mode.pastaT > 0, seref: mode.hon ? mode.hon.length : 0, taraftar: mode.fans ? mode.fans.size : 0, atlar: mode.r && mode.r.size !== undefined ? mode.r.size : null, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
   if (ready() && !mode.built) { mode.build(); mode.built = true; }
   mode.update(dt);
   if (QA && window.__qaCam && mode.cam) { const c = window.__qaCam; mode.cam.position.set(c[0], c[1], c[2]); mode.cam.lookAt(c[3], c[4], c[5]); } // görsel denetim: kamerayı elle yerleştir
