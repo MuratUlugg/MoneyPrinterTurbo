@@ -360,9 +360,9 @@ const std = (color, o = {}) => { const m = new THREE.MeshStandardMaterial(Object
 function mesh(geo, mat, x = 0, y = 0, z = 0, cast = true) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = cast; m.receiveShadow = true; return m; }
 // ---- kalite: kare hızı düşerse kademe kademe kıs (gölge → çözünürlük → kalabalık) ----
 const SUNS = [], QNAMES = ['yüksek', 'orta', 'düşük', 'en düşük'], QMODE = opt('kalite', 'oto');
-const quality = { level: 0, frames: 0, t: 0, low: 0, fps: 0, maxDancers: 12, maxSeats: 16,
+const quality = { level: 0, frames: 0, t: 0, low: 0, fps: 0, maxDancers: 14,
   set(l) { this.level = l; for (const s of SUNS) s.castShadow = l < 1; if (renderer) renderer.setSize(l >= 2 ? VW * .7 : VW, l >= 2 ? VH * .7 : VH, false);
-    this.maxDancers = l >= 3 ? 8 : 12; this.maxSeats = l >= 3 ? 8 : 16; if (l >= 3 && hall.scene) hall.trim(); },
+    this.maxDancers = l >= 3 ? 8 : 14; if (l >= 3 && hall.scene) hall.trim(); },
   tick(now) { this.frames++; if (!this.t) this.t = now; const el = (now - this.t) / 1000; if (el < 3) return; // gerçek saatle ölç: yavaş makinede oyun saati geri kalır
     this.fps = this.frames / el; this.frames = 0; this.t = now;
     if (QMODE === 'oto' && TEST_SPEED === 1 && !document.hidden && el < 6) { this.low = this.fps < 22 ? this.low + 1 : 0; if (this.low >= 2 && this.level < 3) { this.set(this.level + 1); this.low = 0; } }
@@ -396,6 +396,24 @@ function lights(scene, x0, x1, y, z, n, sag) { // düğün ışıkları
   return list;
 }
 
+// ---- kalabalık: yüzlerce kişi için ucuz figürler (gövde, baş, saç; ayaktakilerde bacak). Hepsi birkaç çizim çağrısıdır,
+// bu yüzden 300 kişi de 30 kişi kadar hızlı çizilir. Kamera birine yaklaşınca o kişi geçici olarak ayrıntılı modele çevrilir.
+function makeCrowd(scene, count, seated) {
+  const mat = () => std('#fff', { roughness: .85 }), inst = g => { const m = new THREE.InstancedMesh(g, mat(), count); m.castShadow = true; m.frustumCulled = false; scene.add(m); return m; };
+  const body = inst(new THREE.BoxGeometry(.4, seated ? .5 : .6, .25)), head = inst(new THREE.SphereGeometry(.125, 10, 8)), hair = inst(new THREE.SphereGeometry(.136, 10, 6, 0, TAU, 0, Math.PI * .55)), legs = seated ? null : inst(new THREE.BoxGeometry(.3, .8, .2));
+  const Y = seated ? { body: .74, head: 1.13, hair: 1.16 } : { body: 1.1, head: 1.55, hair: 1.58, legs: .4 };
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1), pos = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), zero = new THREE.Matrix4().makeScale(0, 0, 0), who = new Array(count).fill(null);
+  const parts = [[body, 'body'], [head, 'head'], [hair, 'hair']].concat(legs ? [[legs, 'legs']] : []);
+  const grey = new THREE.Color(.5, .5, .5); // renk dizisi ilk çizimden önce var olmalı; yoksa gölgelendirici kişi renklerini hiç okumaz ve herkes beyaz kalır
+  for (let i = 0; i < count; i++) for (const [m] of parts) { m.setMatrixAt(i, zero); m.setColorAt(i, grey); }
+  return { count,
+    set(i, x, y, z, rot, id, hue, sat = 70) { q.setFromAxisAngle(up, rot);
+      for (const [m, k] of parts) { m4.compose(pos.set(x, y + Y[k], z), q, one); m.setMatrixAt(i, m4); }
+      if (who[i] !== id) { who[i] = id; const L = lookOf(id); body.setColorAt(i, lin(`hsl(${hue},${sat}%,52%)`)); head.setColorAt(i, lin(L.skin === '#ffffff' ? '#e8b88f' : L.skin)); hair.setColorAt(i, lin(L.kind === 1 ? (L.ladyHead === 'esarp' ? L.scarf : L.ladyHair === '#ffffff' ? '#5a3a2a' : L.ladyHair) : L.hair)); if (legs) legs.setColorAt(i, lin(L.kind === 1 ? '#2a2228' : L.bottom));
+        for (const [m] of parts) if (m.instanceColor) m.instanceColor.needsUpdate = true; } },
+    hide(i) { if (who[i] === null) return; who[i] = null; for (const [m] of parts) m.setMatrixAt(i, zero); },
+    flush() { for (const [m] of parts) m.instanceMatrix.needsUpdate = true; } };
+}
 // ---- insan modelleri: her izleyiciye kimliğinden türeyen farklı bir görünüm ----
 // Üç gövde (takım elbiseli bey, hanım, genç) × kıyafet, saç, şapka, bıyık, ten, boy ve kilo.
 const SKINS = ['#ffffff', '#f3d9c4', '#dcb492', '#b98b68'], HAIRS = ['#1c1512', '#3b2618', '#6b6b6b', '#8a5a2b'], PANTS = ['#8a8a99', '#5c5c6e', '#a39a8c', '#44485a'];
@@ -462,7 +480,7 @@ function arm(a, side, raise, fwd) { P(a, side + 'Arm', -raise, 0, side === 'Left
 // Yorum yazan / beğenen / takip eden izleyici bir masaya oturur; hediye gönderen kalkıp piste çıkar.
 // =====================================================================
 const hall = {
-  scene: null, seats: [], cheer: 0, nod: [0, 0],
+  scene: null, seats: [], where: new Map(), cheer: 0, nod: [0, 0], dirty: false,
   get() { if (!this.scene) this.build(); return this; },
   build() {
     const { s } = baseScene('#1d1030', '#4a2748', { amb: .62, sky: 0xffe6cc, ground: 0x5a3a4a, sun: .95, sunColor: 0xffe2bd, range: 11 });
@@ -480,8 +498,8 @@ const hall = {
     // salon kapalı bir kutudur: yakın planlarda kamera hangi yöne dönerse dönsün arkada karanlık boşluk görünmesin
     const front = mesh(new THREE.PlaneGeometry(30, 9), wallM, 0, 4.5, 15, false); front.rotation.y = Math.PI; s.add(front);
     const ceil = mesh(new THREE.PlaneGeometry(30, 26), std('#efe2cf', { roughness: 1 }), 0, 9, 3, false); ceil.rotation.x = Math.PI / 2; s.add(ceil);
-    for (const d of [-1, 1]) { const w = mesh(new THREE.PlaneGeometry(26, 9), wallM, d * 9.5, 4.5, 3, false); w.rotation.y = -d * Math.PI / 2; s.add(w);
-      for (let i = 0; i < 4; i++) s.add(mesh(new THREE.PlaneGeometry(.5, 6.5), new THREE.MeshBasicMaterial({ color: [0xff7ab0, 0xffc46b][i % 2], transparent: true, opacity: .28 }), d * (3.4 + i * 1.7), 3.25, -9.1, false)); }
+    for (const d of [-1, 1]) { const w = mesh(new THREE.PlaneGeometry(26, 9), wallM, d * 10.8, 4.5, 3, false); w.rotation.y = -d * Math.PI / 2; s.add(w);
+      for (let i = 0; i < 4; i++) s.add(mesh(new THREE.PlaneGeometry(.5, 6.5), new THREE.MeshBasicMaterial({ color: [0xff7ab0, 0xffc46b][i % 2], transparent: true, opacity: .28 }), d * (3.4 + i * 2.0), 3.25, -9.1, false)); }
     // sahne + pankart + balon takı
     s.add(mesh(new THREE.BoxGeometry(8.4, .4, 2.8), ivory, 0, .2, -6.9));
     s.add(mesh(new THREE.BoxGeometry(8.5, .04, 2.9), gold, 0, .4, -6.9)); // altın kenar
@@ -506,19 +524,24 @@ const hall = {
       g.add(mesh(new THREE.CylinderGeometry(.02, .02, 1.4, 6), gold, 0, .9, 0, false)); const hoop = mesh(new THREE.TorusGeometry(.5, .03, 8, 24), gold, 0, 0, 0, false); hoop.rotation.x = Math.PI / 2; g.add(hoop);
       for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; g.add(mesh(new THREE.SphereGeometry(.075, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff1c4 }), Math.cos(a) * .5, 0, Math.sin(a) * .5, false)); }
       s.add(g); const pl = new THREE.PointLight(0xffd9a0, x ? .55 : .9, 13); pl.position.set(x, 4.8, z); s.add(pl); }
-    // masalar, sandalyeler, masa süsleri
-    const seatG = new THREE.BoxGeometry(.42, .05, .42), backG = new THREE.BoxGeometry(.42, .52, .04), legG = new THREE.BoxGeometry(.04, .46, .04);
-    for (const [tx, tz] of [[-4.4, -1.7], [4.4, -1.7], [-3.5, -4.5], [3.5, -4.5]]) {
-      s.add(mesh(new THREE.CylinderGeometry(.98, 1.06, .76, 30), ivory, tx, .38, tz)); s.add(mesh(new THREE.CylinderGeometry(1.0, 1.0, .03, 30), std('#f3e3c4', { roughness: .6 }), tx, .775, tz));
-      s.add(mesh(new THREE.CylinderGeometry(.05, .09, .26, 12), gold, tx, .92, tz));
-      for (let i = 0; i < 7; i++) { const a = i / 6 * TAU; s.add(mesh(new THREE.SphereGeometry(.085, 10, 8), std(['#f29bb8', '#ffffff', '#e8436e'][i % 3], { roughness: .7 }), tx + (i ? Math.cos(a) * .1 : 0), 1.1 + (i ? 0 : .06), tz + (i ? Math.sin(a) * .1 : 0))); }
-      for (const a0 of [205, 250, 290, 335]) { const a = a0 / 180 * Math.PI, sx = tx + Math.cos(a) * 1.32, sz = tz + Math.sin(a) * 1.32, face = Math.atan2(tx - sx, tz - sz), ch = new THREE.Group();
-        ch.add(mesh(seatG, gold, 0, .47, 0)); ch.add(mesh(backG, gold, 0, .73, -.2)); for (const [lx, lz] of [[-.18, -.18], [.18, -.18], [-.18, .18], [.18, .18]]) ch.add(mesh(legG, gold, lx, .23, lz, false));
-        ch.position.set(sx, 0, sz); ch.rotation.y = face; s.add(ch);
-        s.add(mesh(new THREE.CylinderGeometry(.13, .13, .012, 16), std("#ffffff", { roughness: .3 }), tx + Math.cos(a) * .68, .795, tz + Math.sin(a) * .68));
-        this.seats.push({ x: sx, z: sz, face, g: null }); }
-    }
-    this.seats.sort((a, b) => hash(a.x + ':' + a.z) % 97 - hash(b.x + ':' + b.z) % 97); // masalara dağılarak dolsun
+    // 16 masa × 8 sandalye = 128 oturan misafir; salon dolunca gelenler duvar diplerinde ayakta durur (88 kişi).
+    const TABLES = []; for (const tx of [-8.6, -6.2, 6.2, 8.6]) for (const tz of [-5.4, -2.8, -.2, 2.4]) TABLES.push([tx, tz]);
+    const chairSeat = new THREE.InstancedMesh(new THREE.BoxGeometry(.42, .05, .42), gold, 128), chairBack = new THREE.InstancedMesh(new THREE.BoxGeometry(.42, .52, .04), gold, 128), cm = new THREE.Matrix4(), cq = new THREE.Quaternion(), c1 = new THREE.Vector3(1, 1, 1), cp = new THREE.Vector3(), cup = new THREE.Vector3(0, 1, 0);
+    const clothM = std('#f3e3c4', { roughness: .6 }), vase = new THREE.CylinderGeometry(.05, .09, .26, 12), bloom = new THREE.SphereGeometry(.15, 10, 8), tGeo = new THREE.CylinderGeometry(.98, 1.06, .76, 26), tTop = new THREE.CylinderGeometry(1.0, 1.0, .03, 26);
+    TABLES.forEach(([tx, tz], ti) => {
+      s.add(mesh(tGeo, ivory, tx, .38, tz)); s.add(mesh(tTop, clothM, tx, .775, tz, false)); s.add(mesh(vase, gold, tx, .92, tz, false)); s.add(mesh(bloom, std(['#f29bb8', '#ffffff', '#e8436e'][ti % 3], { roughness: .7 }), tx, 1.12, tz, false));
+      for (let k = 0; k < 8; k++) { const a = (k + .5) / 8 * TAU, sx = tx + Math.cos(a) * 1.32, sz = tz + Math.sin(a) * 1.32, face = Math.atan2(tx - sx, tz - sz), i = this.seats.length;
+        cq.setFromAxisAngle(cup, face); cm.compose(cp.set(sx, .47, sz), cq, c1); chairSeat.setMatrixAt(i, cm);
+        cm.compose(cp.set(sx - Math.sin(face) * .2, .73, sz - Math.cos(face) * .2), cq, c1); chairBack.setMatrixAt(i, cm);
+        this.seats.push({ x: sx, z: sz, face, h: 1.13, seated: true, i, g: null }); } });
+    chairSeat.castShadow = chairBack.castShadow = true; s.add(chairSeat); s.add(chairBack);
+    for (const d of [-1, 1]) { for (let k = 0; k < 34; k++) this.seats.push({ x: d * (10.1 - (k % 2) * .55), z: -7.4 + k * .31, face: -d * Math.PI / 2, h: 1.55, seated: false, i: 0, g: null });
+      for (let k = 0; k < 10; k++) this.seats.push({ x: d * (5.4 + k * .46), z: -8.6 + (k % 2) * .4, face: 0, h: 1.55, seated: false, i: 0, g: null }); }
+    this.seats.filter(q => !q.seated).forEach((q, i) => { q.i = i; });
+    this.sitCrowd = makeCrowd(s, 128, true); this.standCrowd = makeCrowd(s, 88, false);
+    // oturma sırası: önce masalar (karışık, salon eşit dolsun), sonra ayaktakiler
+    const mix = q => { let h = hash(q.x + ':' + q.z); h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d); return (h ^ (h >>> 12)) >>> 0; };
+    this.seats.sort((a, b) => (b.seated - a.seated) || (mix(a) - mix(b)));
     // davulcu + zurnacı pistin ortasında
     const dv = this.davulcu = makeBot('#b05050', { bottom: '#5a5a66', head: 'kasket' }); dv.root.position.set(-.5, 0, -.25); dv.root.rotation.y = .25; s.add(dv.root);
     const drum = new THREE.Group(); drum.add(mesh(new THREE.CylinderGeometry(.34, .34, .3, 28), std('#b3261e', { roughness: .5 })));
@@ -553,31 +576,50 @@ const hall = {
       g.fillStyle = '#fff'; g.font = '800 34px ' + FONT; let n = p.name; while (n.length > 1 && g.measureText(n).width > 230) n = n.slice(0, -1); g.fillText(n, 128, 260);
       g.font = '800 26px ' + FONT; g.fillText(`${i + 1}. · ${fmt(p.total)} jeton`, 128, 296); w.tex.needsUpdate = true; });
   },
-  seed() { for (let i = 0; i < CFG.konuk; i++) this.sit(null); }, // salon boş görünmesin diye adsız konuklar; izleyici gelince yerlerini ona bırakırlar
+  seed() { for (let i = 0; i < CFG.konuk; i++) this.sit(null); // salon boş görünmesin diye adsız konuklar; izleyici gelince yerlerini ona bırakırlar
+    [...players.values()].sort((a, b) => (b.seen || 0) - (a.seen || 0)).slice(0, 200).forEach(p => this.sit(p)); }, // salon sonradan açıldıysa o ana kadar gelenler yerleşir
+  place(seat) { const g = seat.g, c = seat.seated ? this.sitCrowd : this.standCrowd; if (!g || g.a) c.hide(seat.i); else c.set(seat.i, seat.x, g.y || 0, seat.z, seat.face, g.id, g.p ? g.p.hue : hash(g.id) % 360, g.p ? 72 : 30); },
   sit(p) {
-    if (!this.scene || (p && this.seats.some(s => s.g && s.g.p === p))) return;
-    if (p && T - (this.lastSit || -9) < .5) return; // kalabalık sohbette saniyede en çok iki yeni misafir: sürekli model üretip takılma yapmasın
-    const pool = this.seats.slice(0, quality.maxSeats);
-    // boş koltuk → adsız konuğun yeri → en az 25 sn oturmuş izleyicinin yeri; hiçbiri yoksa bu kişi ayakta kalır
-    const seat = pool.find(s => !s.g) || pool.find(s => s.g && !s.g.p) || pool.filter(s => s.g && T - s.g.t > 25).sort((a, b) => a.g.t - b.g.t)[0];
-    if (p) this.lastSit = T;
+    if (!this.scene || (p && this.where.has(p.id))) return;
+    // boş yer → adsız konuğun yeri → en uzun süredir oturan izleyicinin yeri (o kişi sayaçta kalır, salonda görünmez)
+    const seat = this.seats.find(q => !q.g) || this.seats.find(q => q.g && !q.g.p) || (p && this.seats.filter(q => q.g && !q.g.a && T - q.g.t > 60).sort((a, b) => a.g.t - b.g.t)[0]);
     if (!seat || (!p && seat.g)) return;
-    if (seat.g) this.scene.remove(seat.g.a.root);
-    const id = p ? p.id : 'konuk' + this.seats.indexOf(seat), a = makeBot(`hsl(${p ? p.hue : hash(id) % 360},${p ? 70 : 35}%,${p ? 60 : 55}%)`, lookOf(id));
-    a.root.position.set(seat.x, -.46 * a.root.scale.y, seat.z); a.root.rotation.y = seat.face;
-    P(a, 'LeftUpLeg', -1.5, 0, -.08); P(a, 'RightUpLeg', -1.5, 0, .08); P(a, 'LeftLeg', 1.5, 0, 0); P(a, 'RightLeg', 1.5, 0, 0);
-    seat.g = { p, a, t: T, ph: rand(TAU) }; this.scene.add(a.root);
+    if (seat.g) this.free(seat);
+    seat.g = { p, id: p ? p.id : 'konuk' + this.seats.indexOf(seat), t: T, ph: rand(TAU), a: null, until: 0, y: 0 };
+    if (p) this.where.set(p.id, seat);
+    this.place(seat); this.dirty = true;
   },
-  trim() { this.seats.slice(8).forEach(s => { if (s.g) { this.scene.remove(s.g.a.root); s.g = null; } }); }, // en düşük kalitede yalnızca 8 koltuk
-  seatOf(id) { return this.seats.find(s => s.g && s.g.p && s.g.p.id === id); },
-  leave(id) { for (const s of this.seats) if (s.g && s.g.p && s.g.p.id === id) { this.scene.remove(s.g.a.root); s.g = null; } },
-  clear() { if (!this.scene) return; for (const s of this.seats) if (s.g) { this.scene.remove(s.g.a.root); s.g = null; } this.seed(); },
+  free(seat) { const g = seat.g; if (!g) return; if (g.a) this.scene.remove(g.a.root); if (g.p) this.where.delete(g.p.id); seat.g = null; this.place(seat); this.dirty = true; },
+  // Kamera bir misafire yaklaşınca o kişi birkaç saniyeliğine ayrıntılı (yüzlü, kıyafetli) modele çevrilir.
+  detail(seat, sec) { const g = seat.g; if (!g) return; g.until = Math.max(g.until, T + sec); if (g.a) return;
+    const hue = g.p ? g.p.hue : hash(g.id) % 360, a = g.a = makeBot(`hsl(${hue},${g.p ? 70 : 35}%,${g.p ? 60 : 55}%)`, lookOf(g.id)); a.root.rotation.y = seat.face;
+    if (seat.seated) { a.root.position.set(seat.x, -.46 * a.root.scale.y, seat.z); P(a, 'LeftUpLeg', -1.5, 0, -.08); P(a, 'RightUpLeg', -1.5, 0, .08); P(a, 'LeftLeg', 1.5, 0, 0); P(a, 'RightLeg', 1.5, 0, 0); }
+    else a.root.position.set(seat.x, 0, seat.z);
+    this.scene.add(a.root); this.place(seat); this.dirty = true; },
+  promote(id, sec = 5) { const seat = this.where.get(id); if (!seat || !this.scene) return null;
+    if (!seat.g.a) { // kadrajda kutu figür kalmasın diye en yakın dört komşu da ayrıntılı modele çevrilir; aynı anda en çok 10 ayrıntılı misafir
+      const near = this.seats.filter(q => q !== seat && q.g && Math.hypot(q.x - seat.x, q.z - seat.z) < 2.2).sort((a, b) => Math.hypot(a.x - seat.x, a.z - seat.z) - Math.hypot(b.x - seat.x, b.z - seat.z)).slice(0, quality.level >= 2 ? 0 : 4);
+      const live = this.seats.filter(q => q.g && q.g.a && !near.includes(q)).sort((a, b) => a.g.until - b.g.until); while (live.length + near.length + 1 > 10 && live.length) this.demote(live.shift());
+      for (const q of near) this.detail(q, sec); }
+    this.detail(seat, sec); return seat; },
+  demote(seat) { const g = seat.g; if (!g || !g.a) return; this.scene.remove(g.a.root); g.a = null; this.place(seat); this.dirty = true; },
+  trim() { for (const q of this.seats) this.demote(q); },
+  seatOf(id) { return this.promote(id) || undefined; }, // yakın plan için koltuğu verir ve kişiyi ayrıntılı modele çevirir
+  leave(id) { const seat = this.where.get(id); if (seat) this.free(seat); },
+  clear() { if (!this.scene) return; for (const q of this.seats) if (q.g) this.free(q); this.seed(); },
   update(dt, ph, dance) {
     this.cheer = Math.max(0, this.cheer - dt * .5); this.nod = this.nod.map(v => Math.max(0, v - dt * 1.4));
     const clap = Math.sin(T * 15) * .13;
-    for (const s of this.seats) { if (!s.g) continue; const a = s.g.a, c = this.cheer > 0 || (dance && Math.sin(T * .6 + s.g.ph) > .55); // alkış: büyük anlarda herkes, halayda ara ara
-      P(a, 'Spine', .1 + Math.sin(T * 1.3 + s.g.ph) * .03, Math.sin(T * .45 + s.g.ph) * .18, 0); P(a, 'Head', 0, Math.sin(T * .6 + s.g.ph * 2) * .3, 0);
-      if (c) { arm(a, 'Left', .25, 1.0 + clap); arm(a, 'Right', .25, 1.0 + clap); } else { arm(a, 'Left', -.35, .55); arm(a, 'Right', -.35, .55); } }
+    const cheering = this.cheer > 0;
+    for (const q of this.seats) { const g = q.g; if (!g) continue;
+      if (g.a) { if (T > g.until) { this.demote(q); continue; } const a = g.a, c = cheering || (dance && Math.sin(T * .6 + g.ph) > .55); // alkış: büyük anlarda herkes, halayda ara ara
+        P(a, 'Spine', (q.seated ? .1 : .02) + Math.sin(T * 1.3 + g.ph) * .03, Math.sin(T * .45 + g.ph) * .18, 0); P(a, 'Head', 0, Math.sin(T * .6 + g.ph * 2) * .3, 0);
+        if (c) { arm(a, 'Left', .25, 1.0 + clap); arm(a, 'Right', .25, 1.0 + clap); } else if (q.seated) { arm(a, 'Left', -.35, .55); arm(a, 'Right', -.35, .55); } else { arm(a, 'Left', -.55, .05); arm(a, 'Right', -.55, .05); }
+        continue; }
+      // kalabalık figürleri: alkışta zıplar, halayda tempo tutar
+      const y = cheering ? Math.abs(Math.sin(T * 9 + g.ph)) * .07 : dance ? Math.max(0, Math.sin(ph + g.ph)) * .02 : 0;
+      if (Math.abs(y - g.y) > .004) { g.y = y; this.place(q); this.dirty = true; } }
+    if (this.dirty) { this.sitCrowd.flush(); this.standCrowd.flush(); this.dirty = false; }
     const hit = Math.max(0, Math.sin(ph)), dv = this.davulcu, zr = this.zurnaci, g = this.groom, br = this.bride;
     arm(dv, 'Right', .25 + hit * .5, .7 - hit * .5); arm(dv, 'Left', .1, .8 + Math.max(0, -Math.sin(ph)) * .3);
     dv.root.position.y = hit * .03; P(dv, 'Spine', -.08, 0, Math.sin(ph * .5) * .08);
@@ -598,7 +640,10 @@ const hall = {
       this.fxV[i * 3 + 1] -= 7 * dt; A[i * 3] += this.fxV[i * 3] * dt; A[i * 3 + 1] += this.fxV[i * 3 + 1] * dt; A[i * 3 + 2] += this.fxV[i * 3 + 2] * dt; }
     P3.needsUpdate = true;
   },
-  draw(cam) { for (const s of this.seats) if (s.g && s.g.p) { const [x, y] = proj(cam, s.x, 1.5, s.z); avatar(s.g.p, x, y, 17); } },
+  draw(cam) { // son gelen misafirlerin ve yakın plandakilerin fotoğrafı; herkesinkini çizmek ekranı doldurur
+    const recent = this.seats.filter(q => q.g && q.g.p && (q.g.a || T - q.g.t < 25)).sort((a, b) => b.g.t - a.g.t).slice(0, 18);
+    for (const q of recent) { const [x, y] = proj(cam, q.x, q.h + .32, q.z); avatar(q.g.p, x, y, q.g.a ? 20 : 14); }
+    const n = players.size; if (n > 0) { const t = `🎊 Düğünde ${fmt(n)} misafir`; setFont(26); const w = ctx.measureText(t).width + 36; panel(1030 - w, 636, w, 46, 23, 'rgba(10,6,30,.72)'); text(t, 1030 - w / 2, 660, 26, '#fff'); } },
 };
 
 // =====================================================================
@@ -615,15 +660,16 @@ const halay = {
       for (let i = 0; i < pos.count; i++) pos.setZ(i, Math.sin(pos.getX(i) * 22) * .012 + Math.cos(pos.getY(i) * 18) * .012); // düz levha gibi durmasın
       geo.computeVertexNormals(); geo.translate(.06, .06, 0);
       this.mendil = mesh(geo, std('#ffffff', { map: tex, side: THREE.DoubleSide, roughness: .95 })); }
-    this.acts = new Map(); this.dir = makeDirector();
+    this.acts = new Map(); this.dir = makeDirector(); this.back = makeCrowd(this.scene, 48, false); this.backN = 0; // arka sıralar
   },
   activity(p, pri) { // son hareketi yapan kişiye dön: pistteyse halaycıya, masadaysa masasına
     this.dir.focus(() => { const d = this.d.get(p.id);
       if (d && d.slot !== undefined && this.vis && this.vis.includes(d)) return d.slot < 0 ? shot(d.pos[0], d.pos[1], 0, 1.5, 2.9, .25) : shot(d.pos[0], d.pos[1], d.face, 1.5, 1.75, .8);
-      const st = hall.seatOf(p.id); return st ? shot(st.x, st.z, st.face, 1.12, 1.9, .5) : null; }, pri === 2 ? 3.4 : 2.6, pri, p, pri === 2 ? 'hediye gönderdi 🎁' : pri ? 'düğünde 👋' : 'beğendi ❤');
+      const st = hall.seatOf(p.id); return st ? shot(st.x, st.z, st.face, st.h, 1.9, .5) : null; }, pri === 2 ? 3.4 : 2.6, pri, p, pri === 2 ? 'hediye gönderdi 🎁' : pri ? 'düğünde 👋' : 'beğendi ❤');
   },
   reset() {
     if (this.acts) { for (const a of this.acts.values()) dispose(this.scene, a); this.acts.clear(); }
+    if (this.back) { for (let i = 0; i < this.back.count; i++) this.back.hide(i); this.back.flush(); this.backN = 0; }
     this.d = new Map(); this.list = []; this.cosku = this.shown = 0; this.ph = 0; this.beat = 0; this.rot = 0; this.locked = false; this.solo = null; this.soloQ = []; this.rainT = 0;
   },
   gift(p, a, raw) {
@@ -688,6 +734,13 @@ const halay = {
       P(a, 'RightUpLeg', -rUp, 0, rOut); P(a, 'RightLeg', rKnee, 0, 0); P(a, 'LeftUpLeg', -lUp, 0, lOut); P(a, 'LeftLeg', lKnee, 0, 0);
       d.y = y; d.a = a;
     }
+    // Arka sıralar: ön sıraya sığmayan halaycılar (en çok 48) arkada üç sıra hâlinde aynı adımı atar.
+    // Ön sıra en çok hediye gönderenlerindir; arkadaki, öndekini geçince yer değiştirir.
+    { const rest = this.list.filter(d => !ring.includes(d) && d !== so).slice(0, 48), stepY = ring[0] && ring[0].y || 0; this.backN = rest.length;
+      for (let j = 0; j < 48; j++) { const d = rest[j]; if (!d) { this.back.hide(j); continue; }
+        const row = Math.floor(j / 16), cnt = Math.min(16, rest.length - row * 16), Rb = R + .85 * (row + 1), ang = Math.PI + ((cnt - 1) / 2 - (j % 16)) * (.6 / Rb) + drift / Rb;
+        this.back.set(j, Math.sin(ang) * Rb, stepY, Math.cos(ang) * Rb, ang + Math.PI, d.p.id, d.p.hue); }
+      this.back.flush(); }
     // kollar: komşuyla el ele (iki el aynı noktada buluşur); halay başının serbest eli mendil sallar, sondakinin eli belinde
     const swing = (Math.floor(t4) === 3 ? Math.sin((t4 - 3) * Math.PI) : 0) * .1, hy = .92;
     const meet = (p, q) => { const mx = (p.pos[0] + q.pos[0]) / 2, mz = (p.pos[1] + q.pos[1]) / 2, fa = (p.face + q.face) / 2; return [mx + Math.sin(fa) * (.17 + swing), hy + (p.y + q.y) / 2 + swing * .6, mz + Math.cos(fa) * (.17 + swing)]; };
@@ -725,8 +778,8 @@ const halay = {
         if (d.plus) { ctx.globalAlpha = 1 - d.plus.t; text('+' + fmt(d.plus.a), x, y - 66 - d.plus.t * 50, 38, C.cyan, 'center', 8); ctx.globalAlpha = 1; }
       }
     }
-    const extra = this.list.length - (this.vis || []).filter(d => !d.ghost).length;
-    if (extra > 0) text(`+${extra} kişi sırada · öne geçmek için hediye gönder`, 540, 1218, 26, '#fff', 'center', 6);
+    const front = (this.vis || []).filter(d => !d.ghost && d.slot >= 0).sort((a, b) => a.v - b.v)[0], behind = this.list.length - (this.vis || []).filter(d => !d.ghost).length;
+    if (behind > 0 && front) text(fit(`Halayda ${fmt(this.list.length)} kişi · ön sıraya geçmek için 💎 ${fmt(front.v + 1)}`, 900, 26), 540, 1218, 26, '#fff', 'center', 6);
     bar(120, 1246, 840, 62, this.shown / 100, C.cyan, C.pink, this.locked ? 'COŞKU TAVAN! 🔥' : `COŞKU  %${Math.floor(this.shown)}`);
   },
 };
@@ -889,7 +942,7 @@ const taki = {
     this.slot = (side, i) => { const [x, top, z] = this.ribbon[side], row = Math.floor(i / 3) % 6, col = i % 3; return [x + (col - 1) * .066, top - .06 - row * .068, z + .014 + row * (side ? .0065 : .0025)]; };
     this.coins = []; this.count = [0, 0]; this.dir = makeDirector();
   },
-  activity(p, pri) { this.dir.focus(() => { const st = hall.seatOf(p.id); return st ? shot(st.x, st.z, st.face, 1.12, 1.9, .5) : null; }, pri === 2 ? 1.5 : 2.4, pri, p, pri === 2 ? 'takı takıyor 🎗' : pri ? 'düğünde 👋' : 'beğendi ❤'); },
+  activity(p, pri) { this.dir.focus(() => { const st = hall.seatOf(p.id); return st ? shot(st.x, st.z, st.face, st.h, 1.9, .5) : null; }, pri === 2 ? 1.5 : 2.4, pri, p, pri === 2 ? 'takı takıyor 🎗' : pri ? 'düğünde 👋' : 'beğendi ❤'); },
   clear3d() { if (!this.built) return; for (const c of this.coins) c.parent && c.parent.remove(c); this.coins = []; this.count = [0, 0]; for (const s of this.shots) if (s.m) this.scene.remove(s.m); },
   reset(keep) {
     if (this.shots) this.clear3d();
@@ -1162,7 +1215,7 @@ function frame(now) {
   if (!mode.locked && pending.length) { const q = pending; pending = []; q.forEach(([p, a, raw]) => giveToMode(p, a, raw)); }
   if (DEMO) demoTick(dt);
   quality.tick(now);
-  if (QA) window.__qa = { frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
+  if (QA) window.__qa = { fps: Math.round(quality.fps), guests: hall.where ? hall.where.size : 0, players: players.size, frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
   if (ready() && !mode.built) { mode.build(); mode.built = true; }
   mode.update(dt);
   if (QA && window.__qaCam && mode.cam) { const c = window.__qaCam; mode.cam.position.set(c[0], c[1], c[2]); mode.cam.lookAt(c[3], c[4], c[5]); } // görsel denetim: kamerayı elle yerleştir

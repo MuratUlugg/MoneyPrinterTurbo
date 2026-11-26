@@ -20,6 +20,11 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 
 ### Genel
 
+### Kalabalık
+- [ ] Kalabalık figürleri (masalardaki ve arka sıralardaki) kutu gövdeli, top başlı; uzaktan kabul edilebilir ama yakından oyuncak gibi. Daha insan biçimli, düşük poligonlu tek bir figür gerekir.
+- [ ] Kalabalık halayda arka sıraların bacakları tek blok; adım atmıyor, yalnızca birlikte çöküp kalkıyor.
+- [ ] 500 kişilik gerçek yük hiç denenmedi: test 330 kişiyle ve saniyede 1 kare çizen ekran kartsız makinede yapıldı.
+
 ## Açık: diğer
 
 - [ ] `smoke.js`: masaya oturma, ortaya çıkma, davulcuya bahşiş, ad denetimi, ayar kaydı ve otomatik program için kontrol yok.
@@ -65,3 +70,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Tribün: yedi sıra, canlı renkli formalar, ten ve saç renkleri, bazıları ayakta; beyaz toplar ve pastel kutular gitti (görsel: `yaris-4` önce/sonra; QA geçti).
 - Hanımlarda çeşitlilik: kısa saç, topuz, uzun saç ya da eşarp; dört ayrı çizme rengi (görsel: `halay-2` önce/sonra, `halay-5`'te topuz ve eşarp görüldü; uzun saç görüntüde yakalanmadı; QA geçti).
 - Halay mekaniği yeniden yazıldı (kullanıcı geri bildirimi): omuz omuza tek sıra, komşuların elleri aynı noktada buluşuyor (kol omuzdan hedefe nişanlanıyor), herkes aynı anda dört vuruşluk adımı atıyor (sağa adım, sol ayağı çek, çök, sol tekme), sıra adımla birlikte kayıyor; baştaki mendil sallıyor, sondakinin eli belinde; davul zurna sıranın sağında (görsel: `halay-2`, `halay-8` el yakın planı, `halay-9` dört vuruş; QA geçti).
+- Ölçek (kullanıcı geri bildirimi): 16 masa × 8 sandalye (128 oturan) + duvar diplerinde 88 ayakta misafir; halayda 14 kişilik ön sıra + 48 kişilik arka sıralar; kalabalık birkaç çizim çağrısıyla çiziliyor, kameranın döndüğü misafir ve komşuları ayrıntılı modele çevriliyor; "Düğünde N misafir" sayacı ve "ön sıraya geçmek için" çağrısı (görsel: `kalabalik-0..3`, 330 kişiyle; QA geçti).

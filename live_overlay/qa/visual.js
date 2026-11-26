@@ -20,7 +20,7 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
   const gift = (name, diamonds, count = 1, gift = 'Gül') => api('/api/simulate', { name, gift, diamonds, count });
   // Ekran kartsız makinede oyun saati gerçek saatten yavaş akar; bu yüzden gerçek saniye değil OYUN saniyesi beklenir.
   const wait = async s => { const t0 = (await qa()).T || 0; for (let i = 0; i < 400; i++) { await p.waitForTimeout(250); if (((await qa()).T || 0) - t0 >= s) return; } };
-  const only = process.env.QA_ONLY; // yalnızca bir bölümü çekmek için: halay | taki | race
+  const only = process.env.QA_ONLY; // yalnızca bir bölümü çekmek için: halay | taki | race | kalabalik (kalabalık yalnızca istenince çekilir)
   await p.goto(`${BASE}/overlay?_hiz=8&_qa=1&halay=100000&taki=100000&goal=20000`); await p.waitForTimeout(6000);
   await api('/api/reset');
 
@@ -43,6 +43,17 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
   await wait(6); await gift('Elif', 30, 1, 'Donut'); await wait(.5); await gl('halay-5-davulcu-bahsis');
   await wait(6); await gift('Selin', 500, 1, 'Aslan'); await wait(.4); await gl('halay-6-volkan'); await full('halay-6-tam-ekran'); await wait(1.5); await gl('halay-7-ortada');
 
+  }
+  // ---- KALABALIK: 260 yorumcu + 70 hediye gönderen (yaklaşık 500 kişilik bir yayının etkileşen kısmı)
+  if (only === 'kalabalik') {
+  await api('/api/mode', { mode: 'halay' }); await wait(2);
+  for (let i = 0; i < 260; i++) await api('/api/simulate', { type: 'comment', name: 'Misafir' + i, text: 'selam' });
+  for (let i = 0; i < 70; i++) await gift('Halayci' + i, 1, 1 + (i * 7) % 40);
+  await wait(6); await gl('kalabalik-0-halay-genis'); await full('kalabalik-0-tam-ekran'); console.log('durum', JSON.stringify(await qa()));
+  await p.evaluate(v => { window.__qaCam = v; }, [0, 6.5, 9.5, 0, .8, -2.5]); await wait(.3); await gl('kalabalik-1-ustten-salon');
+  await p.evaluate(v => { window.__qaCam = v; }, null);
+  await api('/api/simulate', { type: 'comment', name: 'Misafir200', text: 'maşallah' }); await wait(.6); await gl('kalabalik-2-yakin-misafir');
+  await wait(6); await api('/api/mode', { mode: 'taki' }); await wait(3); await gl('kalabalik-3-taki');
   }
   // ---- TAKI
   if (!only || only === 'taki') {

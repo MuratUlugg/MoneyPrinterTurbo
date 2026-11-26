@@ -12,6 +12,16 @@ Halay ve takı töreni aynı salonda geçer: parke pist, sahnede balon takının
 - Salon boş görünmesin diye birkaç adsız konuk baştan oturur (`konuk` ayarı); izleyiciler geldikçe yerlerini onlara bırakırlar. Bunların adı, fotoğrafı ya da hediyesi yoktur.
 - Sahnedeki pankarta çiftin adı yazılabilir: `/overlay?cift=Ayşe+%26+Mehmet`.
 
+### Kalabalık yayınlar
+
+Salon yüzlerce kişilik yayına göre kuruludur:
+
+- **Masalar:** 16 masa, 128 sandalye. Yorum yazan, beğenen ya da takip eden herkes sırayla oturur.
+- **Ayaktakiler:** masalar dolunca gelenler duvar diplerinde ayakta durur (88 kişi). O da dolunca en uzun süredir oturan yerini yeni gelene bırakır; yerini bırakan sayaçta kalır.
+- **Halay:** en çok hediye gönderen 14 kişi ön sırada, yüzleri ve kıyafetleriyle görünür; sonraki 48 kişi arkada üç sıra hâlinde aynı adımı atar. Ekranda "Halayda 70 kişi · ön sıraya geçmek için 💎 34" yazar: arkadaki, öndekini geçince yer değiştirir.
+- **Sayaç:** "Düğünde 330 misafir" yayına katılan herkesi sayar.
+- **Çizim:** kalabalık basit figürlerle ve tek seferde çizilir, bu yüzden 300 kişi de 30 kişi kadar hızlıdır. Kamera bir misafire dönünce o kişi ve yanındakiler birkaç saniyeliğine ayrıntılı (yüzlü, kıyafetli) modele çevrilir.
+
 ### Kamera
 
 Kamera yukarıdan bakmaz; salondaki bir kameraman gibi çalışır.
@@ -86,7 +96,7 @@ Zemin şeffaftır, kamera görüntüsünün üstüne oturur. Yerleşimi kontrol 
 
 - **Hiçbir şey kaybolmaz.** Hediyelerin asıl kaydı sunucudadır ve birkaç saniyede bir diske yazılır (`live_overlay/data/`). OBS kaynağı yenilense, overlay çökse ya da sunucu yeniden başlasa bile sıralama, seviyeler, çelenkler ve yayın hedefi geri gelir. Yarım kalan tur (örneğin yarışın o anki durumu) baştan başlar.
 - **Otomatik kalite.** Kare hızı saniyede 22'nin altına düşerse overlay kendini kademe kademe kısar: önce gölgeler, sonra çözünürlük, en son kalabalık. Panelden “hep yüksek” ya da “düşük” de seçilebilir.
-- **Kalabalık yayın.** Masalara saniyede en çok iki yeni misafir oturur ve oturan en az 25 saniye yerinde kalır; izleyici listesi uzun yayında kendini temizler.
+- **Kalabalık yayın.** Salonda 216 kişilik yer vardır ve kalabalık tek seferde çizilir; aynı anda en çok 10 misafir ayrıntılı modelle gösterilir. İzleyici listesi uzun yayında kendini temizler.
 - **İnternetsiz kütüphane.** Three.js yerel kopyadan yüklenir (`static/vendor/`).
 - **Ad denetimi.** Küfür, bağlantı ya da telefon numarası içeren adlar ekranda “Misafir” olur. Kendi yasak kelimelerinizi ve adı gizlenecek kullanıcıları panelden ekleyin.
 - **Bağlantı sınırı.** TikTok bağlantısı üçüncü taraf bir imza servisinden geçer ve yoğun kullanımda sınıra takılabilir. Anahtarınız varsa sunucuyu başlatmadan önce `TIKTOK_SIGN_API_KEY` ortam değişkenine girin.
