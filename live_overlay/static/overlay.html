@@ -600,7 +600,7 @@ const hall = {
   },
   seed() { for (let i = 0; i < CFG.konuk; i++) this.sit(null); // salon boş görünmesin diye adsız konuklar; izleyici gelince yerlerini ona bırakırlar
     [...players.values()].sort((a, b) => (b.seen || 0) - (a.seen || 0)).slice(0, 200).forEach(p => this.sit(p)); }, // salon sonradan açıldıysa o ana kadar gelenler yerleşir
-  place(seat) { const g = seat.g, c = seat.seated ? this.sitCrowd : this.standCrowd; if (!g || g.a) c.hide(seat.i); else c.set(seat.i, seat.x, g.y || 0, seat.z, seat.face, g.id, g.p ? g.p.hue : hash(g.id) % 360, g.p ? 72 : 30); },
+  place(seat) { const g = seat.g, c = seat.seated ? this.sitCrowd : this.standCrowd; if (!g || g.a || g.hid > T) c.hide(seat.i); else c.set(seat.i, seat.x, g.y || 0, seat.z, seat.face, g.id, g.p ? g.p.hue : hash(g.id) % 360, g.p ? 72 : 30); },
   sit(p) {
     if (!this.scene || (p && this.where.has(p.id))) return;
     // boş yer → adsız konuğun yeri → en uzun süredir oturan izleyicinin yeri (o kişi sayaçta kalır, salonda görünmez)
@@ -619,8 +619,12 @@ const hall = {
     else a.root.position.set(seat.x, 0, seat.z);
     this.scene.add(a.root); this.place(seat); this.dirty = true; },
   promote(id, sec = 5) { const seat = this.where.get(id); if (!seat || !this.scene) return null;
+    { /* kamerayla misafirin arasında kalanlar çekim boyunca gizlenir: kalabalıkta öndekinin başı kadrajı kapatıyordu. Açı ve uzaklık yakın plan çekimiyle (shot .5, 1.9) aynı */
+      const dx = Math.sin(seat.face + .5), dz = Math.cos(seat.face + .5);
+      for (const q of this.seats) { if (q === seat || !q.g) continue; const vx = q.x - seat.x, vz = q.z - seat.z, t = vx * dx + vz * dz;
+        if (t > .35 && t < 2.7 && Math.hypot(vx - t * dx, vz - t * dz) < .55) { const was = q.g.hid > T; q.g.hid = T + 1; if (q.g.a) this.demote(q); else if (!was) { this.place(q); this.dirty = true; } } } }
     if (!seat.g.a) { // kadrajda kutu figür kalmasın diye en yakın dört komşu da ayrıntılı modele çevrilir; aynı anda en çok 10 ayrıntılı misafir
-      const near = this.seats.filter(q => q !== seat && q.g && Math.hypot(q.x - seat.x, q.z - seat.z) < 2.2).sort((a, b) => Math.hypot(a.x - seat.x, a.z - seat.z) - Math.hypot(b.x - seat.x, b.z - seat.z)).slice(0, quality.level >= 2 ? 0 : 4);
+      const near = this.seats.filter(q => q !== seat && q.g && !(q.g.hid > T) && Math.hypot(q.x - seat.x, q.z - seat.z) < 2.2).sort((a, b) => Math.hypot(a.x - seat.x, a.z - seat.z) - Math.hypot(b.x - seat.x, b.z - seat.z)).slice(0, quality.level >= 2 ? 0 : 4);
       const live = this.seats.filter(q => q.g && q.g.a && !near.includes(q)).sort((a, b) => a.g.until - b.g.until); while (live.length + near.length + 1 > 10 && live.length) this.demote(live.shift());
       for (const q of near) this.detail(q, sec); }
     this.detail(seat, sec); return seat; },
@@ -634,6 +638,7 @@ const hall = {
     const clap = Math.sin(T * 15) * .13;
     const cheering = this.cheer > 0;
     for (const q of this.seats) { const g = q.g; if (!g) continue;
+      if (g.hid && T > g.hid) { g.hid = 0; this.place(q); this.dirty = true; }
       if (g.a) { if (T > g.until) { this.demote(q); continue; } const a = g.a, c = cheering || (dance && Math.sin(T * .6 + g.ph) > .55); // alkış: büyük anlarda herkes, halayda ara ara
         P(a, 'Spine', (q.seated ? .1 : .02) + Math.sin(T * 1.3 + g.ph) * .03, Math.sin(T * .45 + g.ph) * .18, 0); P(a, 'Head', 0, Math.sin(T * .6 + g.ph * 2) * .3, 0);
         if (c) { arm(a, 'Left', -.3, .45 + clap); arm(a, 'Right', -.3, .45 + clap); P(a, 'LeftForeArm', 0, 0, 1.25); P(a, 'RightForeArm', 0, 0, -1.25); } /* alkış: dirsekler kırık, eller göğüs önünde; kollar dümdüz öne uzanınca hortlak gibi duruyordu */ else { P(a, 'LeftForeArm', 0, 0, 0); P(a, 'RightForeArm', 0, 0, 0); if (q.seated) { arm(a, 'Left', -.35, .55); arm(a, 'Right', -.35, .55); } else { arm(a, 'Left', -.55, .05); arm(a, 'Right', -.55, .05); } }
