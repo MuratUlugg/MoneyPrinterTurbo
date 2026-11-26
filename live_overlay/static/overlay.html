@@ -793,7 +793,7 @@ const halay = {
     if (!this.list.length) bar(140, 452, 800, 70, 0, C.cyan, C.pink, 'Pist seni bekliyor: ilk Gülü at, halaya gir! 🥁');
     if (this.built) this.hall.draw(this.cam);
     if (this.built) { // etiketler: soldan sağa dizilir, yan yana gelenler üç kata kaydırılır ki adlar üst üste binmesin
-      const tags = (this.vis || []).filter(d => !d.ghost).map(d => { const [x, y] = proj(this.cam, d.pos[0], 2.05, d.pos[1]); return { d, x, y, lv: 0 }; }).sort((a, b) => a.x - b.x);
+      const tags = (this.vis || []).filter(d => !d.ghost).map(d => { const [x, y] = proj(this.cam, d.pos[0], 2.22, d.pos[1]); return { d, x, y, lv: 0 }; }).sort((a, b) => a.x - b.x);
       tags.forEach((t, i) => { const near = tags.slice(Math.max(0, i - 3), i).filter(o => t.x - o.x < (tags.length > 8 ? 44 : 118)).map(o => o.lv); let lv = 0; while (near.includes(lv)) lv++; t.lv = lv; });
       for (const { d, x, y: y0, lv } of tags) {
         if (y0 < VY + 70 || (this.dir.f && this.dir.f.who === d.p)) continue; /* kadrajın üstünde kesilen ya da alt bantta zaten yazan ad çizilmez */
@@ -1006,7 +1006,7 @@ const taki = {
     this.shown = ease(this.shown, this.sum, dt, 6);
     if (this.say && (this.say.t += dt) > 2.6) this.say = null;
     if (this.built) { this.target.forEach((t, i) => { const r = t.userData.ribbon, n = Math.min(18, this.count[i]); r.visible = n > 0; r.scale.y = ease(r.scale.y, (.2 + Math.ceil(n / 3) * .068) / .47, dt, 6); }); /* kurdele ilk takıyla belirir ve takı sırası arttıkça uzar; boşken göğüste kırmızı levha gibi durmaz */
-      this.hall.update(dt, T * 3.2, false); this.dir.update(dt, this.cam, { p: [Math.sin(T * .3) * .5, 1.85, -2.5], l: [0, 1.62, -6.4] }); }
+      this.hall.update(dt, T * 3.2, false); this.dir.update(dt, this.cam, { p: [Math.sin(T * .3) * .5, 1.75, -2.5], l: [0, 1.42, -6.4] } /* çiftin ayakları alttaki sıralama şeridinin üstünde kalsın */); }
     this.shots = this.shots.filter(s => {
       if (s.delay > 0) { s.delay -= dt; return true; }
       s.t += dt * 1.4;
