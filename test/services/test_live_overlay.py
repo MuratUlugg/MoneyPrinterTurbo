@@ -113,6 +113,8 @@ class TestNamesAndSettings(unittest.TestCase):
         s = store.clean_settings({"hedef": "abc", "orta": -5, "konuk": 99, "kalite": "x", "hack": 1, "program": [{"mode": "yok", "min": 3}, {"mode": "taki", "min": 999}]}, server.MODES)
         self.assertEqual((s["hedef"], s["orta"], s["konuk"], s["kalite"]), (2000, 1, 16, "oto"))
         self.assertNotIn("hack", s)
+        self.assertEqual(s["oyun"], 50)  # oyun havası eşiği: verilmezse varsayılan
+        self.assertEqual(store.clean_settings({"oyun": 0}, server.MODES)["oyun"], 1)
         self.assertEqual(s["program"], [{"mode": "taki", "min": 180}])
 
 

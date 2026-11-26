@@ -42,6 +42,10 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
   await wait(6); await api('/api/simulate', { type: 'comment', name: 'Sibel', text: 'maşallah' }); await wait(.5); await gl('halay-4-yakin-misafir');
   await wait(6); await gift('Elif', 30, 1, 'Donut'); await wait(.5); await gl('halay-5-davulcu-bahsis');
   await wait(6); await gift('Selin', 500, 1, 'Aslan'); await wait(.4); await gl('halay-6-volkan'); await full('halay-6-tam-ekran'); await wait(1.5); await gl('halay-7-ortada');
+  /* oyun havası: 50 jetonluk hediye sıradaki oyunu açtırır (çiftetelli → horon → zeybek; Selin'in 500'lük hediyesi de bir oyun açtığı için sıra oradan devam eder); kamera hediyeyi atandan geniş plana dönünce çekilir */
+  await wait(10); await gift('Deniz', 50, 1, 'Şapka'); await wait(5); await gl('halay-10-oyun-a'); await full('halay-10-tam-ekran');
+  await gift('Can', 50, 1, 'Şapka'); await wait(5); await gl('halay-10-oyun-b');
+  await gift('Burak', 50, 1, 'Şapka'); await wait(5); await gl('halay-10-oyun-c'); await wait(1.2); await gl('halay-10-oyun-c2');
 
   }
   // ---- KALABALIK: 260 yorumcu + 70 hediye gönderen (yaklaşık 500 kişilik bir yayının etkileşen kısmı)
@@ -57,6 +61,12 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
   await wait(6); await api('/api/mode', { mode: 'taki' }); await wait(3); await gl('kalabalik-3-taki');
   }
   // ---- TAKI
+  if (only === 'poz') { /* duruş laboratuvarı: QA_POZ='[[oyun,[kaldırma,salınım,öne,x,y,z]],...]' ile serbest oyunların kol duruşu tek oturumda denenir */
+    await api('/api/mode', { mode: 'halay' }); await wait(2); for (const n of NAMES.slice(0, 5)) await gift(n, 2); await wait(5);
+    let cur = 0; for (const [i, [st, k]] of JSON.parse(process.env.QA_POZ || '[]').entries()) {
+      while (cur !== st) { await gift('Deniz', 50, 1, 'Şapka'); await wait(4.5); cur = cur % 3 + 1; }
+      await p.evaluate(([st, k]) => { window.__kol[st].splice(0, 6, ...k); }, [st, k]); await wait(.4); await gl(`poz-${i}-oyun${st}`); console.log('poz', i, JSON.stringify(k)); }
+  }
   if (!only || only === 'taki') {
   await api('/api/mode', { mode: 'taki' }); await wait(3); await gl('taki-0-cift');
   await gift('Sibel', 30, 2, 'Donut'); await wait(.3); await gl('taki-1-gonderen-misafir'); await wait(.9); await gl('taki-2-altin-ucuyor');

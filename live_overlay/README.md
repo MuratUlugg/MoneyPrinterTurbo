@@ -49,7 +49,7 @@ Hepsi gerçek hediyelere dayanır; sahte bağışçı, sahte geri sayım ya da �
 
 - **Hediye menüsü:** başlığın altında, ne gönderirsen ekranda ne olacağını yazan kartlar döner (örneğin "🌹 1+ kalk, halaya gir", "💎 100+ ortaya çık, para saçılsın"). İzleyici neyin karşılığında ne alacağını üç saniyede anlar.
 - **Düşük giriş eşiği:** yorum yazan masaya oturur, tek bir Gül gönderen piste çıkar; kamera ona döner, adı alt bantta yazar.
-- **Kademeli ödüller (halay):** 30+ jeton davulcuya bahşiştir (alnına para yapıştırılır, tempo coşar, kamera davulcuya döner); 100+ ortaya çıkarır ve üstüne para saçılır; 500+ sahnenin önünde yer volkanlarını ateşler.
+- **Kademeli ödüller (halay):** 30+ jeton davulcuya bahşiştir (kasketine para iliştirilir, tempo coşar, kamera davulcuya döner); 50+ **oyun havasını değiştirir** (çiftetelli → horon → zeybek sırayla; 25 saniye sürer, sonra halaya dönülür; sahnenin üstünde "HORON · Ayşe açtırdı · 20 sn" yazar; her oyunun adımı ve kol duruşu ayrıdır); 100+ ortaya çıkarır ve üstüne para saçılır; 500+ sahnenin önünde yer volkanlarını ateşler.
 - **Çelenkler:** yayının en cömert üç ismi adına sahnenin önünde, üzerinde adları ve jeton sayıları yazan çelenkler durur. Sıra değiştikçe çelenk de el değiştirir.
 - **Seviye rozetleri:** yayın boyunca toplam hediyeye göre Bronz (10), Gümüş (100), Altın (500), Elmas (2000). Her hediye bildiriminde bir sonraki seviyeye kalan miktar yazar.
 - **Liderlik rekabeti:** en çok destekleyen üç kişi hep ekrandadır; altında sıradaki kişinin bir üst sıraya çıkması için gereken net miktar döner. Liderlik el değiştirince "liderliği kaptı, geri almak için X" bildirimi çıkar.
@@ -132,6 +132,7 @@ Ayarların hepsi panelden yapılır. Aynı adlar adres çubuğundan da verilebil
 | `karpuzMin` / `karpuzMax` | 120 / 450 | Karpuzun patlayabileceği jeton aralığı |
 | `orta` | 100 | Halayda ortaya çıkmak için tek seferde gereken jeton |
 | `bahsis` | 30 | Halayda davulcuya bahşiş sayılan tek seferlik jeton |
+| `oyun` | 50 | Halayda oyun havasını değiştiren tek seferlik jeton (çiftetelli → horon → zeybek, 25 sn) |
 | `buyuk` | 100 | Büyük hediye gösterisini açan tek seferlik jeton (10 katı "efsane") |
 | `hedef` | 2000 | Yayın hedefi (toplam jeton) |
 | `cift` | MUTLULUKLAR | Sahnedeki pankart yazısı |

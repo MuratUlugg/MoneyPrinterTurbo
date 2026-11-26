@@ -103,6 +103,7 @@ iframe { width: 100%; max-width: 300px; aspect-ratio: 9 / 16; border: 1px solid 
       </div>
       <div class="row">
         <label>Davulcuya bahşiş<input id="bahsis" type="number" min="1"></label>
+        <label>Oyun havası<input id="oyun" type="number" min="1"></label>
         <label>Ortaya çıkma<input id="orta" type="number" min="1"></label>
         <label>Büyük hediye<input id="buyuk" type="number" min="1"></label>
         <label>Halay coşkusu<input id="halay" type="number" min="10"></label>
@@ -195,7 +196,7 @@ iframe { width: 100%; max-width: 300px; aspect-ratio: 9 / 16; border: 1px solid 
 const $ = id => document.getElementById(id);
 const LABELS = { halay: 'Düğün Halayı', race: 'At Yarışı', taki: 'Takı Töreni', tug: 'Çay mı Kahve mi', karpuz: 'Karpuz Patlatma' };
 const STATUS = { disconnected: 'Bağlı değil', connecting: 'Bağlanıyor…', connected: 'Yayına bağlı', error: 'Bağlanamadı, yeniden denenecek' };
-const NUMS = ['hedef', 'konuk', 'bahsis', 'orta', 'buyuk', 'halay', 'taki', 'goal', 'tug', 'karpuzMin', 'karpuzMax', 'anonsMin'];
+const NUMS = ['hedef', 'konuk', 'bahsis', 'oyun', 'orta', 'buyuk', 'halay', 'taki', 'goal', 'tug', 'karpuzMin', 'karpuzMax', 'anonsMin'];
 const fmt = n => Math.round(n).toLocaleString('tr-TR');
 let MODES = [], formLoaded = false, down = false;
 const api = (path, body, method = 'POST') => fetch(path, { method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) })

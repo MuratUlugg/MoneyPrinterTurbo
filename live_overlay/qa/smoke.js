@@ -24,6 +24,8 @@ const MODES = ['halay', 'race', 'taki', 'tug', 'karpuz'];
     await p.waitForTimeout(3500); await p.screenshot({ path: `${OUT}/${m}-1-oyun.png` });
     let q = await p.evaluate(() => window.__qa || null);
     check(q && q.mode === m && q.built, `${m}: 3B sahne kuruldu`);
+    if (m === 'halay') { await api('/api/simulate', { name: 'Can', gift: 'Şapka', diamonds: 50 }); await p.waitForTimeout(800); q = await p.evaluate(() => window.__qa || null);
+      check(q && q.oyun && q.oyun !== 'HALAY', `halay: 50 jetonluk hediye oyun havasını değiştirdi (${q && q.oyun})`); }
     const before = q ? q.wins : 0;
     await api('/api/simulate', { name: 'Zeynep', gift: 'Galaksi', diamonds: 1000 });
     let won = false; for (let i = 0; i < 14 && !won; i++) { await p.waitForTimeout(1000); q = await p.evaluate(() => window.__qa || null); won = !!(q && q.wins > before && q.champion === 'Zeynep'); }

@@ -33,6 +33,7 @@ NUMERIC = {
     "karpuzMin": (120, 5, 1_000_000),
     "karpuzMax": (450, 10, 1_000_000),
     "bahsis": (30, 1, 1_000_000),       # davulcuya bahşiş
+    "oyun": (50, 1, 1_000_000),         # oyun havasını değiştirme
     "orta": (100, 1, 1_000_000),        # ortaya çıkma
     "buyuk": (100, 1, 1_000_000),       # büyük hediye gösterisi
     "hedef": (2000, 10, 100_000_000),   # yayın hedefi
