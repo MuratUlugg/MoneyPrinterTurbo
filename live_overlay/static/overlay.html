@@ -442,7 +442,7 @@ function makeBot(top, o = {}) {
     if (!n.isMesh) return;
     n.castShadow = true; n.frustumCulled = false;
     const tint = (c, plain) => { n.material = n.material.clone(); if (plain) n.material.map = null; n.material.color.copy(lin(c)); };
-    if (n.name === 'Wolf3D_Outfit_Top') tint(kind === 1 ? (o.dress || top) : top, kind > 0); // hanımın siyah elbisesi boyanamaz, gencin tişörtünde logo var: ikisine düz renk verilir
+    if (n.name === 'Wolf3D_Outfit_Top') { tint(kind === 1 ? (o.dress || top) : top, kind > 0); if (kind === 1) n.material.side = THREE.DoubleSide; } // hanımın ceketinin yaka açıklığından içi boş görünüyor, arkadaki sandalye göğsünde altın bir üçgen gibi çıkıyordu; iç yüz de çizilir // hanımın siyah elbisesi boyanamaz, gencin tişörtünde logo var: ikisine düz renk verilir
     else if (n.name === 'Wolf3D_Outfit_Bottom') tint(kind === 1 ? '#3a3038' : (o.bottom || top));
     else if ((n.name === 'Wolf3D_Head' || n.name === 'Wolf3D_Body') && o.skin) tint(o.skin);
     else if (n.name === 'Wolf3D_Outfit_Footwear' && kind === 1) tint(o.shoe || '#16110f', true);
@@ -539,13 +539,13 @@ const hall = {
       s.add(g); const pl = new THREE.PointLight(0xffd9a0, x ? .55 : .9, 13); pl.position.set(x, 4.8, z); s.add(pl); }
     // 16 masa × 8 sandalye = 128 oturan misafir; salon dolunca gelenler duvar diplerinde ayakta durur (88 kişi).
     const TABLES = []; for (const tx of [-8.6, -6.2, 6.2, 8.6]) for (const tz of [-5.4, -2.8, -.2, 2.4]) TABLES.push([tx, tz]);
-    const chairSeat = new THREE.InstancedMesh(new THREE.BoxGeometry(.42, .05, .42), gold, 128), chairBack = new THREE.InstancedMesh(new THREE.BoxGeometry(.42, .52, .04), gold, 128), cm = new THREE.Matrix4(), cq = new THREE.Quaternion(), c1 = new THREE.Vector3(1, 1, 1), cp = new THREE.Vector3(), cup = new THREE.Vector3(0, 1, 0);
+    const chairSeat = new THREE.InstancedMesh(new THREE.BoxGeometry(.42, .05, .42), gold, 128), chairBack = new THREE.InstancedMesh(new THREE.BoxGeometry(.42, .44, .04), gold, 128), cm = new THREE.Matrix4(), cq = new THREE.Quaternion(), c1 = new THREE.Vector3(1, 1, 1), cp = new THREE.Vector3(), cup = new THREE.Vector3(0, 1, 0);
     const clothM = std('#f3e3c4', { roughness: .6 }), vase = new THREE.CylinderGeometry(.05, .09, .26, 12), bloom = new THREE.SphereGeometry(.085, 10, 8), tGeo = new THREE.CylinderGeometry(.98, 1.06, .76, 26), tTop = new THREE.CylinderGeometry(1.0, 1.0, .03, 26);
     TABLES.forEach(([tx, tz], ti) => {
       s.add(mesh(tGeo, ivory, tx, .38, tz)); s.add(mesh(tTop, clothM, tx, .775, tz, false)); s.add(mesh(vase, gold, tx, .92, tz, false)); s.add(mesh(bloom, std(['#f29bb8', '#ffffff', '#e8436e'][ti % 3], { roughness: .7 }), tx, 1.12, tz, false));
       for (let k = 0; k < 8; k++) { const a = (k + .5) / 8 * TAU, sx = tx + Math.cos(a) * 1.32, sz = tz + Math.sin(a) * 1.32, face = Math.atan2(tx - sx, tz - sz), i = this.seats.length;
         cq.setFromAxisAngle(cup, face); cm.compose(cp.set(sx, .47, sz), cq, c1); chairSeat.setMatrixAt(i, cm);
-        cm.compose(cp.set(sx - Math.sin(face) * .2, .73, sz - Math.cos(face) * .2), cq, c1); chairBack.setMatrixAt(i, cm);
+        cm.compose(cp.set(sx - Math.sin(face) * .22, .7, sz - Math.cos(face) * .22) /* arkalık omuzdan alçak: yüksekken yakanın açıklığından görünüyordu */, cq, c1); chairBack.setMatrixAt(i, cm);
         this.seats.push({ x: sx, z: sz, face, h: 1.13, seated: true, i, g: null }); } });
     const chairLeg = new THREE.InstancedMesh(new THREE.BoxGeometry(.04, .46, .04), gold, 512); // ayaksız sandalye havada duran levha gibi görünüyordu
     this.seats.forEach((q, i) => { [[-.18, -.18], [.18, -.18], [-.18, .18], [.18, .18]].forEach(([lx, lz], k) => { const c = Math.cos(q.face), sn = Math.sin(q.face); cm.makeTranslation(q.x + c * lx + sn * lz, .23, q.z - sn * lx + c * lz); chairLeg.setMatrixAt(i * 4 + k, cm); }); });
@@ -615,7 +615,7 @@ const hall = {
   // Kamera bir misafire yaklaşınca o kişi birkaç saniyeliğine ayrıntılı (yüzlü, kıyafetli) modele çevrilir.
   detail(seat, sec) { const g = seat.g; if (!g) return; g.until = Math.max(g.until, T + sec); if (g.a) return;
     const hue = g.p ? g.p.hue : hash(g.id) % 360, a = g.a = makeBot(`hsl(${hue},${g.p ? 70 : 35}%,${g.p ? 60 : 55}%)`, lookOf(g.id)); a.root.rotation.y = seat.face;
-    if (seat.seated) { a.root.position.set(seat.x, -.46 * a.root.scale.y, seat.z); P(a, 'LeftUpLeg', 1.5, 0, -.08); P(a, 'RightUpLeg', 1.5, 0, .08); P(a, 'LeftLeg', -1.5, 0, 0); P(a, 'RightLeg', -1.5, 0, 0); }
+    if (seat.seated) { a.root.position.set(seat.x, -.42 * a.root.scale.y, seat.z); P(a, 'LeftUpLeg', 1.5, 0, -.08); P(a, 'RightUpLeg', 1.5, 0, .08); P(a, 'LeftLeg', -1.5, 0, 0); P(a, 'RightLeg', -1.5, 0, 0); }
     else a.root.position.set(seat.x, 0, seat.z);
     this.scene.add(a.root); this.place(seat); this.dirty = true; },
   promote(id, sec = 5) { const seat = this.where.get(id); if (!seat || !this.scene) return null;
