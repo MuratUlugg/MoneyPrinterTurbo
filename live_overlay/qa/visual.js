@@ -34,7 +34,7 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
   await wait(6); await gl('halay-2-on-iki-kisi-genis'); await full('halay-2-tam-ekran');
   /* el ve ayak denetimi: sıranın ortasına yakından bak, adım döngüsünün dört vuruşunu ayrı ayrı çek */
   const cam = c => p.evaluate(v => { window.__qaCam = v; }, c);
-  await cam([0, 1.25, 1.2, 0, 1.0, -2.4]); await wait(.3); await gl('halay-8-eller-yakin');
+  await cam([0, 1.05, -.9, 0, .9, -2.6]); await wait(.3); await gl('halay-8-eller-yakin');
   await cam([0, .9, 2.6, 0, .75, -2.4]);
   for (let k = 0; k < 4; k++) { await p.evaluate(v => { window.__qaStopAt = v; }, k); for (let i = 0; i < 120 && !(await p.evaluate(() => window.__qaPause)); i++) await p.waitForTimeout(150); await gl('halay-9-adim-' + k); } /* her vuruş tam ortasında dondurulup çekilir */
   await cam(null);

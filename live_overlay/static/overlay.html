@@ -476,6 +476,8 @@ function aimArm(a, side, x, y, z) {
   _q1.setFromUnitVectors(cur, want); arm.parent.getWorldQuaternion(_q2).invert(); arm.getWorldQuaternion(_q3);
   arm.quaternion.copy(_q2).multiply(_q1).multiply(_q3);
 }
+// Parmakları kıvırır (el ele tutuş, yumruk): avuç açık kalınca eller tutuşmuyor, yan yana duruyor gibi görünür.
+function grip(a, side, amt) { for (const f of ['Index', 'Middle', 'Ring', 'Pinky']) for (let k = 1; k <= 3; k++) { const n = side + 'Hand' + f + k; if (a.b[n]) P(a, n, amt, 0, 0); } }
 function dispose(scene, a) { if (a) scene.remove(a.root || a.m); }
 // Kol aşağı: Sol kol -z, sağ kol +z. Bacak öne: UpLeg -x. Diz: Leg +x. Öne eğil: Spine +x.
 // Kollar (bu modelde): kaldırmak -x, öne uzatmak solda +z / sağda -z. Duruş A-poz olduğu için 0 = kollar yarı açık.
@@ -756,6 +758,7 @@ const halay = {
     for (const d of this.vis) { const a = d.a;
       if (d.slot < 0) { arm(a, 'Left', 1.25 + Math.sin(this.ph) * .3, .25); arm(a, 'Right', 1.25 - Math.sin(this.ph) * .3, .25); P(a, 'LeftForeArm', 0, 0, 0); P(a, 'RightForeArm', 0, 0, 0); continue; }
       const prev = ring[d.slot - 1], next = ring[d.slot + 1];
+      grip(a, 'Left', next ? .75 : 0); grip(a, 'Right', prev ? .75 : .5);
       if (next) aimArm(a, 'Left', ...meet(d, next)); else { arm(a, 'Left', -.3, -.15); P(a, 'LeftForeArm', 0, 0, 1.35); } // sondaki: el belde
       if (prev) aimArm(a, 'Right', ...meet(prev, d));
       else { arm(a, 'Right', 1.75 + Math.sin(this.ph * 2) * .22, .2); P(a, 'RightForeArm', 0, 0, 0); // halay başı mendil sallar
@@ -770,7 +773,7 @@ const halay = {
     this.zoom = ease(this.zoom || hw, hw, dt, 2);
     if (so) this.dir.focus(() => this.solo && this.d.get(this.solo.id) === so ? shot(so.pos[0], so.pos[1], 0, 1.5, 2.9, Math.sin(T * .5) * .5) : null, 8, 3, so.p, 'ortada oynuyor 💸'); /* ortaya çıkan: süre boyunca onda kal */
     // geniş plan: sıranın karşısında, göz hizasında duran kameraman; sıra uzadıkça geri çekilir
-    this.dir.update(dt, this.cam, { p: [1.05 + Math.sin(T * .17) * .4, 1.6, zm + (this.zoom + 1.75) / .43], l: [1.05, 1.12, zm] } /* sıra + sağdaki çalgıcılar kadraja sığacak uzaklık */);
+    this.dir.update(dt, this.cam, { p: [1.05 + Math.sin(T * .17) * .4, 1.6, zm + (this.zoom + 2.15) / .43], l: [1.05, 1.12, zm] } /* sıra + sağdaki çalgıcılar kadraja sığacak uzaklık */);
   },
   draw() {
     if (!this.list.length) bar(140, 452, 800, 70, 0, C.cyan, C.pink, 'Pist seni bekliyor: ilk Gülü at, halaya gir! 🥁');
