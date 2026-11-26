@@ -27,7 +27,7 @@ Kullanıcı isteği: yeni özellikler. Sırayla, turda bir tane. Hepsi düğün 
 
 ## Açık: diğer
 
-- [ ] `smoke.js`: masaya oturma, ortaya çıkma, davulcuya bahşiş, ad denetimi, ayar kaydı ve otomatik program için kontrol yok.
+- [ ] `smoke.js`: ortaya çıkma ve otomatik program için kontrol yok (program dakikalarla ilerliyor; ortaya çıkma kontrolü coşkunun dolmasıyla yarışıyor).
 
 ## Sonraya (kapsam dışı)
 
@@ -113,3 +113,4 @@ Kullanıcı isteği: yeni özellikler. Sırayla, turda bir tane. Hepsi düğün 
 - Halaycı yakın planı: kamera sıraya yandan değil neredeyse tam karşıdan bakıyor; halay başının yüzü açık, komşuların kolları kadrajı kesmiyor. Balon varken nota uçmuyor (görsel: `balon-2` önce/sonra; QA geçti). `halay-3` (yakın halaycı) yeni açıyla yeniden çekilmedi. Durma sayacı 0/2.
 - Halay denetimi (20 çekim yeniden alındı, dördü açıldı: yakın halaycı, davulcu bahşişi, zeybek, çiftetelli): yalnızca küçük rötuş. Yeni karşıdan yakın plan açısı `halay-3`'te de doğrulandı (yüz açık). Yakın planlarda nota simgesi yüze denk geliyordu; yakın plan sırasında nota uçmuyor (yeniden çekilmedi). Küçük notlar: kasket hâlâ yuvarlak ve siperi alnın üstünde; zeybekte kollar öne doğru, tam yana açık değil. **Durma sayacı: 1/2.**
 - İkinci denetim (kalabalık, takı, pasta, damat yeniden çekildi; beş görüntü açıldı: 70 kişilik halay, kalabalıkta takı, damatla karşılıklı oyun tam ekranı, pasta tam ekranı, takı takan misafir yakın planı): gerçek kusur çıkmadı, kod değişmedi. Küçük notlar: damat sahnesinde en soldaki ad rozeti kadraj kenarında yarım kalıyor; pasta töreninde konfeti alt şeridin üstünden geçiyor. **Görsel durma sayacı: 2/2.** Döngü durmuyor: "Açık: diğer"de kullanıcıya bağlı olmayan bir iş var (`smoke.js` eksik kontrolleri); sıradaki tur onu yapar.
+- Duman testi: dört yeni kontrol (yorum yazan masaya oturuyor; tek seferde 30 jeton davulcu bahşişi; bağlantı içeren ad raporda görünmüyor; ayar kaydediliyor ve bilinmeyen alan alınmıyor). Yorum balonu kontrolü sabit bekleme yerine yokluyor (yavaş makinede ara sıra kalıyordu; beklenti aynı). QA art arda iki kez geçti. **Döngü kullanıcı isteğiyle durduruldu: canlı yayına geçiliyor.** Açık kalanlar: gelin-damat el ele değil (model), yakın at planında öndeki at, arka sıra adımı, 500 kişilik gerçek yük, duman testinde ortaya çıkma ve otomatik program.

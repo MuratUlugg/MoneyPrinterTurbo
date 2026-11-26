@@ -24,13 +24,14 @@ const MODES = ['halay', 'race', 'taki', 'tug', 'karpuz'];
     await p.waitForTimeout(3500); await p.screenshot({ path: `${OUT}/${m}-1-oyun.png` });
     let q = await p.evaluate(() => window.__qa || null);
     check(q && q.mode === m && q.built, `${m}: 3B sahne kuruldu`);
+    if (m === 'halay') { check(q.guests >= 1, `halay: yorum yazan masaya oturdu (${q.guests} misafir)`); await api('/api/simulate', { name: 'Elif', gift: 'Donut', diamonds: 30 }); let tip = false; for (let i = 0; i < 20 && !tip; i++) { await p.waitForTimeout(150); tip = !!(await p.evaluate(() => window.__qa && window.__qa.bahsis)); } check(tip, 'halay: tek seferde 30 jetonluk hediye davulcuya bahşiş sayıldı'); }
     if (m === 'taki') { for (let i = 0; i < 40 && q.seref < 3; i++) { await p.waitForTimeout(700); q = await p.evaluate(() => window.__qa || null); } check(q.seref === 3, `taki: en çok takı takan üç kişi şeref konuğu olarak sahneye çıktı (${q.seref})`); }
     if (m === 'race') { for (let i = 0; i < 12 && q.faz !== 'kos'; i++) { await p.waitForTimeout(700); q = await p.evaluate(() => window.__qa || null); } check(q.faz === 'kos', `race: geri sayımdan sonra kapılar açıldı (${q.faz})`);
       const n0 = q.atlar; await api('/api/simulate', { type: 'comment', name: 'Taraftar', text: '4' }); await p.waitForTimeout(600); await api('/api/simulate', { name: 'Taraftar', gift: 'Gül', diamonds: 5 }); await p.waitForTimeout(600); q = await p.evaluate(() => window.__qa || null);
       check(q.taraftar === 1 && q.atlar === n0, `race: yorumla taraf olundu, taraftarın hediyesi yeni at açmadı (${q.taraftar} taraftar, ${q.atlar}/${n0} at)`); }
     if (m === 'halay') { await api('/api/simulate', { name: 'Can', gift: 'Şapka', diamonds: 50 }); await p.waitForTimeout(800); q = await p.evaluate(() => window.__qa || null);
       check(q && q.oyun && q.oyun !== 'HALAY', `halay: 50 jetonluk hediye oyun havasını değiştirdi (${q && q.oyun})`); }
-    if (m === 'halay') { await api('/api/simulate', { type: 'comment', name: 'Sibel', text: 'maşallah çok güzel' }); await api('/api/simulate', { type: 'comment', name: 'Reklamcı', text: 'takipçi için www.ornek.com' }); await p.waitForTimeout(800); q = await p.evaluate(() => window.__qa || null);
+    if (m === 'halay') { await api('/api/simulate', { type: 'comment', name: 'Sibel', text: 'maşallah çok güzel' }); await api('/api/simulate', { type: 'comment', name: 'Reklamcı', text: 'takipçi için www.ornek.com' }); for (let i = 0; i < 20; i++) { await p.waitForTimeout(200); q = await p.evaluate(() => window.__qa || null); if (q && q.balon) break; } /* durum kare başına güncellenir; yavaş makinede sabit bekleme yetmiyordu */
       check(q && q.balon === 1, `halay: yorum balonu açıldı, bağlantılı yorum gösterilmedi (${q && q.balon})`); }
     const before = q ? q.wins : 0;
     await api('/api/simulate', { name: 'Zeynep', gift: 'Galaksi', diamonds: 1000 });
@@ -47,6 +48,10 @@ const MODES = ['halay', 'race', 'taki', 'tug', 'karpuz'];
   const q = await p.evaluate(() => window.__qa || null), rep = await api('/api/report', undefined, 'GET');
   check(q && q.zaferTop === 1, `yenilemeden sonra yarış zaferi sunucudaki defterden geri geldi (${q && q.zaferTop})`);
   check(q && q.top[0] === 'Zeynep' && q.session === rep.total && rep.total > 0, `yenilemeden sonra sıralama ve toplam geri geldi (${q && q.session} = ${rep.total})`);
+  { await api('/api/simulate', { name: 'www.reklam-sitesi.com', gift: 'Gül', diamonds: 1 }); const r2 = await (await fetch(BASE + '/api/report')).json(), names = r2.top.map(u => u.name).join(',') + JSON.stringify(r2.biggest || {});
+    check(r2.gifters === rep.gifters + 1 && !/reklam/i.test(names), `ad denetimi: bağlantı içeren ad raporda görünmüyor (${r2.gifters} bağışçı)`);
+    const s0 = await (await fetch(BASE + '/api/settings')).json(); await api('/api/settings', { oyun: 77, hack: 1 }); const s1 = await (await fetch(BASE + '/api/settings')).json(); await api('/api/settings', { oyun: s0.oyun });
+    check(s1.oyun === 77 && !('hack' in s1), `ayar kaydı: oyun eşiği kaydedildi, bilinmeyen alan alınmadı (${s1.oyun})`); }
   check(rep.gifters === 6 && Object.keys(rep.by_mode).length === MODES.length, `rapor: 6 bağışçı (biri taraftar), 5 bölüm (${rep.gifters})`);
   await p.screenshot({ path: `${OUT}/son-yenileme.png` });
   // panel
