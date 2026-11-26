@@ -647,7 +647,7 @@ const hall = {
     dv.root.position.y = hit * .03; P(dv, 'Spine', -.08, 0, Math.sin(ph * .5) * .08);
     arm(zr, 'Right', -.05, .75); P(zr, 'RightForeArm', 0, 0, -1.75); arm(zr, 'Left', -.2, .7); P(zr, 'LeftForeArm', 0, 0, 1.55); P(zr, 'Spine', -.1 + Math.sin(ph) * .05, 0, 0); P(zr, 'Head', -.15, Math.sin(ph * .5) * .15, 0);
     P(g, 'Spine', Math.sin(T * 1.7) * .02, Math.sin(T * .45) * .08, Math.sin(T * .8) * .03); P(g, 'Head', Math.sin(this.nod[0] * Math.PI * 3) * .22 * this.nod[0], Math.sin(T * .5) * .12, 0);
-    if (dance) { arm(g, 'Left', .2, 1.0 + Math.sin(ph * 2) * .13); arm(g, 'Right', .2, 1.0 + Math.sin(ph * 2) * .13); } else { // tören duruşu: geline dönük, kollar rahat ve dirsekten hafif kırık
+    if (dance) { const cl = hit * .14; arm(g, 'Left', -.3, .45 + cl); P(g, 'LeftForeArm', 0, 0, 1.25); arm(g, 'Right', -.3, .45 + cl); P(g, 'RightForeArm', 0, 0, -1.25); } /* halayda damat tempo tutup alkışlar: eski duruşta kolları iki yana açık, kalıp gibi duruyordu */ else { // tören duruşu: geline dönük, kollar rahat ve dirsekten hafif kırık
       arm(g, 'Left', -.5, .22); P(g, 'LeftForeArm', 0, 0, .5 + Math.sin(T * .9) * .04); arm(g, 'Right', -.58, .08); P(g, 'RightForeArm', 0, 0, -.22); }
     br.rotation.y = -.25 + Math.sin(T * .7) * .09; br.rotation.z = Math.sin(T * .9) * .012; br.scale.y = 1 + Math.sin(T * 1.6) * .004; // hafif salınım ve nefes: gelinin iskeleti yok, yerinde donuk durmasın br.position.y = .43 + Math.abs(Math.sin(this.nod[1] * Math.PI * 2)) * .03 * this.nod[1];
     this.bulbs.forEach((m, i) => m.scale.setScalar((i + Math.floor(T * 2.5)) % 3 ? 1.2 : .7));
