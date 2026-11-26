@@ -731,7 +731,7 @@ const halay = {
   },
   activity(p, pri) { // son hareketi yapan kişiye dön: pistteyse halaycıya, masadaysa masasına
     this.dir.focus(() => { const d = this.d.get(p.id);
-      if (d && d.slot !== undefined && this.vis && this.vis.includes(d)) return d.slot < 0 ? shot(d.pos[0], d.pos[1], 0, 1.5, 2.9, .25) : shot(d.pos[0], d.pos[1], d.face, 1.5, 1.75, .8);
+      if (d && d.slot !== undefined && this.vis && this.vis.includes(d)) return d.slot < 0 ? shot(d.pos[0], d.pos[1], 0, 1.5, 2.9, .25) : shot(d.pos[0], d.pos[1], d.face, 1.5, 2.0, .28); /* neredeyse tam karşıdan: yandan (.8) bakınca kamera sıranın kol hizasından geçiyor, komşuların kolları yüzü kapatıyordu */
       const st = hall.seatOf(p.id); return st ? shot(st.x, st.z, st.face, st.h, 1.9, .5) : null; }, pri === 2 ? 3.4 : 2.6, pri, p, pri === 2 ? 'hediye gönderdi 🎁' : pri ? 'düğünde 👋' : 'beğendi ❤');
   },
   reset() {
@@ -791,7 +791,7 @@ const halay = {
     if (so) { so.ang = null; so.slot = -1; so.pos = [ease(so.pos[0], 0, dt, 4), ease(so.pos[1], this.zmid + 1.5, dt, 4)]; so.face = 0; this.vis.push(so); }
     this.list.forEach(d => { if (d.plus && (d.plus.t += dt) > 1) d.plus = null; });
     if (n && Math.floor(this.ph / Math.PI) !== this.beat) { this.beat = Math.floor(this.ph / Math.PI); this.beat % 2 ? snd.tek() : snd.dum();
-      if (!(this.pastaT > 0)) spawn({ kind: 'text', text: this.beat % 2 ? '♪' : '♫', x: rand(460, 620), y: 720, vx: rand(-60, 60), vy: -130, life: 1.4, size: 54, color: [C.yellow, C.cyan, '#fff'][this.beat % 3] }); }
+      if (!(this.pastaT > 0) && !says.size) spawn( /* balon varken nota uçmaz: yazının üstüne geliyordu */{ kind: 'text', text: this.beat % 2 ? '♪' : '♫', x: rand(460, 620), y: 720, vx: rand(-60, 60), vy: -130, life: 1.4, size: 54, color: [C.yellow, C.cyan, '#fff'][this.beat % 3] }); }
     if (!this.built) return;
     const ids = new Set(this.vis.map(d => d.p.id));
     for (const [id, a] of this.acts) if (!ids.has(id)) { dispose(this.scene, a); this.acts.delete(id); }

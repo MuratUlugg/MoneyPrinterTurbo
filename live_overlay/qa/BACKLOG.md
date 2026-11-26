@@ -7,8 +7,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 İlk görsel denetimde (20 çekim) bulunanlar, göze batma sırasıyla.
 
 ### Halay
-- [ ] Halaycının yakın planında (halay başı mendil sallarken) kendi kalkık kolu ve komşuların kolları yüzünü kapatabiliyor; kamera açısı kol hizasından geçiyor (`balon-2`).
-- [ ] Uçuşan nota simgesi yorum balonunun yazısının üstüne denk gelebiliyor (`balon-2`).
 
 ### Takı töreni
 - [ ] Gelinle damat el ele ya da kol kola değil; gelinin kolları hiç oynamıyor (iskeletsiz model).
@@ -112,3 +110,4 @@ Kullanıcı isteği: yeni özellikler. Sırayla, turda bir tane. Hepsi düğün 
 - Görsel tur (özelliklerden kalanlar): (1) pistte az at varken kamera yaklaşıyor ve atların kulvarına, gövde hizasına bakıyor; tek at kadrajın ortasında, tribün arkada (görsel: `tekat-0-bir-at` önce/sonra; `QA_ONLY=tekat`). (2) Ortada oynayanın yakın planında KOMBO rozeti gizli. (3) Çiftetelli ve zeybekte rozetler tek hizadan katlanıyor, kat aralığı 62'den 80 piksele çıktı, taç rozetin sol üstünde. Yeniden çekilmeyenler: (2), (3)'ün son aralık ve taç ayarı, yakın kamerada yarış etiketinin jokeyin üstüne alınması (etiket gövdeye biniyordu).
 - Doğrulama turu (dört bölüm yeniden çekildi, altı görüntü açıldı): geçen turların "yeniden çekilmedi" notlarının hepsi görüldü ve yerinde: ortada oynayanın yakın planında KOMBO rozeti yok (`damat-0`); çiftetellide rozetler üst üste binmiyor, taç görünüyor (`damat-2`); iki atlı yarışta kamera yakın, iki at da kadrajda (`tekat-1`); pasta dilimi pastanın tepesinde, damat bıçakla kesiyor (`pasta-1`); takıda çalgıcılar kadrajda değil, üç şeref konuğu çiftin yanında (`taki-3`). Yalnızca küçük rötuş: yakın kamerada yarış etiketi jokeyin kaskına değiyordu, biraz yukarı alındı (yeniden çekilmedi). Kalan küçük notlar: pasta dilimi köşeli bir blok; ortada oynayanın üstünden para emojileri geçiyor (bilerek: para saçılıyor). Özellik aşaması için **durma sayacı: 1/2**.
 - Denetim turu (balon, yarış, halay yeniden çekildi; altı görüntü açıldı): gerçek kusur bulundu. Halaycının yakın planında yorum balonu kenara düşüp alt banttaki adın arkasında kalıyor, okunmuyordu; yakın planda balon artık hep konuşanın başının üstünde (görsel: `balon-2` önce/sonra; QA geçti). Yarış tarafı temiz: kapıda sekiz at ve sayım, dağılmış koşu, finiş, etiketler okunuyor. **Durma sayacı sıfırlandı: 0/2.**
+- Halaycı yakın planı: kamera sıraya yandan değil neredeyse tam karşıdan bakıyor; halay başının yüzü açık, komşuların kolları kadrajı kesmiyor. Balon varken nota uçmuyor (görsel: `balon-2` önce/sonra; QA geçti). `halay-3` (yakın halaycı) yeni açıyla yeniden çekilmedi. Durma sayacı 0/2.
