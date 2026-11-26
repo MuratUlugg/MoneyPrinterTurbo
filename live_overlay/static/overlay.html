@@ -911,7 +911,7 @@ const race = {
         P(j, 'LeftUpLeg', -1.45, 0, -.55); P(j, 'RightUpLeg', -1.45, 0, .55); P(j, 'LeftLeg', 2.15, 0, 0); P(j, 'RightLeg', 2.15, 0, 0); /* bilerek: uyluklar geriye, dizler katlı; binici eyerde diz çökmüş gibi durur. Uyluğu öne almak denendi, ayaklar atın karnından aşağı çıktı */
         arm(j, 'Left', .95, 1.05); arm(j, 'Right', .95, 1.05);
         // eyer ve eyer örtüsü (jokeyin renginde): binici ata oturmuş görünsün. Jokeyle birlikte hareket eder.
-        const tack = new THREE.Group(), cloth = mesh(new THREE.BoxGeometry(.4, .05, .58), std(col, { roughness: .7 }), 0, .93, -.05); tack.add(cloth);
+        const tack = new THREE.Group(), cloth = mesh(new THREE.CylinderGeometry(.2, .2, .56, 14, 1, true, Math.PI * .5, Math.PI), std(col, { roughness: .7 }), 0, .76, -.05); cloth.rotation.x = Math.PI / 2; cloth.material.side = THREE.DoubleSide; tack.add(cloth); /* örtü atın sırtını sarar: düz levha yandan dışarı taşan bir tahta gibi duruyordu */
         tack.add(mesh(new THREE.BoxGeometry(.3, .09, .38), std('#3b2416', { roughness: .6 }), 0, .99, -.05));
         j.root.add(tack);
         r.act = { m, mixer, j }; r.lane = this.lanes.pop(); this.scene.add(m); this.scene.add(j.root);
