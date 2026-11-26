@@ -73,3 +73,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - Takı kurdelesi ilk takıyla beliriyor ve takı sırası arttıkça uzuyor; boşken göğüste kırmızı levha yok (görsel: `taki-0`, `taki-2`, `taki-3`; QA geçti).
 - Yakın plan ayrıntıları: sandalyelere ayak eklendi (havada duran levha gibiydi), kasket saçı örtüyor, davul küçüldü ve kadrajı kaplamıyor, bahşiş parası kasketin önüne iliştirildi, topuz küçüldü, kadrajın üstünde kesilen ad etiketi çizilmiyor (görsel: `halay-3`, `halay-5` önce/sonra; QA geçti).
 - [not] Kasketin altında şakakta gri saç şeridi görünüyor; davulcunun sol eli davula tam değmiyor.
+- Yarış: jokeyin altına eyer ve kendi renginde eyer örtüsü eklendi; yakın planda atın uzağında kalan ad etiketi kaldırıldı (görsel: `yaris-3` önce/sonra; QA geçti). Dizgin iki kez denendi, atın başından ileri taşan çubuklar gibi durduğu için geri alındı: atın başı canlandırma ile oynadığından sabit bir çubuk tutmuyor.

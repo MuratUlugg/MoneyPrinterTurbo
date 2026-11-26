@@ -893,6 +893,10 @@ const race = {
         P(j, 'Spine', .42, 0, 0); P(j, 'Spine1', .22, 0, 0); P(j, 'Head', -.55, 0, 0);
         P(j, 'LeftUpLeg', -1.45, 0, -.55); P(j, 'RightUpLeg', -1.45, 0, .55); P(j, 'LeftLeg', 2.15, 0, 0); P(j, 'RightLeg', 2.15, 0, 0);
         arm(j, 'Left', .95, 1.05); arm(j, 'Right', .95, 1.05);
+        // eyer ve eyer örtüsü (jokeyin renginde): binici ata oturmuş görünsün. Jokeyle birlikte hareket eder.
+        const tack = new THREE.Group(), cloth = mesh(new THREE.BoxGeometry(.4, .05, .58), std(col, { roughness: .7 }), 0, .93, -.05); tack.add(cloth);
+        tack.add(mesh(new THREE.BoxGeometry(.3, .09, .38), std('#3b2416', { roughness: .6 }), 0, .99, -.05));
+        j.root.add(tack);
         r.act = { m, mixer, j }; r.lane = this.lanes.pop(); this.scene.add(m); this.scene.add(j.root);
       } else if (i >= 8 && r.act) { this.scene.remove(r.act.m); this.scene.remove(r.act.j.root); this.lanes.push(r.lane); r.act = null; }
       if (r.act) { r.z = (r.lane - 3.5) * LANE; r.act.m.position.set(r.x, .95, r.z); r.act.j.root.position.set(r.x + .12, JY + Math.sin(r.act.mixer.time / .62 * TAU) * .05, r.z); r.act.mixer.update(dt * (1 + clamp(r.push / 30, 0, .6))); lo = Math.min(lo, r.x); hi = Math.max(hi, r.x); }
@@ -912,7 +916,7 @@ const race = {
     if (!this.built) return;
     shown.forEach(r => {
       const i = this.list.indexOf(r), focus = this.dir && this.dir.f, [x0, y0] = proj(this.cam, r.x - 2.1, 1.2, r.z), x = Math.max(70, x0), y = Math.max(560, y0);
-      if (focus && focus.who !== r.p) return; // yakın planda yalnızca o atın etiketi
+      if (focus) return; /* yakın planda ad zaten alt bantta yazar; etiket atın uzağında kalıyordu */
       avatar(r.p, x, y, 18, i ? '#fff' : C.yellow); // etiket atın arkasında, kendi kulvarının hizasında durur
       if (x < 230) text(`${i + 1}. ${fit(r.p.name, 150, 20)}`, x + 25, y, 20, i ? '#fff' : C.yellow, 'left', 6); // sol kenarda ad kesilmesin: fotoğrafın sağına yaz
       else text(`${i + 1}. ${fit(r.p.name, 150, 20)}`, x - 25, y, 20, i ? '#fff' : C.yellow, 'right', 6);
