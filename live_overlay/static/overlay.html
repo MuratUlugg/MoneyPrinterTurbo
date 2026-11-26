@@ -879,7 +879,7 @@ const LANE = 1.45; // kulvar aralığı: atlar yan yana geldiğinde üst üste b
 const SPAN = 7, SPEED = 9, JY = 1.08; // JY: jokeyin eyer yüksekliği
 const race = {
   title: 'AT YARIŞI',
-  menu: [['🌹 1+', 'atın piste çıkar'], ['💎 Her jeton', 'atını öne geçirir'], ['🔥 Kombo', 'art arda hediye = daha hızlı'], ['🏆 Finişi geçen', 'şampiyon ilan edilir']],
+  menu: [['🌹 1+', 'atın piste çıkar'], ['💬 At numarası yaz', 'o atın taraftarı ol'], ['💎 Her jeton', 'atını öne geçirir'], ['🔥 Kombo', 'art arda hediye = daha hızlı'], ['🏆 Finişi geçen', 'şampiyon ilan edilir']],
   base: 0, focus: 0, spread: 0,
   build() {
     const { s, sun } = baseScene('#4d9be6', '#cfe9ff', { fog: '#cfe9ff', fogNear: 40, fogFar: 130, amb: .9, sun: 1.5, range: 14 });
@@ -912,6 +912,9 @@ const race = {
         mm.setPosition(x, y + .77 + up, z - .03); hairs.setMatrixAt(k, mm); hairs.setColorAt(k, hairC[(h >>> 8) % 5]); } }
     w.add(hairs);
     w.add(bodies); w.add(heads);
+    { /* taraftar bayrakları: bir ata taraf olan her izleyici için tribünde o atın renginde bir bayrak sallanır (en çok 48) */
+      const fl = this.flags = new THREE.InstancedMesh(new THREE.PlaneGeometry(.7, .42), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }), 48), z0 = new THREE.Matrix4().makeScale(0, 0, 0);
+      for (let i = 0; i < 48; i++) { fl.setMatrixAt(i, z0); fl.setColorAt(i, lin('#ffffff')); } fl.frustumCulled = false; w.add(fl); }
     w.add(mesh(new THREE.BoxGeometry(400, .25, 8.6), std('#e8eaee', { roughness: .6 }), 0, 7.6, -14));
     const trees = new THREE.InstancedMesh(new THREE.SphereGeometry(2.4, 20, 14), std('#2a7030', { roughness: 1 }), 50), tm = new THREE.Matrix4();
     for (let i = 0; i < 50; i++) { tm.makeScale(1, rand(1, 1.6), 1); tm.setPosition((i - 25) * 8, 3.0, -24 - (i % 3) * 4); trees.setMatrixAt(i, tm); } w.add(trees);
@@ -940,20 +943,27 @@ const race = {
     if (this.r && this.built) for (const r of this.r.values()) if (r.act) { this.scene.remove(r.act.m); this.scene.remove(r.act.j.root); }
     this.r = new Map(); this.list = []; this.locked = false; this.lanes = [7, 0, 6, 1, 5, 2, 4, 3];
     if (this.arch) this.arch.visible = false;
+    this.fans = new Map(); this.flagKey = ''; /* izleyici → taraf olduğu atın sahibi; her yarışta sıfırlanır */
     this.phase = 'kapi'; this.count = 0; this.pod = null; /* kapı → koşu → kürsü */
     if (this.gate) { this.gate.position.x = this.base + 2.7; /* atın uzanan ön bacakları kapının gerisinde kalsın */ this.gate.visible = this.doors.visible = true; this.pod3.visible = false; }
   },
+  backed(p) { const id = this.fans && this.fans.get(p.id), r = id && this.r.get(id); return r && r.act ? r : null; }, // izleyicinin taraf olduğu, pistteki at
+  comment(p, s) { /* yorumla taraf olunur: at numarası ("3") ya da sahibinin adı. Kendi atı olan taraf olamaz. Ödül ya da para yok; yalnızca destek */
+    if (this.r.has(p.id) || this.phase === 'kursu') return; const t = s.trim().toLocaleLowerCase('tr-TR'), m = t.match(/^#?([1-8])$/);
+    const r = this.list.find(o => o.act && (m ? o.lane === +m[1] - 1 : o.p.name.toLocaleLowerCase('tr-TR') === t)); if (!r || this.fans.get(p.id) === r.p.id) return;
+    this.fans.set(p.id, r.p.id); pushAlert(p, `${r.lane + 1} numaranın taraftarı 📣`, `${r.p.name} için tezahürat yapıyor`); },
   gift(p, a) {
-    let r = this.r.get(p.id);
-    if (!r) { r = { p, prog: 0, shown: 0, x: this.base, coat: -1, act: null }; this.r.set(p.id, r); }
+    let r = this.r.get(p.id); const sup = !r && this.backed(p); /* atı olmayan taraftarın hediyesi tuttuğu atı iter */
+    if (sup) { r = sup; pushAlert(p, `${sup.lane + 1} numarayı destekledi 📣`, `${sup.p.name} öne geçiyor`); }
+    if (!r) { r = { p, prog: 0, shown: 0, x: this.base, coat: -1, act: null }; this.r.set(p.id, r); this.fans.delete(p.id); }
     r.prog += a;
     if (this.phase === 'kapi' && !this.count) { this.count = 3.6; hall.cheer = Math.max(hall.cheer, .5); } /* ilk hediye geri sayımı başlatır: sayım gerçektir, bitince kapılar açılır */
     if (r.prog >= CFG.goal) {
       r.prog = CFG.goal; this.locked = true; if (this.phase === 'kapi') this.start();
       // finiş: tak 1,8 sn ileride belirir; kamera takın önüne geçip kazananın çizgiyi geçişini gösterir, kutlama ondan sonra gelir
       if (this.arch) { const ax = this.arch.position.x = this.base + SPEED * 1.8 + SPAN + 1.4; this.arch.visible = true;
-        if (this.dir) this.dir.focus(() => ({ p: [ax + 6.5, 2.4, r.z + 6.5], l: [ax - 1.5, 1.4, r.z * .5] }), 2.6, 3, p, 'finişe geliyor 🏁'); }
-      after(2.5, () => { if (!this.built) { celebrate('YARIŞI KAZANDI!', p, 'Hipodromun şampiyonu 🏆'); this.reset(); return; }
+        if (this.dir) this.dir.focus(() => ({ p: [ax + 6.5, 2.4, r.z + 6.5], l: [ax - 1.5, 1.4, r.z * .5] }), 2.6, 3, r.p, 'finişe geliyor 🏁'); }
+      after(2.5, () => { if (!this.built) { celebrate('YARIŞI KAZANDI!', r.p, 'Hipodromun şampiyonu 🏆'); this.reset(); return; }
         /* kürsü töreni: ilk üç jokey kürsüye çıkar, kupa ortada; kutlama kartı törenden sonra gelir */
         this.phase = 'kursu'; this.kT = 4.6; this.pod = this.list.filter(r => r.act).slice(0, 3); this.arch.visible = false; this.gate.visible = false; this.px = this.base + 3;
         this.pod3.position.set(this.px, 0, 0); this.pod3.visible = true; confetti(90); snd.clap(); if (this.dir) this.dir.f = null;
@@ -963,8 +973,8 @@ const race = {
     }
   },
   start() { if (this.phase !== 'kapi') return; this.phase = 'kos'; this.count = 0; this.doors.visible = false; floater('START! 🏇', 540, 760, C.yellow, 110); snd.dum(); hall.cheer = 1; },
-  like(p, n) { const r = this.r.get(p.id); if (r && !this.locked) r.prog = Math.min(CFG.goal - 1, r.prog + n * .05); },
-  activity(p, pri) { if (this.dir && pri && this.phase === 'kos') this.dir.focus(() => { const r = this.r.get(p.id); return r && r.act ? { p: [r.x + 2.2, 3.6, r.z + 4.2], l: [r.x + .4, 1.2, r.z] } : null; }, 2.8, pri, p, pri === 2 ? 'atını kamçıladı 🏇' : 'tezahürat yapıyor 📣'); }, // yayın kamerası o ata yaklaşır
+  like(p, n) { const r = this.r.get(p.id) || this.backed(p); if (r && !this.locked) r.prog = Math.min(CFG.goal - 1, r.prog + n * .05); },
+  activity(p, pri) { if (this.dir && pri && this.phase === 'kos') this.dir.focus(() => { const r = this.r.get(p.id) || this.backed(p); return r && r.act ? { p: [r.x + 2.2, 3.6, r.z + 4.2], l: [r.x + .4, 1.2, r.z] } : null; }, 2.8, pri, p, pri === 2 ? (this.r.has(p.id) ? 'atını kamçıladı 🏇' : 'tuttuğu atı destekledi 📣') : 'tezahürat yapıyor 📣'); }, // yayın kamerası o ata yaklaşır
   update(dt) {
     this.list = [...this.r.values()].sort((a, b) => b.prog - a.prog);
     const ph = this.phase;
@@ -1001,6 +1011,12 @@ const race = {
       if (r.act) { r.z = (r.lane - 3.5) * LANE; r.act.m.position.set(r.x, .95, r.z); r.act.j.root.position.set(r.x + .12, JY + Math.sin(r.act.mixer.time / .62 * TAU) * .05, r.z); if (ph === 'kapi') { r.act.mixer.setTime(GATE_T); r.act.j.root.position.y = JY; } else r.act.mixer.update(dt * (1 + clamp(r.push / 30, 0, .6))); lo = Math.min(lo, r.x); hi = Math.max(hi, r.x); }
     });
     if (!this.built) return;
+    { /* bayraklar: taraftar listesi değişince renkler, her karede dalgalanma */
+      const fl = this.flags, fans = [...this.fans.entries()].map(([id, own]) => this.r.get(own)).filter(r => r && r.act).slice(0, 48), key = fans.map(r => r.p.id).join(','), M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), S1 = new THREE.Vector3(1, 1, 1), S0 = new THREE.Vector3(0, 0, 0), V3 = new THREE.Vector3();
+      if (key !== this.flagKey) { this.flagKey = key; fans.forEach((r, i) => fl.setColorAt(i, lin(`hsl(${r.p.hue},90%,52%)`))); fl.instanceColor.needsUpdate = true; }
+      for (let i = 0; i < 48; i++) { const row = i % 7, on = i < fans.length; E.set(0, Math.sin(T * 5 + i * 1.7) * .55, Math.sin(T * 3 + i) * .12); Q.setFromEuler(E);
+        V3.set(((i * 7) % 48 - 24) * .5 + (row % 2) * .25 + 2, 2.95 + row * .6 + Math.abs(Math.sin(T * 4 + i)) * .12, -10.4 - row); M.compose(V3, Q, on ? S1 : S0); fl.setMatrixAt(i, M); }
+      fl.instanceMatrix.needsUpdate = true; this.fanN = new Map(); for (const own of this.fans.values()) this.fanN.set(own, (this.fanN.get(own) || 0) + 1); }
     const f = hi === -Infinity ? this.base + 2 : hi * .62 + lo * .38;
     this.focus = ease(this.focus, f, dt, 3); this.spread = ease(this.spread, hi === -Infinity ? 0 : hi - lo, dt, 3);
     this.dir = this.dir || makeDirector();
@@ -1023,7 +1039,7 @@ const race = {
       // etiket atın tam üstünde, jokeyin başının hemen yukarısında durur: hangi ad hangi ata ait, karışmasın
       const i = this.list.indexOf(r), focus = this.dir && this.dir.f, [x0, y1] = proj(this.cam, r.x + .1, 1.75, r.z), y0 = y1 - 42, x = clamp(x0, 110, 970), y = Math.max(585, y0); /* jokeyin başı ekrana izdüşürülür, etiket ekranda onun 30 piksel üstüne konur: yüksek bir noktayı izdüşürmek etiketi arkadaki kulvara kaydırıyordu */
       if (focus) return; /* yakın planda ad zaten alt bantta yazar */
-      const label = `${i + 1}. ${fit(r.p.name, 120, 19)}`; setFont(19); const lw = ctx.measureText(label).width + 44;
+      const fn = this.fanN && this.fanN.get(r.p.id), label = `${r.lane + 1} · ${fit(r.p.name, 120, 19)}` + (fn ? ` 📣${fn}` : ''); /* numara atın kapı numarasıdır ve yarış boyunca değişmez: taraftar yorumda bunu yazar */ setFont(19); const lw = ctx.measureText(label).width + 44;
       panel(x - lw / 2, y - 15, lw, 30, 15, i ? 'rgba(10,6,30,.72)' : 'rgba(120,80,0,.85)'); avatar(r.p, x - lw / 2 + 15, y, 13, i ? '#fff' : C.yellow);
       text(label, x - lw / 2 + 33, y + 1, 19, i ? '#fff' : C.yellow, 'left');
     });
@@ -1337,7 +1353,7 @@ function frame(now) {
   if (!mode.locked && pending.length) { const q = pending; pending = []; q.forEach(([p, a, raw]) => giveToMode(p, a, raw)); }
   if (DEMO) demoTick(dt);
   quality.tick(now);
-  if (QA) window.__qa = { seat: (() => { const f = mode.dir && mode.dir.f, q = f && f.who && hall.where.get(f.who.id); if (!q) return null; let fwd = null; if (q.g && q.g.a) { const ft = q.g.a.b.LeftFoot.getWorldPosition(new THREE.Vector3()); fwd = [+((ft.x - q.x) * Math.sin(q.face) + (ft.z - q.z) * Math.cos(q.face)).toFixed(2), +ft.y.toFixed(2), q.g.a.kind]; } return [q.x, q.z, q.face, fwd]; })(), fps: Math.round(quality.fps), guests: hall.where ? hall.where.size : 0, players: players.size, frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, oyun: mode.style ? OYUN[mode.style][0] : null, balon: says.size, faz: mode.phase || null, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
+  if (QA) window.__qa = { seat: (() => { const f = mode.dir && mode.dir.f, q = f && f.who && hall.where.get(f.who.id); if (!q) return null; let fwd = null; if (q.g && q.g.a) { const ft = q.g.a.b.LeftFoot.getWorldPosition(new THREE.Vector3()); fwd = [+((ft.x - q.x) * Math.sin(q.face) + (ft.z - q.z) * Math.cos(q.face)).toFixed(2), +ft.y.toFixed(2), q.g.a.kind]; } return [q.x, q.z, q.face, fwd]; })(), fps: Math.round(quality.fps), guests: hall.where ? hall.where.size : 0, players: players.size, frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, oyun: mode.style ? OYUN[mode.style][0] : null, balon: says.size, faz: mode.phase || null, taraftar: mode.fans ? mode.fans.size : 0, atlar: mode.r && mode.r.size !== undefined ? mode.r.size : null, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
   if (ready() && !mode.built) { mode.build(); mode.built = true; }
   mode.update(dt);
   if (QA && window.__qaCam && mode.cam) { const c = window.__qaCam; mode.cam.position.set(c[0], c[1], c[2]); mode.cam.lookAt(c[3], c[4], c[5]); } // görsel denetim: kamerayı elle yerleştir

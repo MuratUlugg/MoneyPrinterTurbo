@@ -89,7 +89,10 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
   await wait(5); await gl('yaris-1-sekiz-at-ayni-hizada');
   for (const [i, n] of NAMES.slice(0, 8).entries()) await gift(n, 700 * (i + 1)); // finiş 20.000, kombo en çok 2 kat: en öndeki 11.200'de kalır, yarış bitmez
   await wait(4); await gl('yaris-2-dagilmis'); await full('yaris-2-tam-ekran');
-  await wait(3); await gift('Ayşe', 10); await wait(.5); await gl('yaris-3-yakin-at');
+  /* taraftar: yorumla at numarası yazan izleyici o atın taraftarı olur; tribünde bayrak, etikette sayı */
+  for (let i = 0; i < 9; i++) await api('/api/simulate', { type: 'comment', name: 'Taraftar' + i, text: String([3, 3, 3, 3, 5, 5, 8, 3, 5][i]) }); await gift('Taraftar0', 20);
+  await wait(1.5); await gl('yaris-2b-taraftar'); await wait(3.4); await gl('yaris-2c-taraftar-etiket'); await full('yaris-2c-tam-ekran');
+  await wait(4); await gift('Ayşe', 10); await wait(.5); await gl('yaris-3-yakin-at');
   await wait(4); await gift('Selin', 40000, 1, 'Galaksi'); await wait(1.5); /* kazanan takın altından geçerken */ await gl('yaris-4-finis'); await wait(2.6); await gl('yaris-5-kursu'); await full('yaris-5-tam-ekran');
   }
   await b.close();

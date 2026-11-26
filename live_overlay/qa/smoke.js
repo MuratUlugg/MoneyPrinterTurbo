@@ -24,7 +24,9 @@ const MODES = ['halay', 'race', 'taki', 'tug', 'karpuz'];
     await p.waitForTimeout(3500); await p.screenshot({ path: `${OUT}/${m}-1-oyun.png` });
     let q = await p.evaluate(() => window.__qa || null);
     check(q && q.mode === m && q.built, `${m}: 3B sahne kuruldu`);
-    if (m === 'race') { for (let i = 0; i < 12 && q.faz !== 'kos'; i++) { await p.waitForTimeout(700); q = await p.evaluate(() => window.__qa || null); } check(q.faz === 'kos', `race: geri sayımdan sonra kapılar açıldı (${q.faz})`); }
+    if (m === 'race') { for (let i = 0; i < 12 && q.faz !== 'kos'; i++) { await p.waitForTimeout(700); q = await p.evaluate(() => window.__qa || null); } check(q.faz === 'kos', `race: geri sayımdan sonra kapılar açıldı (${q.faz})`);
+      const n0 = q.atlar; await api('/api/simulate', { type: 'comment', name: 'Taraftar', text: '4' }); await p.waitForTimeout(600); await api('/api/simulate', { name: 'Taraftar', gift: 'Gül', diamonds: 5 }); await p.waitForTimeout(600); q = await p.evaluate(() => window.__qa || null);
+      check(q.taraftar === 1 && q.atlar === n0, `race: yorumla taraf olundu, taraftarın hediyesi yeni at açmadı (${q.taraftar} taraftar, ${q.atlar}/${n0} at)`); }
     if (m === 'halay') { await api('/api/simulate', { name: 'Can', gift: 'Şapka', diamonds: 50 }); await p.waitForTimeout(800); q = await p.evaluate(() => window.__qa || null);
       check(q && q.oyun && q.oyun !== 'HALAY', `halay: 50 jetonluk hediye oyun havasını değiştirdi (${q && q.oyun})`); }
     if (m === 'halay') { await api('/api/simulate', { type: 'comment', name: 'Sibel', text: 'maşallah çok güzel' }); await api('/api/simulate', { type: 'comment', name: 'Reklamcı', text: 'takipçi için www.ornek.com' }); await p.waitForTimeout(800); q = await p.evaluate(() => window.__qa || null);
@@ -42,7 +44,7 @@ const MODES = ['halay', 'race', 'taki', 'tug', 'karpuz'];
   await p.reload(); await p.waitForTimeout(7000);
   const q = await p.evaluate(() => window.__qa || null), rep = await api('/api/report', undefined, 'GET');
   check(q && q.top[0] === 'Zeynep' && q.session === rep.total && rep.total > 0, `yenilemeden sonra sıralama ve toplam geri geldi (${q && q.session} = ${rep.total})`);
-  check(rep.gifters === 5 && Object.keys(rep.by_mode).length === MODES.length, 'rapor: 5 bağışçı, 5 bölüm');
+  check(rep.gifters === 6 && Object.keys(rep.by_mode).length === MODES.length, `rapor: 6 bağışçı (biri taraftar), 5 bölüm (${rep.gifters})`);
   await p.screenshot({ path: `${OUT}/son-yenileme.png` });
   // panel
   const c = await b.newPage({ viewport: { width: 1200, height: 1500 } });
