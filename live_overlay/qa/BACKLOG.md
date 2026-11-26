@@ -7,14 +7,11 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 İlk görsel denetimde (20 çekim) bulunanlar, göze batma sırasıyla.
 
 ### Halay
-- [ ] Çiftetelli ve zeybekte sıra şaşırtmalı açılınca öndeki ad rozetleri üst üste biniyor, halay başının tacı rozetin arkasında kalıyor (`damat-2`).
-- [ ] Ortada oynayanın yakın planında KOMBO rozeti ve uçuşan paralar oynayanların üstüne biniyor (`damat-0`).
 
 ### Takı töreni
 - [ ] Gelinle damat el ele ya da kol kola değil; gelinin kolları hiç oynamıyor (iskeletsiz model).
 
 ### At yarışı
-- [ ] Pistte tek at varken kamera sekiz kulvarı alacak kadar uzakta kalıyor: at küçük, kadrajın çoğu boş kum (`yaris-7`).
 - [ ] Yakın at planında öndeki kulvardaki at kadrajın altını kaplayabiliyor.
 
 ### Genel
@@ -110,3 +107,4 @@ Kullanıcı isteği: yeni özellikler. Sırayla, turda bir tane. Hepsi düğün 
 - **Özellik: şeref konukları (şeref masası yerine).** Tasarım değişti: halayda en cömertler zaten ön sırada oynuyor, ayrı bir masaya oturtmak aynı kişiyi iki yerde gösterecekti. Onun yerine takı töreninde o düğünün en çok takı takan üç kişisi masasından kalkıp sahneye, çiftin yanına çıkıyor (birinci damadın, ikinci ve üçüncü gelinin yanında), başlarında madalyalı ad, her takıda alkış; sıradan düşen masasına dönüyor; kamera konukları alacak kadar geri çekilip onlara kayıyor. Doğrulama: duman testi (üç şeref konuğu), görsel `taki-2` (tek konuk), `taki-3-takilar-takili`, `taki-3-tam-ekran` (üç konuk). Yolda düzeltilenler: üçüncü konuğu soldaki çelenk kapatıyordu (sağa alındı). Çalgıcıların takıda gizlenmesi (davulcunun kolu köşeye giriyordu) yeniden çekilmedi. Bilinen: üçüncü konuk pasta sehpasına çok yakın duruyor.
 - **Özellik: at adı ve zaferler.** Her izleyicinin atına kimliğinden türeyen kalıcı bir ad (Doruyel, Gülkanat…); at piste çıkınca bildirimde, yakın plan bandında, kürsü etiketinde ve kazanan kartında yazar. Kazanılan yarış overlay'den sunucuya bildirilir (`win` iletisi; yalnızca o yayında hediye göndermiş biri için kabul edilir), `data/alltime.json`'a işlenir, yayınlar arası sayılır; etikette ★n. Doğrulama: birim testi (zafer yeni yayında ve yeniden açılışta duruyor), duman testi (kazananın zaferi 1; sayfa yenilenince defterden geri geliyor), görsel `yaris-6-kazanan-karti` ("Doruyel ile · 1. zaferi"), `yaris-7-ikinci-yaris-yildiz` (etikette ★1). "Ahır" ekranı (izleyicinin atını ve geçmişini gösteren ayrı görünüm) yapılmadı; ad ve zafer sayısı var.
 - **Özellik: damat halaya iniyor.** Halayda tek seferde 500+ jeton (büyük hediyenin beş katı) gönderen ortaya çıktığında damat sahneden inip yanına geliyor, on saniye karşılıklı oynuyorlar (kollar yukarıda, dirsekler kırık, sırayla adım); kamera ikisini birlikte alıyor, alt bantta "damatla karşılıklı oynuyor"; süre bitince damat sahneye dönüyor. Doğrulama: duman testi (`damat` bayrağı görüldü), görsel `damat-0-ortada` (ikisi yan yana), `damat-2-sahneye-dondu` (damat yeniden sahnede) (`QA_ONLY=damat`). Görülmeyen: damadın sahneden inerken halay sırasının içinden geçişi (yarım saniyelik yürüyüş, kare yakalanmadı). **"Açık: özellik" bölümü boşaldı**; sıradaki turlar "Açık: görsel"den devam eder.
+- Görsel tur (özelliklerden kalanlar): (1) pistte az at varken kamera yaklaşıyor ve atların kulvarına, gövde hizasına bakıyor; tek at kadrajın ortasında, tribün arkada (görsel: `tekat-0-bir-at` önce/sonra; `QA_ONLY=tekat`). (2) Ortada oynayanın yakın planında KOMBO rozeti gizli. (3) Çiftetelli ve zeybekte rozetler tek hizadan katlanıyor, kat aralığı 62'den 80 piksele çıktı, taç rozetin sol üstünde. Yeniden çekilmeyenler: (2), (3)'ün son aralık ve taç ayarı, yakın kamerada yarış etiketinin jokeyin üstüne alınması (etiket gövdeye biniyordu).

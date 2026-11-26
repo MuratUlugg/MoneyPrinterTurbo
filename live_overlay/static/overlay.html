@@ -280,7 +280,7 @@ function drawHeader() {
 }
 function drawCombo(dt) {
   combo.t = Math.max(0, combo.t - dt); if (combo.t <= 0) combo.n = 0;
-  if (combo.n < 2 || mode.phase === 'kursu' || mode.pastaT > 0) return; /* kürsü töreninde rozet üçüncünün basamağını örtmesin */
+  if (combo.n < 2 || mode.phase === 'kursu' || mode.pastaT > 0 || mode.solo) return; /* ortada oynayanın yakın planında da gizli: oynayanların üstüne biniyordu */ /* kürsü töreninde rozet üçüncünün basamağını örtmesin */
   const s = 1 + Math.sin(T * 10) * .03;
   ctx.save(); ctx.translate(880, 1150); ctx.rotate(-.06); ctx.scale(s, s);
   panel(-130, -52, 260, 104, 26, 'rgba(10,6,30,.78)');
@@ -869,12 +869,13 @@ const halay = {
     if (this.built) { // etiketler: soldan sağa dizilir, yan yana gelenler üç kata kaydırılır ki adlar üst üste binmesin
       const tags = (this.vis || []).filter(d => !d.ghost).map(d => { const [x, y] = proj(this.cam, d.pos[0], 2.22, d.pos[1]); return { d, x, y, lv: 0 }; }).sort((a, b) => a.x - b.x);
       tags.forEach((t, i) => { const near = tags.slice(Math.max(0, i - 3), i).filter(o => t.x - o.x < (tags.length > 8 ? 44 : 118)).map(o => o.lv); let lv = 0; while (near.includes(lv)) lv++; t.lv = lv; });
-      for (const { d, x, y: y0, lv } of tags) {
+      const flat = this.spread > .3 ? Math.min(...tags.filter(t => t.d.slot >= 0).map(t => t.y)) : null; /* sıra şaşırtmalı açıldığında (çiftetelli, zeybek) ön ve arka sıranın rozetleri farklı yükseklikte kalıp üst üste biniyordu: hepsi aynı hizadan katlanır */
+      for (const { d, x, y: yy, lv } of tags) { const y0 = flat != null && d.slot >= 0 ? flat : yy;
         if (y0 < VY + 70 || (this.dir.f && this.dir.f.who === d.p)) continue; /* kadrajın üstünde kesilen ya da alt bantta zaten yazan ad çizilmez */
-        const many = tags.length > 8, lead = d.slot === 0, solo = d.slot < 0, y = y0 - lv * (many ? 40 : 62) - (solo ? 10 : 0), r = solo ? 40 : many ? 18 : 26; /* kalabalıkta adlar ekranı kaplamasın */
+        const many = tags.length > 8, lead = d.slot === 0, solo = d.slot < 0, y = y0 - lv * (many ? 40 : 80) - (solo ? 10 : 0), r = solo ? 40 : many ? 18 : 26; /* kalabalıkta adlar ekranı kaplamasın */
         if (lv) { ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(x - 1.5, y + r, 3, y0 - y - r + 6); } // kaydırılan etiketi sahibine bağlayan çizgi
         avatar(d.p, x, y, r, lead || solo ? C.yellow : '#fff');
-        if (lead) text('👑', x, y - 44, 36);
+        if (lead) text('👑', x - 30, y - 30, 30); /* sol üst köşede: tepedeyken bir üst kattaki rozetin arkasında kalıyordu */
         if (!many) text(fit(d.p.name, 112, 20), x, y + r + 15, 20, '#fff', 'center', 5); /* kalabalıkta ad yazılmaz: halay başı taçla belli olur, adı en cömertler şeridinde yazar */
         if (d.plus) { ctx.globalAlpha = 1 - d.plus.t; text('+' + fmt(d.plus.a), x, y - 66 - d.plus.t * 50, 38, C.cyan, 'center', 8); ctx.globalAlpha = 1; }
       }
@@ -1045,7 +1046,8 @@ const race = {
     const f = hi === -Infinity ? this.base + 2 : hi * .62 + lo * .38;
     this.focus = ease(this.focus, f, dt, 3); this.spread = ease(this.spread, hi === -Infinity ? 0 : hi - lo, dt, 3);
     this.dir = this.dir || makeDirector();
-    this.dir.update(dt, this.cam, ph === 'kapi' ? { p: [this.base + 10.2 + Math.sin(T * .3) * .6, 4.6, 10.5], l: [this.base + .9, 1.0, -.3] } /* kapının önünden, atların yüzü görünür */ : { p: [this.focus + 2.0, 6.8 + this.spread * .28, 11.6 + this.spread * .6], l: [this.focus + .3, .5, -.4] }, this.base);
+    const far = this.far = ease(this.far || 1, clamp(Math.max(1.6, ...this.list.filter(r => r.act).map(r => Math.abs(r.z) + 1.2)) / 6.3, .5, 1), dt, 1.5); /* az at varken kamera yaklaşır: sekiz kulvarlık uzaklıkta tek at küçücük kalıyordu */
+    this.dir.update(dt, this.cam, ph === 'kapi' ? { p: [this.base + 10.2 + Math.sin(T * .3) * .6, 4.6, 10.5], l: [this.base + .9, 1.0, -.3] } /* kapının önünden, atların yüzü görünür */ : { p: [this.focus + 2.0 * far, (6.8 + this.spread * .28) * far, (11.6 + this.spread * .6) * far], l: [this.focus + .3, .5 + (1 - far) * 2.2, lerp(this.zc = ease(this.zc || 0, (() => { const a = this.list.filter(r => r.act); return a.length ? a.reduce((s, r) => s + r.z, 0) / a.length : 0; })(), dt, 1.5), -.4, (far - .5) * 2)] }, this.base); /* yaklaşınca atların bulunduğu kulvara ve gövde hizasına bakar */
     this.world.position.x = Math.round(this.focus / 8) * 8;
     this.sun.position.set(this.focus + 6, 12, 9); this.sun.target.position.set(this.focus, 0, 0);
   },
@@ -1062,7 +1064,7 @@ const race = {
     if (!this.built) return;
     shown.forEach(r => {
       // etiket atın tam üstünde, jokeyin başının hemen yukarısında durur: hangi ad hangi ata ait, karışmasın
-      const i = this.list.indexOf(r), focus = this.dir && this.dir.f, [x0, y1] = proj(this.cam, r.x + .1, 1.75, r.z), y0 = y1 - 42, x = clamp(x0, 110, 970), y = Math.max(585, y0); /* jokeyin başı ekrana izdüşürülür, etiket ekranda onun 30 piksel üstüne konur: yüksek bir noktayı izdüşürmek etiketi arkadaki kulvara kaydırıyordu */
+      const i = this.list.indexOf(r), focus = this.dir && this.dir.f, [x0, y1] = proj(this.cam, r.x + .1, 1.75, r.z), y0 = y1 - 30 - 26 / (this.far || 1), x = clamp(x0, 110, 970), y = Math.max(585, y0); /* jokeyin başı ekrana izdüşürülür, etiket ekranda onun 30 piksel üstüne konur: yüksek bir noktayı izdüşürmek etiketi arkadaki kulvara kaydırıyordu */
       if (focus) return; /* yakın planda ad zaten alt bantta yazar */
       const fn = this.fanN && this.fanN.get(r.p.id), label = `${r.lane + 1} · ${fit(r.p.name, 120, 19)}` + (r.p.rw ? ` ★${r.p.rw}` : '') + (fn ? ` 📣${fn}` : ''); /* numara atın kapı numarasıdır ve yarış boyunca değişmez: taraftar yorumda bunu yazar */ setFont(19); const lw = ctx.measureText(label).width + 44;
       panel(x - lw / 2, y - 15, lw, 30, 15, i ? 'rgba(10,6,30,.72)' : 'rgba(120,80,0,.85)'); avatar(r.p, x - lw / 2 + 15, y, 13, i ? '#fff' : C.yellow);

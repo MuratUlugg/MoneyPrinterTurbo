@@ -79,6 +79,10 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
     await wait(1.5); await gl('damat-0-ortada'); await full('damat-0-tam-ekran'); await wait(2); await gl('damat-1-ortada');
     for (let i = 0; i < 300 && (await qa()).damat; i++) await p.waitForTimeout(150); await wait(3); await gl('damat-2-sahneye-dondu');
   }
+  if (only === 'tekat') { /* pistte tek ve iki at: kamera yaklaşmalı, at kadrajın ortasında olmalı */
+    await api('/api/mode', { mode: 'race' }); await wait(2); await gift('Selin', 5); for (let i = 0; i < 300 && (await qa()).faz !== 'kos'; i++) await p.waitForTimeout(100);
+    await wait(5); await gl('tekat-0-bir-at'); await gift('Can', 5); await wait(6); await gl('tekat-1-iki-at');
+  }
   if (only === 'poz') { /* duruş laboratuvarı: QA_POZ='[[oyun,[kaldırma,salınım,öne,x,y,z]],...]' ile serbest oyunların kol duruşu tek oturumda denenir */
     await api('/api/mode', { mode: 'halay' }); await wait(2); for (const n of NAMES.slice(0, 5)) await gift(n, 2); await wait(5);
     let cur = 0; for (const [i, [st, k]] of JSON.parse(process.env.QA_POZ || '[]').entries()) {
