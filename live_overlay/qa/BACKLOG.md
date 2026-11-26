@@ -17,7 +17,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 ### Genel
 
 ### Kalabalık
-- [ ] Kalabalık figürlerinin yüzü yok; masaya yakından bakınca oyuncak gibi duruyor (yakın planda yalnızca odaktaki kişi ve dört komşusu ayrıntılı).
 - [ ] Arka sıraların sol bacak kalkışı kodda var ama görüntüde ayırt edilemedi.
 - [ ] 500 kişilik gerçek yük hiç denenmedi: test 330 kişiyle ve saniyede 1 kare çizen ekran kartsız makinede yapıldı.
 
@@ -77,3 +76,4 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - El tutuşu: halaycıların parmakları kıvrılıyor (açık avuç yerine kavrayan el); el yakın planı için kamera açısı eklendi (görsel: `halay-8`; QA geçti). Komşu eller arasında hâlâ birkaç santimlik boşluk var: iki farklı boydaki modelin eli tam aynı noktaya gelmiyor.
 - Takı yakın planı: misafirin yüzünün üstüne binen "ilk takıyı sen tak" yazısı ve küçük fotoğraf yakın planda gizleniyor; gelinin kurdelesi göğsün altından başlıyor ve elbisenin önünde duruyor; en cömertler şeridi içindeki kişi sayısı kadar geniş (görsel: `taki-1`, `taki-3` önce/sonra; QA geçti).
 - Sofra: her sandalyenin önünde altın kenarlı tabak, bardak ve kırmızı peçete; masalar boş beyaz yüzey değil (görsel: `taki-1`; QA geçti). QA kapısına overlay betiği için sözdizimi denetimi eklendi: bu turda aynı adı iki kez tanımlayan bir hata sahneyi hiç açtırmadı ve çekimler eskidi; artık ilk adımda yakalanıyor.
+- Kalabalık: figürlere yüz eklendi (gözler, gülümseme, yanak), masa çiçeği küçüldü; 8'den fazla halaycı varken etiketler küçük fotoğrafa indi ve adlar ekranı kaplamıyor (görsel: `kalabalik-0`, `kalabalik-4` önce/sonra; QA geçti). Halay başının adının tacın üstüne alınması yeniden çekilmedi.

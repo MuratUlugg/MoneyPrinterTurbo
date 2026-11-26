@@ -406,9 +406,13 @@ function makeCrowd(scene, count, seated) {
   const armG = new THREE.CylinderGeometry(.05, .04, seated ? .4 : .52, 8), legG = new THREE.CylinderGeometry(.075, .06, .8, 8);
   const B = seated ? .74 : 1.1, HD = seated ? 1.11 : 1.52;
   // [örgü, yükseklik, yana kayma, renk grubu]
-  const parts = [[inst(torso), B, 0, 'top'], [inst(new THREE.SphereGeometry(.115, 12, 9)), HD, 0, 'skin'], [inst(new THREE.SphereGeometry(.125, 12, 7, 0, TAU, 0, Math.PI * .55)), HD + .025, 0, 'hair'],
+  const parts = [[inst(torso), B, 0, 'top'], [inst(new THREE.SphereGeometry(.115, 16, 12)), HD, 0, 'skin'], [inst(new THREE.SphereGeometry(.125, 12, 7, 0, TAU, 0, Math.PI * .55)), HD + .025, 0, 'hair'],
     [inst(armG), B + (seated ? .02 : -.03), -.245, 'top'], [inst(armG), B + (seated ? .02 : -.03), .245, 'top']];
   if (!seated) parts.push([inst(legG), .4, -.085, 'leg'], [inst(legG), .4, .085, 'leg']);
+  parts[1][0].material.map = canvasTex(256, 128, g => { g.fillStyle = '#fff'; g.fillRect(0, 0, 256, 128); // kürenin +z yüzü dokunun dörtte birine denk gelir
+    g.fillStyle = '#2a1d18'; for (const ex of [53, 75]) { g.beginPath(); g.ellipse(ex, 66, 3.6, 5, 0, 0, TAU); g.fill(); }
+    g.strokeStyle = '#8a3b2a'; g.lineWidth = 2.5; g.lineCap = 'round'; g.beginPath(); g.arc(64, 78, 9, .25, Math.PI - .25); g.stroke();
+    g.fillStyle = 'rgba(220,110,110,.35)'; for (const ex of [46, 82]) { g.beginPath(); g.arc(ex, 78, 5, 0, TAU); g.fill(); } });
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1), pos = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), zero = new THREE.Matrix4().makeScale(0, 0, 0), who = new Array(count).fill(null);
   const grey = new THREE.Color(.5, .5, .5); // renk dizisi ilk çizimden önce var olmalı; yoksa gölgelendirici kişi renklerini hiç okumaz ve herkes beyaz kalır
   for (let i = 0; i < count; i++) for (const [m] of parts) { m.setMatrixAt(i, zero); m.setColorAt(i, grey); }
@@ -536,7 +540,7 @@ const hall = {
     // 16 masa × 8 sandalye = 128 oturan misafir; salon dolunca gelenler duvar diplerinde ayakta durur (88 kişi).
     const TABLES = []; for (const tx of [-8.6, -6.2, 6.2, 8.6]) for (const tz of [-5.4, -2.8, -.2, 2.4]) TABLES.push([tx, tz]);
     const chairSeat = new THREE.InstancedMesh(new THREE.BoxGeometry(.42, .05, .42), gold, 128), chairBack = new THREE.InstancedMesh(new THREE.BoxGeometry(.42, .52, .04), gold, 128), cm = new THREE.Matrix4(), cq = new THREE.Quaternion(), c1 = new THREE.Vector3(1, 1, 1), cp = new THREE.Vector3(), cup = new THREE.Vector3(0, 1, 0);
-    const clothM = std('#f3e3c4', { roughness: .6 }), vase = new THREE.CylinderGeometry(.05, .09, .26, 12), bloom = new THREE.SphereGeometry(.15, 10, 8), tGeo = new THREE.CylinderGeometry(.98, 1.06, .76, 26), tTop = new THREE.CylinderGeometry(1.0, 1.0, .03, 26);
+    const clothM = std('#f3e3c4', { roughness: .6 }), vase = new THREE.CylinderGeometry(.05, .09, .26, 12), bloom = new THREE.SphereGeometry(.085, 10, 8), tGeo = new THREE.CylinderGeometry(.98, 1.06, .76, 26), tTop = new THREE.CylinderGeometry(1.0, 1.0, .03, 26);
     TABLES.forEach(([tx, tz], ti) => {
       s.add(mesh(tGeo, ivory, tx, .38, tz)); s.add(mesh(tTop, clothM, tx, .775, tz, false)); s.add(mesh(vase, gold, tx, .92, tz, false)); s.add(mesh(bloom, std(['#f29bb8', '#ffffff', '#e8436e'][ti % 3], { roughness: .7 }), tx, 1.12, tz, false));
       for (let k = 0; k < 8; k++) { const a = (k + .5) / 8 * TAU, sx = tx + Math.cos(a) * 1.32, sz = tz + Math.sin(a) * 1.32, face = Math.atan2(tx - sx, tz - sz), i = this.seats.length;
@@ -789,14 +793,14 @@ const halay = {
     if (this.built) this.hall.draw(this.cam);
     if (this.built) { // etiketler: soldan sağa dizilir, yan yana gelenler üç kata kaydırılır ki adlar üst üste binmesin
       const tags = (this.vis || []).filter(d => !d.ghost).map(d => { const [x, y] = proj(this.cam, d.pos[0], 2.05, d.pos[1]); return { d, x, y, lv: 0 }; }).sort((a, b) => a.x - b.x);
-      tags.forEach((t, i) => { const near = tags.slice(Math.max(0, i - 3), i).filter(o => t.x - o.x < 118).map(o => o.lv); let lv = 0; while (near.includes(lv)) lv++; t.lv = lv; });
+      tags.forEach((t, i) => { const near = tags.slice(Math.max(0, i - 3), i).filter(o => t.x - o.x < (tags.length > 8 ? 44 : 118)).map(o => o.lv); let lv = 0; while (near.includes(lv)) lv++; t.lv = lv; });
       for (const { d, x, y: y0, lv } of tags) {
         if (y0 < VY + 70 || (this.dir.f && this.dir.f.who === d.p)) continue; /* kadrajın üstünde kesilen ya da alt bantta zaten yazan ad çizilmez */
-        const lead = d.slot === 0, solo = d.slot < 0, y = y0 - lv * 62 - (solo ? 10 : 0), r = solo ? 40 : 26;
+        const many = tags.length > 8, lead = d.slot === 0, solo = d.slot < 0, y = y0 - lv * (many ? 40 : 62) - (solo ? 10 : 0), r = solo ? 40 : many ? 18 : 26; /* kalabalıkta adlar ekranı kaplamasın */
         if (lv) { ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(x - 1.5, y + r, 3, y0 - y - r + 6); } // kaydırılan etiketi sahibine bağlayan çizgi
         avatar(d.p, x, y, r, lead || solo ? C.yellow : '#fff');
         if (lead) text('👑', x, y - 44, 36);
-        text(fit(d.p.name, 112, 20), x, y + r + 15, 20, '#fff', 'center', 5);
+        if (!many) text(fit(d.p.name, 112, 20), x, y + r + 15, 20, '#fff', 'center', 5); else if (lead) text(fit(d.p.name, 150, 20), Math.max(86, x), y - r - 46, 20, C.yellow, 'center', 5); /* kalabalıkta yalnızca halay başının adı, tacın üstünde */
         if (d.plus) { ctx.globalAlpha = 1 - d.plus.t; text('+' + fmt(d.plus.a), x, y - 66 - d.plus.t * 50, 38, C.cyan, 'center', 8); ctx.globalAlpha = 1; }
       }
     }
