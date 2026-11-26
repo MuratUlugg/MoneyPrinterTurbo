@@ -115,7 +115,7 @@ function avatar(p, x, y, r, ring = '#fff') {
 }
 function bar(x, y, w, h, ratio, c0, c1, label) {
   panel(x, y, w, h, h / 2, 'rgba(10,6,30,.72)');
-  if (ratio > .005) { const g = ctx.createLinearGradient(x, 0, x + w, 0); g.addColorStop(0, c0); g.addColorStop(1, c1);
+  if (ratio > .03) { const g = ctx.createLinearGradient(x, 0, x + w, 0); g.addColorStop(0, c0); g.addColorStop(1, c1);
     panel(x + 6, y + 6, Math.max(h - 12, (w - 12) * clamp(ratio, 0, 1)), h - 12, (h - 12) / 2, g); }
   text(label, x + w / 2, y + h / 2 + 2, h * .5, '#fff', 'center', 7);
 }
@@ -171,7 +171,7 @@ const snd = { on: String(opt('ses', '')) === '1' || opt('ses', false) === true, 
   dum() { this.tone(110, 45, .28, .9); }, tek() { this.noise(.07, .5, 3200); }, coin() { this.tone(1900, 2600, .25, .25, 'triangle'); }, clap() { this.noise(1.6, .5, 1800); },
 };
 function after(sec, fn) { timers.push({ t: sec, fn }); }
-let wins = 0;
+let wins = 0, guestCount = 0;
 function celebrate(title, p, sub) { wins++; cel = { title, p, sub, t: 0 }; champion = p || champion; hall.cheer = 1.5; hall.boom(3.5); snd.clap(); confetti(); }
 function drawCelebration(dt) {
   if (!cel) return;
@@ -243,7 +243,8 @@ function drawHeader() {
   cards.forEach((c, i) => { panel(cx, 330, ws[i], 48, 24, 'rgba(10,6,30,.8)'); setFont(fs); let tx = cx + 22; if (c.im) { drawIcon(c.im, tx + 16, 354, 38); tx += 40; }
     const w0 = ctx.measureText(c.a + '  ').width; text(c.a, tx, 355, fs, C.yellow, 'left'); text(c.b, tx + w0, 355, fs, '#fff', 'left'); cx += ws[i] + 14; });
   ctx.globalAlpha = 1;
-  bar(190, 384, 700, 36, session / goal, C.pink, C.yellow, `YAYIN HEDEFİ  💎 ${fmt(session)} / ${fmt(goal)}`);
+  bar(guestCount ? 60 : 190, 384, guestCount ? 650 : 700, 36, session / goal, C.pink, C.yellow, `YAYIN HEDEFİ  💎 ${fmt(session)} / ${fmt(goal)}`);
+  if (guestCount) { panel(724, 384, 296, 36, 18, 'rgba(10,6,30,.72)'); text(`🎊 ${fmt(guestCount)} misafir düğünde`, 872, 403, 21, '#fff'); guestCount = 0; }
   if (program) { const left = Math.max(0, Math.ceil(program.until - T)); // otomatik program: sıradaki bölüm
     text(`Sıradaki: ${MODE_NAMES[program.next] || program.next} · ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`, 540, 232, 26, '#fff', 'center', 6); }
   if (qs.get('kilavuz') === '1') { // TikTok arayüzünün yaklaşık olarak kapladığı yerler: yerleşimi kontrol etmek için
@@ -263,7 +264,7 @@ function drawCombo(dt) {
 }
 function drawBig(dt) { // büyük hediye: gönderen birkaç saniye sahnenin yıldızı
   const b = bigs[0]; if (!b) return;
-  if (!b.t) for (let i = 0; i < 5; i++) burst(rand(200, 880), rand(560, 900), [C.pink, C.yellow, C.cyan][i % 3], 34, 900);
+  if (!b.t) for (let i = 0; i < 2; i++) burst(i ? 900 : 180, 318, [C.pink, C.yellow][i], 14, 420);
   b.t += dt; if (b.t > 3.2) { bigs.shift(); return; }
   const k = Math.min(1, b.t * 5), out = clamp((3.2 - b.t) * 5, 0, 1), s = (1 - Math.pow(1 - k, 3)) * out, epic = b.amount >= CFG.buyuk * 10;
   ctx.save(); ctx.translate(540, 318); ctx.scale(s * .88, s * .88); ctx.globalAlpha = out;
@@ -459,8 +460,8 @@ function makeBot(top, o = {}) {
     const hair = () => { const m = mesh(new THREE.SphereGeometry(.111, 18, 12, 0, TAU, 0, Math.PI * .56), std(o.hair || HAIRS[0], { roughness: .95 })); m.position.set(0, .1, -.016); m.rotation.x = -.28; m.scale.z = 1.06; b.Head.add(m); };
     if (o.head === 'hair' || o.head === 'fes' || o.head === 'kasket') hair(); // şapkanın altı kel kalmasın
     if (o.head === 'fes') { const m = mesh(new THREE.CylinderGeometry(.068, .084, .12, 18), std('#b3161b', { roughness: .6 })); m.position.set(0, .225, -.01); b.Head.add(m); }
-    if (o.head === 'kasket') { const cap = mesh(new THREE.SphereGeometry(.116, 16, 10, 0, TAU, 0, Math.PI * .5), std('#4a4038', { roughness: .9 })); cap.scale.set(1.04, .72, 1.1); cap.position.set(0, .128, -.008); b.Head.add(cap); // başa oturur: saçın üst yarısını örter
-      const v = mesh(new THREE.BoxGeometry(.13, .012, .08), std('#3a322c', { roughness: .9 })); v.position.set(0, .136, .118); v.rotation.x = .18; b.Head.add(v); }
+    if (o.head === 'kasket') { const cap = mesh(new THREE.SphereGeometry(.116, 16, 10, 0, TAU, 0, Math.PI * .5), std('#4a4038', { roughness: .9 })); cap.scale.set(1.06, .8, 1.14); cap.position.set(0, .108, -.008); b.Head.add(cap); // başa oturur: saçın üst yarısını örter
+      const v = mesh(new THREE.BoxGeometry(.13, .012, .08), std('#3a322c', { roughness: .9 })); v.position.set(0, .118, .122); v.rotation.x = .2; b.Head.add(v); }
   }
   root.scale.set(o.wide || 1, o.tall || 1, o.wide || 1);
   return a;
@@ -554,7 +555,7 @@ const hall = {
     for (const y of [-.155, .155]) drum.add(mesh(new THREE.CylinderGeometry(.33, .33, .015, 28), std('#f3e6cf'), 0, y, 0));
     drum.rotation.z = Math.PI / 2; drum.position.set(0, .1, .38); dv.b.Hips.add(drum);
     const zr = this.zurnaci = makeBot('#5a6fb0', { bottom: '#5a5a66', head: 'fes', must: true }); zr.root.position.set(.5, 0, -.25); zr.root.rotation.y = -.25; s.add(zr.root);
-    const zurna = mesh(new THREE.CylinderGeometry(.02, .09, .46, 14), std('#7a4a22', { roughness: .45 })); zurna.rotation.x = -Math.PI / 2 + .35; zurna.position.set(0, 0, .32); zr.b.Head.add(zurna);
+    const zurna = mesh(new THREE.CylinderGeometry(.011, .045, .42, 14), std('#7a4a22', { roughness: .45 })); zurna.rotation.x = -Math.PI / 2 + .75; zurna.position.set(0, -.085, .235); zr.b.Head.add(zurna);
     // sahne ışıkları (renkli spotlar pistte gezer)
     this.spots = [0xff5aa0, 0x4ad8ff].map((c, i) => { const sp = new THREE.SpotLight(c, 1.1, 22, .34, .7); sp.position.set(i ? 5.5 : -5.5, 6.5, 3); s.add(sp); s.add(sp.target); return sp; });
     // yer volkanları: büyük anlarda sahnenin önünden fışkırır
@@ -627,9 +628,9 @@ const hall = {
       if (Math.abs(y - g.y) > .004) { g.y = y; this.place(q); this.dirty = true; } }
     if (this.dirty) { this.sitCrowd.flush(); this.standCrowd.flush(); this.dirty = false; }
     const hit = Math.max(0, Math.sin(ph)), dv = this.davulcu, zr = this.zurnaci, g = this.groom, br = this.bride;
-    arm(dv, 'Right', .25 + hit * .5, .7 - hit * .5); arm(dv, 'Left', .1, .8 + Math.max(0, -Math.sin(ph)) * .3);
+    arm(dv, 'Right', -.3 + hit * .35, .3); P(dv, 'RightForeArm', 0, 0, -1.15 + hit * .5); arm(dv, 'Left', -.4, .3); P(dv, 'LeftForeArm', 0, 0, 1.2 - Math.max(0, -Math.sin(ph)) * .35);
     dv.root.position.y = hit * .03; P(dv, 'Spine', -.08, 0, Math.sin(ph * .5) * .08);
-    arm(zr, 'Right', .55, 1.15); arm(zr, 'Left', .55, 1.15); P(zr, 'Spine', -.1 + Math.sin(ph) * .05, 0, 0); P(zr, 'Head', -.15, Math.sin(ph * .5) * .15, 0);
+    arm(zr, 'Right', -.05, .75); P(zr, 'RightForeArm', 0, 0, -1.75); arm(zr, 'Left', -.2, .7); P(zr, 'LeftForeArm', 0, 0, 1.55); P(zr, 'Spine', -.1 + Math.sin(ph) * .05, 0, 0); P(zr, 'Head', -.15, Math.sin(ph * .5) * .15, 0);
     P(g, 'Spine', Math.sin(T * 1.7) * .02, Math.sin(T * .45) * .08, Math.sin(T * .8) * .03); P(g, 'Head', Math.sin(this.nod[0] * Math.PI * 3) * .22 * this.nod[0], Math.sin(T * .5) * .12, 0);
     if (dance) { arm(g, 'Left', .2, 1.0 + Math.sin(ph * 2) * .13); arm(g, 'Right', .2, 1.0 + Math.sin(ph * 2) * .13); } else { // tören duruşu: geline dönük, kollar rahat ve dirsekten hafif kırık
       arm(g, 'Left', -.5, .22); P(g, 'LeftForeArm', 0, 0, .5 + Math.sin(T * .9) * .04); arm(g, 'Right', -.58, .08); P(g, 'RightForeArm', 0, 0, -.22); }
@@ -649,7 +650,7 @@ const hall = {
   draw(cam) { // son gelen misafirlerin ve yakın plandakilerin fotoğrafı; herkesinkini çizmek ekranı doldurur
     const recent = this.seats.filter(q => q.g && q.g.p && (q.g.a || T - q.g.t < 25)).sort((a, b) => b.g.t - a.g.t).slice(0, 18);
     for (const q of recent) { const [x, y] = proj(cam, q.x, q.h + .32, q.z); avatar(q.g.p, x, y, q.g.a ? 20 : 14); }
-    const n = players.size; if (n > 0) { const t = `🎊 Düğünde ${fmt(n)} misafir`; setFont(26); const w = ctx.measureText(t).width + 36; panel(1030 - w, 636, w, 46, 23, 'rgba(10,6,30,.72)'); text(t, 1030 - w / 2, 660, 26, '#fff'); } },
+    guestCount = players.size; /* başlıkta gösterilir */ },
 };
 
 // =====================================================================
@@ -767,7 +768,7 @@ const halay = {
     this.zoom = ease(this.zoom || hw, hw, dt, 2);
     if (so) this.dir.focus(() => this.solo && this.d.get(this.solo.id) === so ? shot(so.pos[0], so.pos[1], 0, 1.5, 2.9, Math.sin(T * .5) * .5) : null, 8, 3, so.p, 'ortada oynuyor 💸'); /* ortaya çıkan: süre boyunca onda kal */
     // geniş plan: sıranın karşısında, göz hizasında duran kameraman; sıra uzadıkça geri çekilir
-    this.dir.update(dt, this.cam, { p: [.8 + Math.sin(T * .17) * .7, 1.7, zm + 3.0 + (this.zoom + .9) * 2.35], l: [.8, 1.05, zm] });
+    this.dir.update(dt, this.cam, { p: [1.0 + Math.sin(T * .17) * .5, 1.6, zm + 3.1 + (this.zoom + .9) * 1.95], l: [1.0, 1.12, zm] });
   },
   draw() {
     if (!this.list.length) bar(140, 452, 800, 70, 0, C.cyan, C.pink, 'Pist seni bekliyor: ilk Gülü at, halaya gir! 🥁');
@@ -907,11 +908,11 @@ const race = {
     else bar(140, 452, 800, 70, lead.shown / CFG.goal, C.yellow, C.pink, this.locked ? '🏁 FİNİŞ!' : `🏁 ${fit(lead.p.name, 300, 34)} önde · finişe %${Math.max(1, Math.ceil((1 - lead.prog / CFG.goal) * 100))} kaldı`);
     if (!this.built) return;
     shown.forEach(r => {
-      const i = this.list.indexOf(r), focus = this.dir && this.dir.f, [x0, y0] = proj(this.cam, r.x - 1.3, 2.3, r.z), x = Math.max(70, x0), y = Math.max(560, y0);
+      const i = this.list.indexOf(r), focus = this.dir && this.dir.f, [x0, y0] = proj(this.cam, r.x - 2.1, 1.2, r.z), x = Math.max(70, x0), y = Math.max(560, y0);
       if (focus && focus.who !== r.p) return; // yakın planda yalnızca o atın etiketi
-      avatar(r.p, x, y, 24, i ? '#fff' : C.yellow); // etiket atın arkasında, kendi kulvarının hizasında durur
-      if (x < 230) text(`${i + 1}. ${fit(r.p.name, 150, 22)}`, x + 32, y, 22, i ? '#fff' : C.yellow, 'left', 6); // sol kenarda ad kesilmesin: fotoğrafın sağına yaz
-      else text(`${i + 1}. ${fit(r.p.name, 150, 22)}`, x - 32, y, 22, i ? '#fff' : C.yellow, 'right', 6);
+      avatar(r.p, x, y, 18, i ? '#fff' : C.yellow); // etiket atın arkasında, kendi kulvarının hizasında durur
+      if (x < 230) text(`${i + 1}. ${fit(r.p.name, 150, 20)}`, x + 25, y, 20, i ? '#fff' : C.yellow, 'left', 6); // sol kenarda ad kesilmesin: fotoğrafın sağına yaz
+      else text(`${i + 1}. ${fit(r.p.name, 150, 20)}`, x - 25, y, 20, i ? '#fff' : C.yellow, 'right', 6);
     });
     if (this.list.length > 8) text(`+${this.list.length - 8} at daha koşuyor`, 540, 1296, 26, '#fff', 'center', 6);
   },
@@ -926,7 +927,7 @@ const taki = {
   menu: [['💬 Yorum yaz', 'masana otur'], ['🌹 1+', 'çeyrek altın tak'], ['💎 10+', 'yarım altın'], ['💎 50+', 'tam altın + alkış'], ['💎 200+', 'bilezik'], ['💎 1000+', 'beşi bir yerde']],
   no: 1,
   build() {
-    this.hall = hall.get(); this.scene = this.hall.scene; this.cam = camera(40, 0, 2.0, -1.6, 0, 1.75, -6.4); // geniş açı: balon takı, pankart, pasta ve çelenkler çiftle aynı kadrajda
+    this.hall = hall.get(); this.scene = this.hall.scene; this.cam = camera(40, 0, 1.85, -2.5, 0, 1.62, -6.4); // geniş açı: balon takı, pankart, pasta ve çelenkler çiftle aynı kadrajda
     // Takılar: kırmızı fiyonklu altınlar, çiftin göğsüne asılan kırmızı takı kurdelesine üçer üçer dizilir.
     const face = canvasTex(128, 128, (g) => { g.fillStyle = '#f2b824'; g.fillRect(0, 0, 128, 128); g.strokeStyle = '#a8740c'; g.lineWidth = 7; g.beginPath(); g.arc(64, 64, 55, 0, TAU); g.stroke();
       g.lineWidth = 3; g.beginPath(); g.arc(64, 64, 44, 0, TAU); g.stroke(); g.fillStyle = '#a8740c'; g.beginPath(); g.arc(58, 64, 24, 0, TAU); g.fill(); g.fillStyle = '#f2b824'; g.beginPath(); g.arc(66, 64, 20, 0, TAU); g.fill();
@@ -979,7 +980,7 @@ const taki = {
   update(dt) {
     this.shown = ease(this.shown, this.sum, dt, 6);
     if (this.say && (this.say.t += dt) > 2.6) this.say = null;
-    if (this.built) { this.hall.update(dt, T * 3.2, false); this.dir.update(dt, this.cam, { p: [Math.sin(T * .3) * .6, 2.0, -1.6], l: [0, 1.78, -6.4] }); }
+    if (this.built) { this.hall.update(dt, T * 3.2, false); this.dir.update(dt, this.cam, { p: [Math.sin(T * .3) * .5, 1.85, -2.5], l: [0, 1.62, -6.4] }); }
     this.shots = this.shots.filter(s => {
       if (s.delay > 0) { s.delay -= dt; return true; }
       s.t += dt * 1.4;
@@ -1002,9 +1003,9 @@ const taki = {
     const top = [...this.g.values()].sort((a, b) => b.v - a.v).slice(0, 3);
     if (top.length) {
       // tek satır: çiftin ayaklarını ve gelinliğin eteğini kapatmasın
-      const w = 320; panel(60, 1252, 960, 64, 32, 'rgba(10,6,30,.7)');
-      top.forEach((d, i) => { const x = 80 + i * w; text(['🥇', '🥈', '🥉'][i], x + 18, 1285, 30); avatar(d.p, x + 62, 1284, 20);
-        text(fit(d.p.name, 120, 25), x + 90, 1285, 25, '#fff', 'left'); text('💎' + fmt(d.v), x + w - 14, 1285, 25, C.yellow, 'right'); });
+      const w = 316; panel(56, 1252, 968, 64, 32, 'rgba(10,6,30,.7)');
+      top.forEach((d, i) => { const x = 70 + i * w; text(['🥇', '🥈', '🥉'][i], x + 18, 1285, 28); avatar(d.p, x + 58, 1284, 19);
+        text(fit(d.p.name, 104, 23), x + 84, 1285, 23, '#fff', 'left'); text('💎' + fmt(d.v), x + w - 26, 1285, 23, C.yellow, 'right'); });
     }
   },
 };
