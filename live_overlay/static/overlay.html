@@ -74,6 +74,7 @@ const C = { panel: 'rgba(20,15,46,.78)', ink: '#fff', dim: 'rgba(255,255,255,.7)
   cyan: '#2ee6d6', yellow: '#ffd23f', red: '#ff4d5e', blue: '#4d8dff' };
 const FONT = '"Baloo 2","Trebuchet MS","Segoe UI",system-ui,sans-serif';
 const KOL = { 1: [.95, .2, .3, -1.2, 0, 0], 3: [1.0, .08, .05, -.12, 0, 0] }; /* önkol x ile kırılınca el yukarı kalkar (duruş laboratuvarında altı seçenek denenerek bulundu; z ile kol dümdüz kalıyordu) */ window.__kol = KOL; // serbest oyunlarda kol duruşu: [kaldırma, salınım, öne, önkol x, y, z]
+const GATE_T = .2; // start kapısında atın dondurulduğu an (dörtnala canlandırmasının en toplu karesi)
 const OYUN = [['HALAY', '🥁'], ['ÇİFTETELLİ', '💃'], ['HORON', '🎻'], ['ZEYBEK', '🦅']]; // halayda hediyeyle açılan oyun havaları
 if (!DEMO) document.documentElement.classList.add('live');
 
@@ -275,7 +276,7 @@ function drawHeader() {
 }
 function drawCombo(dt) {
   combo.t = Math.max(0, combo.t - dt); if (combo.t <= 0) combo.n = 0;
-  if (combo.n < 2) return;
+  if (combo.n < 2 || mode.phase === 'kursu') return; /* kürsü töreninde rozet üçüncünün basamağını örtmesin */
   const s = 1 + Math.sin(T * 10) * .03;
   ctx.save(); ctx.translate(880, 1150); ctx.rotate(-.06); ctx.scale(s, s);
   panel(-130, -52, 260, 104, 26, 'rgba(10,6,30,.78)');
@@ -921,32 +922,64 @@ const race = {
     const bn = mesh(new THREE.BoxGeometry(.12, 1.3, 14.4), [std('#fff', { map: banner }), std('#fff', { map: banner }), red, red, red, red], 0, 4.5, 0); arch.add(bn);
     const line = mesh(new THREE.PlaneGeometry(.5, 13.4), std('#ffffff'), 0, .03, 0, false); line.rotation.x = -Math.PI / 2; arch.add(line);
     arch.visible = false; s.add(arch);
+    { /* start kapısı: sekiz bölme, önde parmaklıklı kapılar. Yarış başlayana kadar atlar burada bekler; boş pist yerine ilk görülen şey budur */
+      const g = this.gate = new THREE.Group(), green = std('#1d5d3a', { roughness: .7 }), steel = std('#dfe3e8', { roughness: .4, metalness: .3 }), doors = this.doors = new THREE.Group();
+      for (let l = 0; l <= 8; l++) { const z = (l - 4) * LANE; g.add(mesh(new THREE.BoxGeometry(4.4, 1.45, .08), green, -2.2, .74, z)); g.add(mesh(new THREE.BoxGeometry(.14, 2.6, .14), steel, 0, 1.3, z)); g.add(mesh(new THREE.BoxGeometry(.14, 2.6, .14), steel, -4.4, 1.3, z)); }
+      g.add(mesh(new THREE.BoxGeometry(.3, .34, 8 * LANE + .3), std('#d62839', { roughness: .5 }), 0, 2.6, 0)); g.add(mesh(new THREE.BoxGeometry(.2, .2, 8 * LANE + .3), steel, -4.4, 2.6, 0));
+      for (let l = 0; l < 8; l++) for (const y of [.45, .85, 1.25]) doors.add(mesh(new THREE.BoxGeometry(.06, .09, LANE - .16), steel, .04, y, (l - 3.5) * LANE));
+      g.add(doors); s.add(g); }
+    { /* kürsü: yarış bitince ilk üç jokey çıkar; ortada kupa */
+      const pd = this.pod3 = new THREE.Group(), face = (n, c) => canvasTex(128, 128, g => { g.fillStyle = c; g.fillRect(0, 0, 128, 128); g.fillStyle = 'rgba(255,255,255,.92)'; g.font = '800 96px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(n, 64, 70); });
+      [[0, .9, '1', '#d9a520'], [-1.5, .62, '2', '#a9b0bb'], [1.5, .42, '3', '#b5683a']].forEach(([x, h, n, c]) => { const side = std(c, { roughness: .5 }); pd.add(mesh(new THREE.BoxGeometry(1.46, h, 1.2), [side, side, side, side, std('#fff', { map: face(n, c), roughness: .5 }), side], x, h / 2, 0)); });
+      const gold = std('#e8b62c', { roughness: .25, metalness: .7 }), cup = new THREE.Group(); cup.add(mesh(new THREE.CylinderGeometry(.16, .2, .08, 16), gold, 0, .04, 0)); cup.add(mesh(new THREE.CylinderGeometry(.035, .05, .22, 10), gold, 0, .19, 0));
+      cup.add(mesh(new THREE.SphereGeometry(.2, 18, 12, 0, TAU, Math.PI * .5, Math.PI * .5), gold, 0, .5, 0)); cup.add(mesh(new THREE.CylinderGeometry(.2, .2, .1, 18, 1, true), gold, 0, .55, 0));
+      for (const sx of [-1, 1]) { const h = mesh(new THREE.TorusGeometry(.09, .022, 8, 14), gold, sx * .24, .47, 0); cup.add(h); }
+      cup.children.forEach(c => { if (c.material) c.material.side = THREE.DoubleSide; }); cup.position.set(.47, .9, .3); cup.scale.setScalar(.8); /* birincinin yanında, basamağın üstünde: yerdeyken rakamı örtüyordu */ pd.add(cup); pd.visible = false; s.add(pd); }
   },
   reset() {
     if (this.r && this.built) for (const r of this.r.values()) if (r.act) { this.scene.remove(r.act.m); this.scene.remove(r.act.j.root); }
     this.r = new Map(); this.list = []; this.locked = false; this.lanes = [7, 0, 6, 1, 5, 2, 4, 3];
     if (this.arch) this.arch.visible = false;
+    this.phase = 'kapi'; this.count = 0; this.pod = null; /* kapı → koşu → kürsü */
+    if (this.gate) { this.gate.position.x = this.base + 2.7; /* atın uzanan ön bacakları kapının gerisinde kalsın */ this.gate.visible = this.doors.visible = true; this.pod3.visible = false; }
   },
   gift(p, a) {
     let r = this.r.get(p.id);
     if (!r) { r = { p, prog: 0, shown: 0, x: this.base, coat: -1, act: null }; this.r.set(p.id, r); }
     r.prog += a;
+    if (this.phase === 'kapi' && !this.count) { this.count = 3.6; hall.cheer = Math.max(hall.cheer, .5); } /* ilk hediye geri sayımı başlatır: sayım gerçektir, bitince kapılar açılır */
     if (r.prog >= CFG.goal) {
-      r.prog = CFG.goal; this.locked = true;
+      r.prog = CFG.goal; this.locked = true; if (this.phase === 'kapi') this.start();
       // finiş: tak 1,8 sn ileride belirir; kamera takın önüne geçip kazananın çizgiyi geçişini gösterir, kutlama ondan sonra gelir
       if (this.arch) { const ax = this.arch.position.x = this.base + SPEED * 1.8 + SPAN + 1.4; this.arch.visible = true;
         if (this.dir) this.dir.focus(() => ({ p: [ax + 6.5, 2.4, r.z + 6.5], l: [ax - 1.5, 1.4, r.z * .5] }), 2.6, 3, p, 'finişe geliyor 🏁'); }
-      after(2.5, () => { celebrate('YARIŞI KAZANDI!', p, 'Hipodromun şampiyonu 🏆'); this.reset(); });
+      after(2.5, () => { if (!this.built) { celebrate('YARIŞI KAZANDI!', p, 'Hipodromun şampiyonu 🏆'); this.reset(); return; }
+        /* kürsü töreni: ilk üç jokey kürsüye çıkar, kupa ortada; kutlama kartı törenden sonra gelir */
+        this.phase = 'kursu'; this.kT = 4.6; this.pod = this.list.filter(r => r.act).slice(0, 3); this.arch.visible = false; this.gate.visible = false; this.px = this.base + 3;
+        this.pod3.position.set(this.px, 0, 0); this.pod3.visible = true; confetti(90); snd.clap(); if (this.dir) this.dir.f = null;
+        for (const r of this.list) if (r.act) { r.act.m.visible = false; r.act.j.root.visible = this.pod.includes(r); }
+        this.pod.forEach((r, i) => { const j = r.act.j; j.root.scale.setScalar(.95); j.root.rotation.y = 0; r.act.tack.visible = r.act.helmet.visible = false; /* eyer ve kask gizlenir: baş dikleşince kask yüzü örtüyordu */
+          for (const b of ['Spine', 'Spine1', 'Head', 'LeftUpLeg', 'RightUpLeg', 'LeftLeg', 'RightLeg']) P(j, b, 0, 0, 0); j.root.position.set(this.px + [0, -1.5, 1.5][i], [.9, .62, .42][i], 0); }); });
     }
   },
+  start() { if (this.phase !== 'kapi') return; this.phase = 'kos'; this.count = 0; this.doors.visible = false; floater('START! 🏇', 540, 760, C.yellow, 110); snd.dum(); hall.cheer = 1; },
   like(p, n) { const r = this.r.get(p.id); if (r && !this.locked) r.prog = Math.min(CFG.goal - 1, r.prog + n * .05); },
-  activity(p, pri) { if (this.dir && pri) this.dir.focus(() => { const r = this.r.get(p.id); return r && r.act ? { p: [r.x + 2.2, 3.6, r.z + 4.2], l: [r.x + .4, 1.2, r.z] } : null; }, 2.8, pri, p, pri === 2 ? 'atını kamçıladı 🏇' : 'tezahürat yapıyor 📣'); }, // yayın kamerası o ata yaklaşır
+  activity(p, pri) { if (this.dir && pri && this.phase === 'kos') this.dir.focus(() => { const r = this.r.get(p.id); return r && r.act ? { p: [r.x + 2.2, 3.6, r.z + 4.2], l: [r.x + .4, 1.2, r.z] } : null; }, 2.8, pri, p, pri === 2 ? 'atını kamçıladı 🏇' : 'tezahürat yapıyor 📣'); }, // yayın kamerası o ata yaklaşır
   update(dt) {
     this.list = [...this.r.values()].sort((a, b) => b.prog - a.prog);
-    this.base += SPEED * dt;
+    const ph = this.phase;
+    if (ph === 'kapi' && this.count > 0) { const c0 = Math.ceil(this.count); this.count -= dt; if (this.count <= 0) this.start(); else if (Math.ceil(this.count) !== c0) snd.tek(); }
+    if (ph === 'kos') this.base += SPEED * dt;
+    if (this.gate && this.gate.visible && this.base - this.gate.position.x > 45) this.gate.visible = false; /* kapı geride kaldı */
+    if (ph === 'kursu') { this.kT -= dt; const w = Math.sin(T * 7);
+      this.pod.forEach((r, i) => { const j = r.act.j; if (i === 0) { arm(j, 'Left', 1.5 + w * .15, .3); arm(j, 'Right', 1.5 - w * .15, .3); P(j, 'LeftForeArm', -.5, 0, 0); P(j, 'RightForeArm', -.5, 0, 0); j.root.position.y = .9 + Math.abs(w) * .05; }
+        else { arm(j, i === 1 ? 'Right' : 'Left', 1.4 + w * .2, .3); P(j, (i === 1 ? 'Right' : 'Left') + 'ForeArm', -.7, 0, 0); arm(j, i === 1 ? 'Left' : 'Right', -.35, .1); P(j, (i === 1 ? 'Left' : 'Right') + 'ForeArm', 0, 0, 0); } });
+      if (this.kT <= 0) { const p = this.pod[0] ? this.pod[0].p : this.list[0].p; celebrate('YARIŞI KAZANDI!', p, 'Hipodromun şampiyonu 🏆'); this.reset(); return; }
+      this.dir = this.dir || makeDirector(); this.dir.update(dt, this.cam, { p: [this.px + Math.sin(T * .6) * .5, 2.2, 6.6], l: [this.px, 1.3, 0] }, this.base);
+      this.sun.position.set(this.px + 6, 12, 9); this.sun.target.position.set(this.px, 0, 0); return; }
     let lo = Infinity, hi = -Infinity;
     this.list.forEach((r, i) => {
-      r.push = r.prog - r.shown; r.shown = ease(r.shown, r.prog, dt, 2.6); r.x = this.base + r.shown / CFG.goal * SPAN;
+      r.push = r.prog - r.shown; r.shown = ph === 'kapi' ? 0 : ease(r.shown, r.prog, dt, 2.6); r.x = this.base + r.shown / CFG.goal * SPAN; /* kapıda herkes aynı hizada bekler; öne geçmek startla başlar */
       if (!this.built) return;
       if (i < 8 && !r.act && this.lanes.length) {
         const m = assets.horse.scene.children[0].clone(); if (r.coat < 0) { const used = new Set([...this.r.values()].map(o => o.coat)); r.coat = [...COATS.keys()].find(k => !used.has(k)) ?? hash(r.p.id) % COATS.length; } // pistteki atlar birbirinden farklı donda olsun
@@ -963,21 +996,27 @@ const race = {
         const tack = new THREE.Group(), cloth = mesh(new THREE.CylinderGeometry(.2, .2, .56, 14, 1, true, Math.PI * .5, Math.PI), std(col, { roughness: .7 }), 0, .76, -.05); cloth.rotation.x = Math.PI / 2; cloth.material.side = THREE.DoubleSide; tack.add(cloth); /* örtü atın sırtını sarar: düz levha yandan dışarı taşan bir tahta gibi duruyordu */
         tack.add(mesh(new THREE.BoxGeometry(.3, .09, .38), std('#3b2416', { roughness: .6 }), 0, .99, -.05));
         j.root.add(tack);
-        r.act = { m, mixer, j }; r.lane = this.lanes.pop(); this.scene.add(m); this.scene.add(j.root);
+        r.act = { m, mixer, j, tack, helmet }; r.lane = this.lanes.pop(); this.scene.add(m); this.scene.add(j.root);
       } else if (i >= 8 && r.act) { this.scene.remove(r.act.m); this.scene.remove(r.act.j.root); this.lanes.push(r.lane); r.act = null; }
-      if (r.act) { r.z = (r.lane - 3.5) * LANE; r.act.m.position.set(r.x, .95, r.z); r.act.j.root.position.set(r.x + .12, JY + Math.sin(r.act.mixer.time / .62 * TAU) * .05, r.z); r.act.mixer.update(dt * (1 + clamp(r.push / 30, 0, .6))); lo = Math.min(lo, r.x); hi = Math.max(hi, r.x); }
+      if (r.act) { r.z = (r.lane - 3.5) * LANE; r.act.m.position.set(r.x, .95, r.z); r.act.j.root.position.set(r.x + .12, JY + Math.sin(r.act.mixer.time / .62 * TAU) * .05, r.z); if (ph === 'kapi') { r.act.mixer.setTime(GATE_T); r.act.j.root.position.y = JY; } else r.act.mixer.update(dt * (1 + clamp(r.push / 30, 0, .6))); lo = Math.min(lo, r.x); hi = Math.max(hi, r.x); }
     });
     if (!this.built) return;
     const f = hi === -Infinity ? this.base + 2 : hi * .62 + lo * .38;
     this.focus = ease(this.focus, f, dt, 3); this.spread = ease(this.spread, hi === -Infinity ? 0 : hi - lo, dt, 3);
     this.dir = this.dir || makeDirector();
-    this.dir.update(dt, this.cam, { p: [this.focus + 2.0, 6.8 + this.spread * .28, 11.6 + this.spread * .6], l: [this.focus + .3, .5, -.4] }, this.base);
+    this.dir.update(dt, this.cam, ph === 'kapi' ? { p: [this.base + 10.2 + Math.sin(T * .3) * .6, 4.6, 10.5], l: [this.base + .9, 1.0, -.3] } /* kapının önünden, atların yüzü görünür */ : { p: [this.focus + 2.0, 6.8 + this.spread * .28, 11.6 + this.spread * .6], l: [this.focus + .3, .5, -.4] }, this.base);
     this.world.position.x = Math.round(this.focus / 8) * 8;
     this.sun.position.set(this.focus + 6, 12, 9); this.sun.target.position.set(this.focus, 0, 0);
   },
   draw() {
     const shown = this.list.filter(r => r.act), lead = this.list[0];
-    if (!lead) bar(140, 452, 800, 70, 0, C.cyan, C.pink, 'İlk hediyeyi gönder, atını piste çıkar! 🏇');
+    if (this.phase === 'kursu') { bar(140, 452, 800, 70, 1, C.yellow, C.pink, '🏆 KÜRSÜ TÖRENİ');
+      if (this.built) this.pod.forEach((r, i) => { const [x, y] = proj(this.cam, this.px + [0, -1.5, 1.5][i], [.9, .62, .42][i] + 1.86, 0), nm = fit(r.p.name, 200, 26); setFont(26); const lw = ctx.measureText(nm).width + 96;
+        panel(x - lw / 2, y - 24, lw, 48, 24, i ? 'rgba(10,6,30,.78)' : 'rgba(120,80,0,.9)'); text(['🥇', '🥈', '🥉'][i], x - lw / 2 + 26, y + 2, 30); avatar(r.p, x - lw / 2 + 62, y, 17, i ? '#fff' : C.yellow); text(nm, x - lw / 2 + 86, y + 1, 26, i ? '#fff' : C.yellow, 'left'); });
+      return; }
+    if (!lead) bar(140, 452, 800, 70, 0, C.cyan, C.pink, 'İlk hediyeyi gönder, atın start kapısına girsin! 🏇');
+    else if (this.phase === 'kapi') { bar(140, 452, 800, 70, 1 - this.count / 3.6, C.cyan, C.pink, `🚦 Kapıda ${shown.length} at · start geliyor`);
+      if (this.count > 0) text(String(Math.ceil(Math.min(3, this.count))), 540, 1080, 240, C.yellow, 'center', 16); /* kumun üstünde: ad etiketlerini örtmesin */ }
     else bar(140, 452, 800, 70, lead.shown / CFG.goal, C.yellow, C.pink, this.locked ? '🏁 FİNİŞ!' : `🏁 ${fit(lead.p.name, 300, 34)} önde · finişe %${clamp(Math.ceil((1 - lead.prog / CFG.goal) * 100), 1, 99)} kaldı`);
     if (!this.built) return;
     shown.forEach(r => {
@@ -1298,7 +1337,7 @@ function frame(now) {
   if (!mode.locked && pending.length) { const q = pending; pending = []; q.forEach(([p, a, raw]) => giveToMode(p, a, raw)); }
   if (DEMO) demoTick(dt);
   quality.tick(now);
-  if (QA) window.__qa = { seat: (() => { const f = mode.dir && mode.dir.f, q = f && f.who && hall.where.get(f.who.id); if (!q) return null; let fwd = null; if (q.g && q.g.a) { const ft = q.g.a.b.LeftFoot.getWorldPosition(new THREE.Vector3()); fwd = [+((ft.x - q.x) * Math.sin(q.face) + (ft.z - q.z) * Math.cos(q.face)).toFixed(2), +ft.y.toFixed(2), q.g.a.kind]; } return [q.x, q.z, q.face, fwd]; })(), fps: Math.round(quality.fps), guests: hall.where ? hall.where.size : 0, players: players.size, frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, oyun: mode.style ? OYUN[mode.style][0] : null, balon: says.size, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
+  if (QA) window.__qa = { seat: (() => { const f = mode.dir && mode.dir.f, q = f && f.who && hall.where.get(f.who.id); if (!q) return null; let fwd = null; if (q.g && q.g.a) { const ft = q.g.a.b.LeftFoot.getWorldPosition(new THREE.Vector3()); fwd = [+((ft.x - q.x) * Math.sin(q.face) + (ft.z - q.z) * Math.cos(q.face)).toFixed(2), +ft.y.toFixed(2), q.g.a.kind]; } return [q.x, q.z, q.face, fwd]; })(), fps: Math.round(quality.fps), guests: hall.where ? hall.where.size : 0, players: players.size, frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, oyun: mode.style ? OYUN[mode.style][0] : null, balon: says.size, faz: mode.phase || null, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
   if (ready() && !mode.built) { mode.build(); mode.built = true; }
   mode.update(dt);
   if (QA && window.__qaCam && mode.cam) { const c = window.__qaCam; mode.cam.position.set(c[0], c[1], c[2]); mode.cam.lookAt(c[3], c[4], c[5]); } // görsel denetim: kamerayı elle yerleştir

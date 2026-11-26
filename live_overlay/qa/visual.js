@@ -85,11 +85,12 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
   if (!only || only === 'race') {
   await api('/api/mode', { mode: 'race' }); await wait(2); await gl('yaris-0-bos');
   for (const n of NAMES.slice(0, 8)) await gift(n, 1, 3);
-  await wait(4); await gl('yaris-1-sekiz-at-ayni-hizada');
+  await wait(1.3); await gl('yaris-0b-kapida-geri-sayim'); await full('yaris-0b-tam-ekran');
+  await wait(5); await gl('yaris-1-sekiz-at-ayni-hizada');
   for (const [i, n] of NAMES.slice(0, 8).entries()) await gift(n, 700 * (i + 1)); // finiş 20.000, kombo en çok 2 kat: en öndeki 11.200'de kalır, yarış bitmez
   await wait(4); await gl('yaris-2-dagilmis'); await full('yaris-2-tam-ekran');
   await wait(3); await gift('Ayşe', 10); await wait(.5); await gl('yaris-3-yakin-at');
-  await wait(4); await gift('Selin', 40000, 1, 'Galaksi'); await wait(1.5); /* kazanan takın altından geçerken */ await gl('yaris-4-finis');
+  await wait(4); await gift('Selin', 40000, 1, 'Galaksi'); await wait(1.5); /* kazanan takın altından geçerken */ await gl('yaris-4-finis'); await wait(2.6); await gl('yaris-5-kursu'); await full('yaris-5-tam-ekran');
   }
   await b.close();
 })();
