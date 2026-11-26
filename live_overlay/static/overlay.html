@@ -124,7 +124,7 @@ function drawSays() { /* konuşma balonları: en yeni üç yorum, yazanın baş�
   const f = mode.dir && mode.dir.f, live = [...says.values()].filter(v => T - v.t < 5 || (says.delete(v.p.id), false)).sort((a, b) => b.t - a.t).slice(0, 3); let edge = 0;
   for (const v of live) { if (f && f.who !== v.p) continue; const q = hall.where.get(v.p.id), d = !q && mode.d && mode.d.get && mode.d.get(v.p.id); if (!q && !(d && d.pos)) continue;
     let [x, y] = q ? proj(cam, q.x, q.h + .38, q.z) : proj(cam, d.pos[0], f ? 2.05 : 2.7, d.pos[1]); const al = clamp(Math.min((T - v.t) * 6, (5 - (T - v.t)) * 3), 0, 1); /* geniş planda halaycının balonu ad rozetinin üstünde durur */
-    const off = x < VX + 30 || x > VX + VW - 30 || y < VY + 120 || y > VY + VH - 240; /* yazan kişi kadrajda değilse (masası yanda kalır) balon, adıyla birlikte ona yakın kenarda, boş pist zemininin üstünde durur: yorum hiçbir zaman kaybolmaz */
+    const off = !f && (x < VX + 30 || x > VX + VW - 30 || y < VY + 120 || y > VY + VH - 240); if (f) { x = clamp(x, VX + 120, VX + VW - 120); y = clamp(y, VY + 230, VY + VH - 420); } /* yakın planda balon hep konuşanın başının üstünde kalır: kenara düşünce alt banttaki adın arkasında kalıyordu */ /* yazan kişi kadrajda değilse (masası yanda kalır) balon, adıyla birlikte ona yakın kenarda, boş pist zemininin üstünde durur: yorum hiçbir zaman kaybolmaz */
     if (off) { x = x > VX + VW / 2 ? VX + VW - 80 : VX + 80; y = VY + VH - 90 - edge++ * 100; }
     bubble(off ? v.p.name + ': ' + v.s : v.s, x, y, al, off); }
 }
