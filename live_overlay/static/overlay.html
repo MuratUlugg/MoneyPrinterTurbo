@@ -652,9 +652,11 @@ const hall = {
     P3.needsUpdate = true;
   },
   draw(cam) { // son gelen misafirlerin ve yakın plandakilerin fotoğrafı; herkesinkini çizmek ekranı doldurur
+    guestCount = players.size; /* başlıkta gösterilir */
+    if (mode.dir && mode.dir.f) return; /* yakın planda misafir fotoğrafları yüzlerin üstüne binmesin */
     const recent = this.seats.filter(q => q.g && q.g.p && (q.g.a || T - q.g.t < 25)).sort((a, b) => b.g.t - a.g.t).slice(0, 18);
     for (const q of recent) { const [x, y] = proj(cam, q.x, q.h + .32, q.z); avatar(q.g.p, x, y, q.g.a ? 20 : 14); }
-    guestCount = players.size; /* başlıkta gösterilir */ },
+ },
 };
 
 // =====================================================================
@@ -951,7 +953,7 @@ const taki = {
       g.userData.size = raw >= 1000 ? .05 : raw >= 200 ? .044 : raw >= 50 ? .038 : raw >= 10 ? .032 : .027; // beşi bir yerde > bilezik > tam > yarım > çeyrek
       g.traverse(o => { o.castShadow = true; }); return g; };
     // kurdeleler: [x, üst y, z] çiftin kendi koordinatlarında (y yukarı, z öne)
-    this.ribbon = [[.075, 1.45, .172], [-.01, 1.38, .182]];
+    this.ribbon = [[.075, 1.45, .172], [-.01, 1.33, .2]]; // gelinde kurdele göğsün altından başlar ve elbisenin önünde durur
     this.target = [this.hall.groom.root, this.hall.bride];
     this.target.forEach((t, i) => { if (t.userData.ribbon) return; const [x, top, z] = this.ribbon[i], sh = new THREE.Shape(); // ucu çatallı kurdele
       sh.moveTo(-.105, 0); sh.lineTo(.105, 0); sh.lineTo(.105, -.47); sh.lineTo(0, -.41); sh.lineTo(-.105, -.47); sh.closePath();
@@ -1010,12 +1012,12 @@ const taki = {
     if (this.say) { ctx.globalAlpha = clamp(Math.min(this.say.t * 6, (2.6 - this.say.t) * 4), 0, 1);
       panel(170, 538, 740, 84, 42, '#fff'); avatar(this.say.p, 214, 580, 32, C.yellow);
       text(fit(`${this.say.p.name}: ${this.say.line}`, 620, 36), 262, 582, 36, '#6e1230', 'left'); ctx.globalAlpha = 1; }
-    else if (!this.sum) text('İlk takıyı sen tak! 🎗', 540, 580, 46, '#fff', 'center', 9);
+    else if (!this.sum && !(this.dir && this.dir.f)) text('İlk takıyı sen tak! 🎗', 540, 580, 46, '#fff', 'center', 9); /* yakın planda yüzün üstüne yazı binmesin */
     const top = [...this.g.values()].sort((a, b) => b.v - a.v).slice(0, 3);
     if (top.length) {
       // tek satır: çiftin ayaklarını ve gelinliğin eteğini kapatmasın
-      const w = 316; panel(56, 1252, 968, 64, 32, 'rgba(10,6,30,.7)');
-      top.forEach((d, i) => { const x = 70 + i * w; text(['🥇', '🥈', '🥉'][i], x + 18, 1285, 28); avatar(d.p, x + 58, 1284, 19);
+      const w = 316, pw = top.length * w + 20, x0 = 540 - pw / 2; panel(x0, 1252, pw, 64, 32, 'rgba(10,6,30,.7)'); /* şerit, içindeki kişi sayısı kadar geniş */
+      top.forEach((d, i) => { const x = x0 + 14 + i * w; text(['🥇', '🥈', '🥉'][i], x + 18, 1285, 28); avatar(d.p, x + 58, 1284, 19);
         text(fit(d.p.name, 104, 23), x + 84, 1285, 23, '#fff', 'left'); text('💎' + fmt(d.v), x + w - 26, 1285, 23, C.yellow, 'right'); });
     }
   },
