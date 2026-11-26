@@ -671,7 +671,7 @@ const hall = {
     guestCount = players.size; /* başlıkta gösterilir */
     if (mode.dir && mode.dir.f) return; /* yakın planda misafir fotoğrafları yüzlerin üstüne binmesin */
     const recent = this.seats.filter(q => q.g && q.g.p && (q.g.a || T - q.g.t < 25)).sort((a, b) => b.g.t - a.g.t).slice(0, 18);
-    for (const q of recent) { const [x, y] = proj(cam, q.x, q.h + .32, q.z); avatar(q.g.p, x, y, q.g.a ? 20 : 14); }
+    for (const q of recent) { const [x, y] = proj(cam, q.x, q.h + .32, q.z); if (x < VX + 24 || x > VX + VW - 24 || y < VY + 24 || y > VY + VH - 24) continue; /* sahne çerçevesinin dışına taşan yarım rozet çizilmez */ avatar(q.g.p, x, y, q.g.a ? 20 : 14); }
  },
 };
 
