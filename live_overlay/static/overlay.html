@@ -683,9 +683,13 @@ const hall = {
     arm(zr, 'Right', -.05, .75); P(zr, 'RightForeArm', 0, 0, -1.75); arm(zr, 'Left', -.2, .7); P(zr, 'LeftForeArm', 0, 0, 1.55); P(zr, 'Spine', -.1 + Math.sin(ph) * .05, 0, 0); P(zr, 'Head', -.15, Math.sin(ph * .5) * .15, 0);
     P(g, 'Spine', Math.sin(T * 1.7) * .02, Math.sin(T * .45) * .08, Math.sin(T * .8) * .03); P(g, 'Head', Math.sin(this.nod[0] * Math.PI * 3) * .22 * this.nod[0], Math.sin(T * .5) * .12, 0);
     { /* pasta kesme: çift pastanın iki yanına geçer, damat bıçağı indirip kaldırır, dilim pastadan çıkar */
-      const c = this.cutK = ease(this.cutK || 0, this.cut ? 1 : 0, dt, 3.5); g.root.position.x = -.4 + c * 2.55; g.root.position.z = -6.4 + c * .25; g.root.rotation.y = .3 + c * .15; br.position.x = .52 + c * 3.13; br.position.z = -6.4 + c * .1;
+      const c = this.cutK = ease(this.cutK || 0, this.cut ? 1 : 0, dt, 3.5); const o = this.outK = ease(this.outK || 0, this.outTo ? 1 : 0, dt, 2.2); if (this.outTo) this.outAt = this.outTo; const oa = this.outAt || [0, 0]; /* damat halaya iner: sahneden ortaya çıkanın yanına yürür, süre bitince geri döner */
+      g.root.position.x = lerp(-.4 + c * 2.55, oa[0], o); g.root.position.z = lerp(-6.4 + c * .25, oa[1], o); g.root.position.y = .43 * (1 - clamp(o * 2.2, 0, 1)); g.root.rotation.y = lerp(.3 + c * .15, -1.1, o); br.position.x = .52 + c * 3.13; br.position.z = -6.4 + c * .1;
       this.knife.visible = this.slice.visible = c > .6; if (c > .6) { const u = clamp((c - .6) * 6, 0, 1) * (.5 + .5 * Math.sin(T * 1.3)); this.slice.position.set(2.9, 1.86 + u * .14, -6.6 + .2 + u * .3); this.slice.rotation.y = -.4; } }
-    if (this.cut && this.cutK > .5) { aimArm(g, 'Right', 2.72, 1.98 + Math.sin(T * 4) * .09, -6.42); grip(g, 'Right', .8); arm(g, 'Left', -.5, .22); P(g, 'LeftForeArm', 0, 0, .5); }
+    if (this.outK > .5) { const w = Math.sin(ph + 1.6), q = Math.sin(ph * 1.3); /* ortada, hediyeyi atanla karşılıklı oynar: kollar yukarıda, dirsekler kırık, adımlar sırayla */
+      arm(g, 'Left', 1.45 + w * .28, .3); arm(g, 'Right', 1.45 - w * .28, .3); P(g, 'LeftForeArm', -1.0 - w * .2, 0, 0); P(g, 'RightForeArm', -1.0 + w * .2, 0, 0);
+      P(g, 'RightUpLeg', Math.max(0, q) * .35, 0, 0); P(g, 'RightLeg', -Math.max(0, q) * .6, 0, 0); P(g, 'LeftUpLeg', Math.max(0, -q) * .35, 0, 0); P(g, 'LeftLeg', -Math.max(0, -q) * .6, 0, 0); g.root.rotation.y += Math.sin(ph * .5) * .3; }
+    else if (this.cut && this.cutK > .5) { aimArm(g, 'Right', 2.72, 1.98 + Math.sin(T * 4) * .09, -6.42); grip(g, 'Right', .8); arm(g, 'Left', -.5, .22); P(g, 'LeftForeArm', 0, 0, .5); }
     else if (dance) { const cl = hit * .14; arm(g, 'Left', -.3, .45 + cl); P(g, 'LeftForeArm', 0, 0, 1.25); arm(g, 'Right', -.3, .45 + cl); P(g, 'RightForeArm', 0, 0, -1.25); } /* halayda damat tempo tutup alkışlar: eski duruşta kolları iki yana açık, kalıp gibi duruyordu */ else { // tören duruşu: geline dönük, kollar rahat ve dirsekten hafif kırık
       arm(g, 'Left', -.5, .22); P(g, 'LeftForeArm', 0, 0, .5 + Math.sin(T * .9) * .04); arm(g, 'Right', -.58, .08); P(g, 'RightForeArm', 0, 0, -.22); }
     br.rotation.y = -.25 - (this.cutK || 0) * .35 + Math.sin(T * .7) * .09; br.rotation.z = Math.sin(T * .9) * .012; br.scale.y = 1 + Math.sin(T * 1.6) * .004; // hafif salınım ve nefes: gelinin iskeleti yok, yerinde donuk durmasın br.position.y = .43 + Math.abs(Math.sin(this.nod[1] * Math.PI * 2)) * .03 * this.nod[1];
@@ -714,7 +718,7 @@ const hall = {
 // =====================================================================
 const halay = {
   title: 'DÜĞÜN HALAYI',
-  menu: [['💬 Yorum yaz', 'masana otur'], ['🌹 1+', 'kalk, halaya gir'], [`💎 ${CFG.bahsis}+`, 'davulcuya bahşiş, tempo coşar'], [`💎 ${CFG.oyun}+`, 'oyun havasını sen değiştir'], [`💎 ${CFG.orta}+`, 'ortaya çık, para saçılsın'], [`💎 ${CFG.buyuk * 5}+`, 'yer volkanları + çelengin sahnede'], ['➕ Takip et', 'salon seni alkışlar'], ['↗ Paylaş', 'şerefine yer volkanı'], ['👑 En cömert', 'mendilli halay başı']],
+  menu: [['💬 Yorum yaz', 'masana otur'], ['🌹 1+', 'kalk, halaya gir'], [`💎 ${CFG.bahsis}+`, 'davulcuya bahşiş, tempo coşar'], [`💎 ${CFG.oyun}+`, 'oyun havasını sen değiştir'], [`💎 ${CFG.orta}+`, 'ortaya çık, para saçılsın'], [`💎 ${CFG.buyuk * 5}+`, 'damat seninle oynar + yer volkanları'], ['➕ Takip et', 'salon seni alkışlar'], ['↗ Paylaş', 'şerefine yer volkanı'], ['👑 En cömert', 'mendilli halay başı']],
   build() {
     this.hall = hall.get(); this.scene = this.hall.scene; this.cam = camera(38, 0, 4.6, 10.5, 0, 1.1, -1.2);
     { // mendil: köşesinden tutulan, kırmızı kenarlı küçük bir bez
@@ -733,7 +737,7 @@ const halay = {
   reset() {
     if (this.acts) { for (const a of this.acts.values()) dispose(this.scene, a); this.acts.clear(); }
     if (this.back) { for (let i = 0; i < this.back.count; i++) this.back.hide(i); this.back.flush(); this.backN = 0; }
-    this.d = new Map(); this.list = []; this.cosku = this.shown = 0; this.ph = 0; this.beat = 0; this.rot = 0; this.locked = false; this.solo = null; this.soloQ = []; this.rainT = 0; this.style = 0; this.styleT = 0; this.styleBy = null; this.pastaT = 0; hall.cut = 0;
+    this.d = new Map(); this.list = []; this.cosku = this.shown = 0; this.ph = 0; this.beat = 0; this.rot = 0; this.locked = false; this.solo = null; this.soloQ = []; this.rainT = 0; this.style = 0; this.styleT = 0; this.styleBy = null; this.pastaT = 0; hall.cut = 0; hall.outTo = null; this.bigSolo = new Set();
   },
   gift(p, a, raw) {
     let d = this.d.get(p.id);
@@ -746,6 +750,7 @@ const halay = {
     else if (raw >= CFG.bahsis && raw < CFG.oyun && this.built) { hall.tip = 7; floater('DAVULCUYA BAHŞİŞ! 🥁', 540, 760, C.yellow, 64); // tempo coşar, kamera davulcuya döner
       this.dir.focus(() => { const dv = hall.davulcu.root; return hall.tip > 0 ? shot(dv.position.x, dv.position.z, dv.rotation.y, 1.5, 2.3, -.5) : null; }, 3, 2, p, 'davulcuya bahşiş verdi 💵'); }
     if (raw >= CFG.orta && !this.soloQ.includes(p.id) && !(this.solo && this.solo.id === p.id)) this.soloQ.push(p.id);
+    if (raw >= CFG.buyuk * 5) this.bigSolo.add(p.id); /* büyük hediye: ortaya çıktığında damat da sahneden inip onunla oynar */
     this.cosku = Math.min(100, this.cosku + a / CFG.halay * 100);
     if (this.cosku >= 100) {
       this.locked = true; // coşku doldu: son bir hızlı tur, sonra halay başı ilan edilir
@@ -767,7 +772,7 @@ const halay = {
     this.ph += dt * tempo;
     this.list = [...this.d.values()].sort((a, b) => b.v - a.v);
     if (this.solo && ((this.solo.t -= dt) <= 0 || !this.d.has(this.solo.id))) this.solo = null;
-    if (!this.solo && this.soloQ.length) { const id = this.soloQ.shift(); if (this.d.has(id)) { this.solo = { id, t: 8 }; floater('ORTAYA! 💸', 540, 760, C.yellow, 90); } }
+    if (!this.solo && this.soloQ.length) { const id = this.soloQ.shift(); if (this.d.has(id)) { const groom = this.bigSolo.delete(id); this.solo = { id, t: groom ? 10 : 8, groom }; floater(groom ? 'DAMAT DA ORTADA! 🤵' : 'ORTAYA! 💸', 540, 760, C.yellow, groom ? 78 : 90); } }
     if (this.solo && (this.rainT -= dt) <= 0) { this.rainT = .09; spawn({ kind: 'text', text: Math.random() < .5 ? '💵' : '💸', x: rand(260, 820), y: 470, vx: rand(-40, 40), vy: rand(160, 320), g: 120, life: 2.2, size: rand(44, 64) }); }
     const real = this.list.filter(d => !(this.solo && this.solo.id === d.p.id)).slice(0, quality.maxDancers);
     // pist boş kalmasın: gerçek halaycı 4'ten azsa adsız konuklar halayı sürdürür (adları, fotoğrafları, hediyeleri yoktur)
@@ -847,8 +852,9 @@ const halay = {
     const zm = this.zmid, hw = this.halfW, place = (m, x, z) => { m.root.position.x = ease(m.root.position.x, x, dt, 3); m.root.position.z = ease(m.root.position.z, z, dt, 3); m.root.rotation.y = Math.atan2(-m.root.position.x * .6, zm - m.root.position.z) ; };
     place(this.hall.davulcu, hw + 1.0, zm + .45); place(this.hall.zurnaci, hw + 1.85, zm + .75);
     this.zoom = ease(this.zoom || hw, hw, dt, 2);
+    hall.outTo = so && this.solo.groom && !(this.pastaT > 0) ? [so.pos[0] + 1.0, so.pos[1] + .1] : null; const gr = !!hall.outTo;
     if (this.pastaT > 0) this.dir.f = null; /* tören boyunca kamera pastada kalır */
-    else if (so) this.dir.focus(() => this.solo && this.d.get(this.solo.id) === so ? shot(so.pos[0], so.pos[1], 0, 1.5, 2.9, Math.sin(T * .5) * .5) : null, 8, 3, so.p, 'ortada oynuyor 💸'); /* ortaya çıkan: süre boyunca onda kal */
+    else if (so) this.dir.focus(() => this.solo && this.d.get(this.solo.id) === so ? shot(so.pos[0] + (gr ? .5 : 0), so.pos[1], 0, 1.5, gr ? 3.5 : 2.9, Math.sin(T * .5) * (gr ? .3 : .5)) : null, 8, 3, so.p, gr ? 'damatla karşılıklı oynuyor 🤵' : 'ortada oynuyor 💸'); /* ortaya çıkan: süre boyunca onda kal */
     // geniş plan: sıranın karşısında, göz hizasında duran kameraman; sıra uzadıkça geri çekilir
     this.dir.update(dt, this.cam, this.pastaT > 0 ? { p: [3.0 + Math.sin(T * .5) * .35, 1.95, -3.2], l: [3.0, 1.5, -6.5] } : { p: [.9 + Math.sin(T * .17) * .3, 1.6, zm + (this.zoom + 2.0) / .38], l: [.9, 1.12, zm] } /* sıra + sağdaki çalgıcılar kadraja sığacak uzaklık; .38 = yatay görüş açısının yarısının tanjantı (eski .43 fazla yakındı, baştaki halaycı kenarda kesiliyordu) */);
   },
@@ -1389,7 +1395,7 @@ function frame(now) {
   if (!mode.locked && pending.length) { const q = pending; pending = []; q.forEach(([p, a, raw]) => giveToMode(p, a, raw)); }
   if (DEMO) demoTick(dt);
   quality.tick(now);
-  if (QA) window.__qa = { seat: (() => { const f = mode.dir && mode.dir.f, q = f && f.who && hall.where.get(f.who.id); if (!q) return null; let fwd = null; if (q.g && q.g.a) { const ft = q.g.a.b.LeftFoot.getWorldPosition(new THREE.Vector3()); fwd = [+((ft.x - q.x) * Math.sin(q.face) + (ft.z - q.z) * Math.cos(q.face)).toFixed(2), +ft.y.toFixed(2), q.g.a.kind]; } return [q.x, q.z, q.face, fwd]; })(), fps: Math.round(quality.fps), guests: hall.where ? hall.where.size : 0, players: players.size, frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, oyun: mode.style ? OYUN[mode.style][0] : null, balon: says.size, faz: mode.phase || null, pasta: mode.pastaT > 0, seref: mode.hon ? mode.hon.length : 0, zafer: champion ? champion.rw || 0 : 0, zaferTop: Math.max(0, ...[...players.values()].map(v => v.rw || 0)), taraftar: mode.fans ? mode.fans.size : 0, atlar: mode.r && mode.r.size !== undefined ? mode.r.size : null, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
+  if (QA) window.__qa = { seat: (() => { const f = mode.dir && mode.dir.f, q = f && f.who && hall.where.get(f.who.id); if (!q) return null; let fwd = null; if (q.g && q.g.a) { const ft = q.g.a.b.LeftFoot.getWorldPosition(new THREE.Vector3()); fwd = [+((ft.x - q.x) * Math.sin(q.face) + (ft.z - q.z) * Math.cos(q.face)).toFixed(2), +ft.y.toFixed(2), q.g.a.kind]; } return [q.x, q.z, q.face, fwd]; })(), fps: Math.round(quality.fps), guests: hall.where ? hall.where.size : 0, players: players.size, frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, oyun: mode.style ? OYUN[mode.style][0] : null, balon: says.size, faz: mode.phase || null, pasta: mode.pastaT > 0, seref: mode.hon ? mode.hon.length : 0, damat: hall.outK > .5, zafer: champion ? champion.rw || 0 : 0, zaferTop: Math.max(0, ...[...players.values()].map(v => v.rw || 0)), taraftar: mode.fans ? mode.fans.size : 0, atlar: mode.r && mode.r.size !== undefined ? mode.r.size : null, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
   if (ready() && !mode.built) { mode.build(); mode.built = true; }
   mode.update(dt);
   if (QA && window.__qaCam && mode.cam) { const c = window.__qaCam; mode.cam.position.set(c[0], c[1], c[2]); mode.cam.lookAt(c[3], c[4], c[5]); } // görsel denetim: kamerayı elle yerleştir

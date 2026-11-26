@@ -7,6 +7,8 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 İlk görsel denetimde (20 çekim) bulunanlar, göze batma sırasıyla.
 
 ### Halay
+- [ ] Çiftetelli ve zeybekte sıra şaşırtmalı açılınca öndeki ad rozetleri üst üste biniyor, halay başının tacı rozetin arkasında kalıyor (`damat-2`).
+- [ ] Ortada oynayanın yakın planında KOMBO rozeti ve uçuşan paralar oynayanların üstüne biniyor (`damat-0`).
 
 ### Takı töreni
 - [ ] Gelinle damat el ele ya da kol kola değil; gelinin kolları hiç oynamıyor (iskeletsiz model).
@@ -25,7 +27,6 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 
 Kullanıcı isteği: yeni özellikler. Sırayla, turda bir tane. Hepsi düğün ve at yarışı için; hiçbiri sahte bağışçı, sahte geri sayım ya da şans oyunu içermez.
 
-- [ ] **Damat halaya iniyor (düğün).** Büyük hediyede damat sahneden inip halayın başına geçer, hediyeyi atanla yan yana oynar.
 
 ## Açık: diğer
 
@@ -108,3 +109,4 @@ Kullanıcı isteği: yeni özellikler. Sırayla, turda bir tane. Hepsi düğün 
 - **Özellik: pasta kesme.** Halayda coşku gerçek hediyelerle %100 olunca 4,8 saniyelik tören: çift pastanın iki yanına geçer, damat elindeki bıçağı indirip kaldırır, dilim pastadan çıkar, kamera pastada; altta "Bu pastayı kestirenler" ve en cömert üç ad. Halay başı kartı törenden sonra. Doğrulama: duman testi (`pasta` bayrağı görüldü, ardından kazanan ilan edildi), görsel `pasta-0-kesim`, `pasta-1-dilim` (`QA_ONLY=pasta`; tören kısa sürdüğü için overlay'e töreni istenen anda donduran `__qaHoldPasta` kancası eklendi). Yolda düzeltilenler: kıvılcım, para yağmuru, nota ve KOMBO rozeti gelini ve pastayı örtüyordu (törende kapalı). Duman testinin kazanan bekleme döngüsü 14'ten 70 saniyeye çıkarıldı (kazanan gelince hemen çıkar): tören kazananın ilanını geciktiriyor ve ekran kartsız makinede oyun saati yavaş akıyor; beklenti aynı. Bilinen: dilim yandan düz beyaz bir blok gibi görünüyor; alçaltılması yeniden çekilmedi. Salon ayağa kalkmıyor (alkışlıyor), havai fişek yok.
 - **Özellik: şeref konukları (şeref masası yerine).** Tasarım değişti: halayda en cömertler zaten ön sırada oynuyor, ayrı bir masaya oturtmak aynı kişiyi iki yerde gösterecekti. Onun yerine takı töreninde o düğünün en çok takı takan üç kişisi masasından kalkıp sahneye, çiftin yanına çıkıyor (birinci damadın, ikinci ve üçüncü gelinin yanında), başlarında madalyalı ad, her takıda alkış; sıradan düşen masasına dönüyor; kamera konukları alacak kadar geri çekilip onlara kayıyor. Doğrulama: duman testi (üç şeref konuğu), görsel `taki-2` (tek konuk), `taki-3-takilar-takili`, `taki-3-tam-ekran` (üç konuk). Yolda düzeltilenler: üçüncü konuğu soldaki çelenk kapatıyordu (sağa alındı). Çalgıcıların takıda gizlenmesi (davulcunun kolu köşeye giriyordu) yeniden çekilmedi. Bilinen: üçüncü konuk pasta sehpasına çok yakın duruyor.
 - **Özellik: at adı ve zaferler.** Her izleyicinin atına kimliğinden türeyen kalıcı bir ad (Doruyel, Gülkanat…); at piste çıkınca bildirimde, yakın plan bandında, kürsü etiketinde ve kazanan kartında yazar. Kazanılan yarış overlay'den sunucuya bildirilir (`win` iletisi; yalnızca o yayında hediye göndermiş biri için kabul edilir), `data/alltime.json`'a işlenir, yayınlar arası sayılır; etikette ★n. Doğrulama: birim testi (zafer yeni yayında ve yeniden açılışta duruyor), duman testi (kazananın zaferi 1; sayfa yenilenince defterden geri geliyor), görsel `yaris-6-kazanan-karti` ("Doruyel ile · 1. zaferi"), `yaris-7-ikinci-yaris-yildiz` (etikette ★1). "Ahır" ekranı (izleyicinin atını ve geçmişini gösteren ayrı görünüm) yapılmadı; ad ve zafer sayısı var.
+- **Özellik: damat halaya iniyor.** Halayda tek seferde 500+ jeton (büyük hediyenin beş katı) gönderen ortaya çıktığında damat sahneden inip yanına geliyor, on saniye karşılıklı oynuyorlar (kollar yukarıda, dirsekler kırık, sırayla adım); kamera ikisini birlikte alıyor, alt bantta "damatla karşılıklı oynuyor"; süre bitince damat sahneye dönüyor. Doğrulama: duman testi (`damat` bayrağı görüldü), görsel `damat-0-ortada` (ikisi yan yana), `damat-2-sahneye-dondu` (damat yeniden sahnede) (`QA_ONLY=damat`). Görülmeyen: damadın sahneden inerken halay sırasının içinden geçişi (yarım saniyelik yürüyüş, kare yakalanmadı). **"Açık: özellik" bölümü boşaldı**; sıradaki turlar "Açık: görsel"den devam eder.

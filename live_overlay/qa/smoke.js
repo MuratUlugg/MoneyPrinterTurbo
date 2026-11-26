@@ -34,11 +34,11 @@ const MODES = ['halay', 'race', 'taki', 'tug', 'karpuz'];
       check(q && q.balon === 1, `halay: yorum balonu açıldı, bağlantılı yorum gösterilmedi (${q && q.balon})`); }
     const before = q ? q.wins : 0;
     await api('/api/simulate', { name: 'Zeynep', gift: 'Galaksi', diamonds: 1000 });
-    let won = false, sawPodium = false, sawCake = false; for (let i = 0; i < 70 && !won; i++) /* kazanan, törenden (pasta, kürsü) sonra ilan edilir; yavaş makinede oyun saati geride kalır */ { await p.waitForTimeout(1000); q = await p.evaluate(() => window.__qa || null); won = !!(q && q.wins > before && q.champion === 'Zeynep'); if (q && q.faz === 'kursu') sawPodium = true; if (q && q.pasta) sawCake = true; }
+    let won = false, sawPodium = false, sawCake = false, sawGroom = false; for (let i = 0; i < 70 && !won; i++) /* kazanan, törenden (pasta, kürsü) sonra ilan edilir; yavaş makinede oyun saati geride kalır */ { await p.waitForTimeout(1000); q = await p.evaluate(() => window.__qa || null); won = !!(q && q.wins > before && q.champion === 'Zeynep'); if (q && q.faz === 'kursu') sawPodium = true; if (q && q.pasta) sawCake = true; if (q && q.damat) sawGroom = true; }
     await p.screenshot({ path: `${OUT}/${m}-2-kazanan.png` });
     check(won, `${m}: büyük hediyeden sonra kazanan ilan edildi`);
     if (m === 'race') { check(sawPodium, 'race: kazanandan önce kürsü töreni yapıldı'); check(q.zafer === 1, `race: kazananın zaferi sayıldı (${q.zafer})`); }
-    if (m === 'halay') check(sawCake, 'halay: coşku dolunca pasta kesme töreni yapıldı');
+    if (m === 'halay') { check(sawCake, 'halay: coşku dolunca pasta kesme töreni yapıldı'); check(sawGroom, 'halay: büyük hediyede damat sahneden inip ortaya çıkanla oynadı'); }
     await p.waitForTimeout(4500);
   }
   check(q0.link === 'tiktok', `bağlantı göstergesi TikTok'a bağlı olmadığını bildiriyor (${q0.link})`);

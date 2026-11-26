@@ -73,6 +73,12 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
     const hold = async v => { await p.evaluate(x => { window.__qaHoldPasta = x; }, v); for (let i = 0; i < 600 && !(await p.evaluate(() => window.__qaPause)); i++) await p.waitForTimeout(200); };
     await hold(3.4); console.log('pasta', (await qa()).pasta); await gl('pasta-0-kesim'); await p.evaluate(() => { window.__qaPause = true; }); await full('pasta-0-tam-ekran'); await hold(1.6); await gl('pasta-1-dilim');
   }
+  if (only === 'damat') { /* damat halaya iniyor: 500+ jetonluk hediyede ortaya çıkanın yanına gelir */
+    await api('/api/mode', { mode: 'halay' }); await wait(2); for (const n of NAMES.slice(0, 6)) await gift(n, 5); await wait(6);
+    await gift('Selin', 500, 1, 'Aslan'); for (let i = 0; i < 300 && !(await qa()).damat; i++) await p.waitForTimeout(100);
+    await wait(1.5); await gl('damat-0-ortada'); await full('damat-0-tam-ekran'); await wait(2); await gl('damat-1-ortada');
+    for (let i = 0; i < 300 && (await qa()).damat; i++) await p.waitForTimeout(150); await wait(3); await gl('damat-2-sahneye-dondu');
+  }
   if (only === 'poz') { /* duruş laboratuvarı: QA_POZ='[[oyun,[kaldırma,salınım,öne,x,y,z]],...]' ile serbest oyunların kol duruşu tek oturumda denenir */
     await api('/api/mode', { mode: 'halay' }); await wait(2); for (const n of NAMES.slice(0, 5)) await gift(n, 2); await wait(5);
     let cur = 0; for (const [i, [st, k]] of JSON.parse(process.env.QA_POZ || '[]').entries()) {
