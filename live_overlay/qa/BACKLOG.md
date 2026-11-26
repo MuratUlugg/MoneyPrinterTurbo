@@ -20,6 +20,19 @@ Ralph döngüsü bu dosyayı her turda okur ve günceller (`RALPH.md`). Kapsam: 
 - [ ] Arka sıraların sol bacak kalkışı kodda var ama görüntüde ayırt edilemedi.
 - [ ] 500 kişilik gerçek yük hiç denenmedi: test 330 kişiyle ve saniyede 1 kare çizen ekran kartsız makinede yapıldı.
 
+## Açık: özellik
+
+Kullanıcı isteği: yeni özellikler. Sırayla, turda bir tane. Hepsi düğün ve at yarışı için; hiçbiri sahte bağışçı, sahte geri sayım ya da şans oyunu içermez.
+
+- [ ] **Oyun havası değişimi (düğün).** Belirli tutarın üstündeki hediye oyunu değiştirir: halay → çiftetelli → horon → zeybek. Her oyunun kendi adımı ve kol duruşu var; alt bantta "Ayşe horon açtırdı". Hediye atanın ekranda anında ve herkesçe görülen bir etkisi olur.
+- [ ] **Yorum balonu (düğün).** Masadaki misafirin yazdığı yorum kısa süre başının üstünde konuşma balonunda görünür (ad denetiminden geçer). Bedava katılım; salonu canlı gösterir.
+- [ ] **Start kapısı ve tur düzeni (yarış).** Boş pist yerine kapıda bekleyen atlar, "3-2-1" ile gerçek start, tur bitince kürsü töreni: ilk üç at, kupa, sahiplerinin adı. Boş pist notunu da kapatır.
+- [ ] **Taraftar desteği (yarış).** İzleyici yorumla bir ata taraf olur ("3"); taraftarların beğenisi ve hediyesi o atı da iter, tribünde o atın renginde bayraklar sallanır. Bahis değil: ödül ya da para yok, yalnızca destek.
+- [ ] **Pasta kesme (düğün).** Coşku %100 olunca gelin-damat pastayı keser, salon ayağa kalkar, havai fişek; en cömert üç kişinin adı pastanın yanında. Hedefe gerçek hediyelerle ulaşılır.
+- [ ] **Şeref masası (düğün).** En cömert üç kişi sahnenin yanındaki süslü masaya oturur, önlerinde ad kartı; sıralama değişince yer değişir.
+- [ ] **At adı ve ahır (yarış).** Her izleyicinin atının kalıcı bir adı olur (Şahbatur, Gülbatur…), kazandığı yarışlar sayılır; etikette yıldız olarak görünür.
+- [ ] **Damat halaya iniyor (düğün).** Büyük hediyede damat sahneden inip halayın başına geçer, hediyeyi atanla yan yana oynar.
+
 ## Açık: diğer
 
 - [ ] `smoke.js`: masaya oturma, ortaya çıkma, davulcuya bahşiş, ad denetimi, ayar kaydı ve otomatik program için kontrol yok.
