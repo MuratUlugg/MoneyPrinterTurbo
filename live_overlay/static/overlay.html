@@ -461,11 +461,11 @@ function makeBot(top, o = {}) {
       const wrap = mesh(new THREE.CylinderGeometry(.075, .135, .15, 16), sc); wrap.position.set(0, -.045, -.005); b.Head.add(wrap); }
   }
   if (kind === 0) { // takım elbiseli bey: fötr yerine saç, kasket ya da fes
-    const hair = () => { const m = mesh(new THREE.SphereGeometry(.111, 18, 12, 0, TAU, 0, Math.PI * .56), std(o.hair || HAIRS[0], { roughness: .95 })); m.position.set(0, .1, -.016); m.rotation.x = -.28; m.scale.z = 1.06; b.Head.add(m); };
+    const hair = () => { const k = o.head === 'kasket', m = mesh(new THREE.SphereGeometry(.111, 18, 12, 0, TAU, 0, Math.PI * (k ? .66 : .56)), std(o.hair || HAIRS[0], { roughness: .95 })); m.position.set(0, .1, -.016); m.rotation.x = k ? -.5 : -.28; /* kasketin altında saç şakağa ve enseye iner; yoksa kasketin altı kel kalıp kask gibi duruyordu */ m.scale.z = 1.06; b.Head.add(m); };
     if (o.head === 'hair' || o.head === 'fes' || o.head === 'kasket') hair(); // şapkanın altı kel kalmasın
     if (o.head === 'fes') { const m = mesh(new THREE.CylinderGeometry(.068, .084, .12, 18), std('#b3161b', { roughness: .6 })); m.position.set(0, .225, -.01); b.Head.add(m); }
-    if (o.head === 'kasket') { const cap = mesh(new THREE.SphereGeometry(.116, 16, 10, 0, TAU, 0, Math.PI * .5), std('#4a4038', { roughness: .9 })); cap.scale.set(1.08, .98, 1.16); cap.position.set(0, .112, -.01); b.Head.add(cap); // başa oturur: saçın üst yarısını örter
-      const v = mesh(new THREE.BoxGeometry(.13, .012, .08), std('#3a322c', { roughness: .9 })); v.position.set(0, .124, .128); v.rotation.x = .2; b.Head.add(v); }
+    if (o.head === 'kasket') { const cap = mesh(new THREE.SphereGeometry(.116, 16, 10, 0, TAU, 0, Math.PI * .5), std('#2c3140', { roughness: .9 })); cap.scale.set(1.1, 1.02, 1.18); cap.position.set(0, .112, -.01); b.Head.add(cap); // başa oturur: saçın üst yarısını örter
+      const v = mesh(new THREE.BoxGeometry(.13, .012, .08), std('#232733', { roughness: .9 })); v.position.set(0, .124, .128); v.rotation.x = .2; b.Head.add(v); }
   }
   root.scale.set(o.wide || 1, o.tall || 1, o.wide || 1);
   return a;
@@ -679,9 +679,9 @@ const halay = {
   build() {
     this.hall = hall.get(); this.scene = this.hall.scene; this.cam = camera(38, 0, 4.6, 10.5, 0, 1.1, -1.2);
     { // mendil: köşesinden tutulan, kırmızı kenarlı küçük bir bez
-      const tex = canvasTex(64, 64, g => { g.fillStyle = '#fff'; g.fillRect(0, 0, 64, 64); g.strokeStyle = '#c1121f'; g.lineWidth = 7; g.strokeRect(4, 4, 56, 56); });
-      const geo = new THREE.PlaneGeometry(.17, .17, 4, 4), pos = geo.attributes.position;
-      for (let i = 0; i < pos.count; i++) pos.setZ(i, Math.sin(pos.getX(i) * 22) * .012 + Math.cos(pos.getY(i) * 18) * .012); // düz levha gibi durmasın
+      const tex = canvasTex(64, 64, g => { g.fillStyle = '#fff'; g.fillRect(0, 0, 64, 64); g.strokeStyle = '#c1121f'; g.lineWidth = 3; g.strokeRect(3, 3, 58, 58); });
+      const geo = new THREE.PlaneGeometry(.2, .2, 8, 8), pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) pos.setZ(i, Math.sin(pos.getX(i) * 38) * .022 + Math.cos(pos.getY(i) * 31 + pos.getX(i) * 14) * .02); /* kumaş gibi kıvrımlı: düz ve kalın kenarlı hâli karton gibi duruyordu */
       geo.computeVertexNormals(); geo.translate(.06, .06, 0);
       this.mendil = mesh(geo, std('#ffffff', { map: tex, side: THREE.DoubleSide, roughness: .95 })); }
     this.acts = new Map(); this.dir = makeDirector(); this.back = makeCrowd(this.scene, 48, false); this.backN = 0; // arka sıralar
