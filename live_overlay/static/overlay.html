@@ -483,7 +483,7 @@ function aimArm(a, side, x, y, z) {
 // Parmakları kıvırır (el ele tutuş, yumruk): avuç açık kalınca eller tutuşmuyor, yan yana duruyor gibi görünür.
 function grip(a, side, amt) { for (const f of ['Index', 'Middle', 'Ring', 'Pinky']) for (let k = 1; k <= 3; k++) { const n = side + 'Hand' + f + k; if (a.b[n]) P(a, n, amt, 0, 0); } }
 function dispose(scene, a) { if (a) scene.remove(a.root || a.m); }
-// Kol aşağı: Sol kol -z, sağ kol +z. Bacak öne: UpLeg -x. Diz: Leg +x. Öne eğil: Spine +x.
+// Bacak öne: UpLeg +x. Diz: Leg -x. Öne eğil: Spine +x. (Ayağın dünya konumu ölçülerek doğrulandı.)
 // Kollar (bu modelde): kaldırmak -x, öne uzatmak solda +z / sağda -z. Duruş A-poz olduğu için 0 = kollar yarı açık.
 function arm(a, side, raise, fwd) { P(a, side + 'Arm', -raise, 0, side === 'Left' ? fwd : -fwd); }
 
@@ -615,7 +615,7 @@ const hall = {
   // Kamera bir misafire yaklaşınca o kişi birkaç saniyeliğine ayrıntılı (yüzlü, kıyafetli) modele çevrilir.
   detail(seat, sec) { const g = seat.g; if (!g) return; g.until = Math.max(g.until, T + sec); if (g.a) return;
     const hue = g.p ? g.p.hue : hash(g.id) % 360, a = g.a = makeBot(`hsl(${hue},${g.p ? 70 : 35}%,${g.p ? 60 : 55}%)`, lookOf(g.id)); a.root.rotation.y = seat.face;
-    if (seat.seated) { a.root.position.set(seat.x, -.46 * a.root.scale.y, seat.z); P(a, 'LeftUpLeg', -1.5, 0, -.08); P(a, 'RightUpLeg', -1.5, 0, .08); P(a, 'LeftLeg', 1.5, 0, 0); P(a, 'RightLeg', 1.5, 0, 0); }
+    if (seat.seated) { a.root.position.set(seat.x, -.46 * a.root.scale.y, seat.z); P(a, 'LeftUpLeg', 1.5, 0, -.08); P(a, 'RightUpLeg', 1.5, 0, .08); P(a, 'LeftLeg', -1.5, 0, 0); P(a, 'RightLeg', -1.5, 0, 0); }
     else a.root.position.set(seat.x, 0, seat.z);
     this.scene.add(a.root); this.place(seat); this.dirty = true; },
   promote(id, sec = 5) { const seat = this.where.get(id); if (!seat || !this.scene) return null;
@@ -755,7 +755,7 @@ const halay = {
       else { lUp = Math.sin(Math.min(1, f * 1.25) * Math.PI) * 1.05; lKnee = Math.max(0, Math.sin(f * TAU)) * 1.1 + .05; rKnee = bell * .18; y = bell * .07; lean = .03 - bell * .07; }
       a.root.position.set(d.pos[0], y, d.pos[1]); a.root.rotation.y = d.face + (solo ? Math.sin(this.ph * .5) * .5 : 0);
       P(a, 'Spine', lean, 0, solo ? Math.sin(this.ph * .5) * .14 : 0); P(a, 'Spine1', 0, 0, Math.sin(this.ph * 2) * .025); // hafif omuz silkme
-      P(a, 'RightUpLeg', -rUp, 0, rOut); P(a, 'RightLeg', rKnee, 0, 0); P(a, 'LeftUpLeg', -lUp, 0, lOut); P(a, 'LeftLeg', lKnee, 0, 0);
+      P(a, 'RightUpLeg', rUp, 0, rOut); P(a, 'RightLeg', -rKnee, 0, 0); P(a, 'LeftUpLeg', lUp, 0, lOut); P(a, 'LeftLeg', -lKnee, 0, 0); /* bu modelde uyluk +x ile öne, diz -x ile kırılır (ayağın konumu ölçülerek doğrulandı); ters işaretle tekme ve çökme arkaya gidiyordu */
       d.y = y; d.a = a;
     }
     // Arka sıralar: ön sıraya sığmayan halaycılar (en çok 48) arkada üç sıra hâlinde aynı adımı atar.
@@ -1249,7 +1249,7 @@ function frame(now) {
   if (!mode.locked && pending.length) { const q = pending; pending = []; q.forEach(([p, a, raw]) => giveToMode(p, a, raw)); }
   if (DEMO) demoTick(dt);
   quality.tick(now);
-  if (QA) window.__qa = { fps: Math.round(quality.fps), guests: hall.where ? hall.where.size : 0, players: players.size, frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
+  if (QA) window.__qa = { seat: (() => { const f = mode.dir && mode.dir.f, q = f && f.who && hall.where.get(f.who.id); if (!q) return null; let fwd = null; if (q.g && q.g.a) { const ft = q.g.a.b.LeftFoot.getWorldPosition(new THREE.Vector3()); fwd = [+((ft.x - q.x) * Math.sin(q.face) + (ft.z - q.z) * Math.cos(q.face)).toFixed(2), +ft.y.toFixed(2), q.g.a.kind]; } return [q.x, q.z, q.face, fwd]; })(), fps: Math.round(quality.fps), guests: hall.where ? hall.where.size : 0, players: players.size, frame: frameNo, mode: modeName, built: !!mode.built, T, focus: mode.dir && mode.dir.f && mode.dir.f.who ? mode.dir.f.who.name : null, champion: champion && champion.name, wins, session, link: link.state(), top: [...players.values()].filter(p => p.total > 0).sort((a, b) => b.total - a.total).slice(0, 3).map(p => p.name) }; // otomatik test için durum özeti
   if (ready() && !mode.built) { mode.build(); mode.built = true; }
   mode.update(dt);
   if (QA && window.__qaCam && mode.cam) { const c = window.__qaCam; mode.cam.position.set(c[0], c[1], c[2]); mode.cam.lookAt(c[3], c[4], c[5]); } // görsel denetim: kamerayı elle yerleştir
