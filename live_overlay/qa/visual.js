@@ -67,6 +67,12 @@ const NAMES = ['Ayşe', 'Mehmet', 'Zeynep', 'Emre', 'Elif', 'Can', 'Deniz', 'Sel
     await wait(2.6); await gl('balon-1-genis');
     await wait(4); await api('/api/simulate', { type: 'comment', name: 'Ayşe', text: 'Allah bir yastıkta kocatsın, darısı bekarların başına inşallah' }); await wait(.7); await gl('balon-2-halayci-uzun'); await wait(2.6); await full('balon-3-tam-ekran');
   }
+  if (only === 'pasta') { /* pasta kesme: coşkuyu dolduran hediyeden sonra çift pastanın başına geçer */
+    await api('/api/mode', { mode: 'halay' }); await wait(2); for (const n of NAMES.slice(0, 5)) await gift(n, 5); await wait(6);
+    await p.evaluate(() => { window.__qaHoldPasta = 3.4; }); await gift('Selin', 40000, 3, 'Evren'); /* tören kısa sürer ve yavaş makinede sabit bekleme anı kaçırır: overlay töreni istenen anda kendisi dondurur */
+    const hold = async v => { await p.evaluate(x => { window.__qaHoldPasta = x; }, v); for (let i = 0; i < 600 && !(await p.evaluate(() => window.__qaPause)); i++) await p.waitForTimeout(200); };
+    await hold(3.4); console.log('pasta', (await qa()).pasta); await gl('pasta-0-kesim'); await p.evaluate(() => { window.__qaPause = true; }); await full('pasta-0-tam-ekran'); await hold(1.6); await gl('pasta-1-dilim');
+  }
   if (only === 'poz') { /* duruş laboratuvarı: QA_POZ='[[oyun,[kaldırma,salınım,öne,x,y,z]],...]' ile serbest oyunların kol duruşu tek oturumda denenir */
     await api('/api/mode', { mode: 'halay' }); await wait(2); for (const n of NAMES.slice(0, 5)) await gift(n, 2); await wait(5);
     let cur = 0; for (const [i, [st, k]] of JSON.parse(process.env.QA_POZ || '[]').entries()) {
