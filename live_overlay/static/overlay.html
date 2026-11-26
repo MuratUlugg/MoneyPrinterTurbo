@@ -769,7 +769,8 @@ const halay = {
     const swing = (Math.floor(t4) === 3 ? Math.sin((t4 - 3) * Math.PI) : 0) * .1, hy = .88;
     const meet = (p, q) => { const mx = (p.pos[0] + q.pos[0]) / 2, mz = (p.pos[1] + q.pos[1]) / 2, fa = (p.face + q.face) / 2; return [mx + Math.sin(fa) * (.12 + swing), hy + (p.y + q.y) / 2 + swing * .6, mz + Math.cos(fa) * (.12 + swing)]; };
     for (const d of this.vis) { const a = d.a;
-      if (d.slot < 0) { arm(a, 'Left', 1.25 + Math.sin(this.ph) * .3, .25); arm(a, 'Right', 1.25 - Math.sin(this.ph) * .3, .25); P(a, 'LeftForeArm', 0, 0, 0); P(a, 'RightForeArm', 0, 0, 0); continue; }
+      if (d.slot < 0) { const w = Math.sin(this.ph); // ortada oynayan: kollar omuz üstünde, dirsekler kırık, parmak şıklatır gibi sırayla kalkar
+        arm(a, 'Left', 1.5 + w * .28, .3); arm(a, 'Right', 1.5 - w * .28, .3); P(a, 'LeftForeArm', 0, 0, -1.0 - w * .25); P(a, 'RightForeArm', 0, 0, 1.0 - w * .25); grip(a, 'Left', .5); grip(a, 'Right', .5); continue; } /* önkol yukarı kırılır; ters işaretle eller aşağı sarkıyordu */
       const prev = ring[d.slot - 1], next = ring[d.slot + 1];
       grip(a, 'Left', next ? .75 : 0); grip(a, 'Right', prev ? .75 : .5);
       if (next) aimArm(a, 'Left', ...meet(d, next)); else { arm(a, 'Left', -.3, -.15); P(a, 'LeftForeArm', 0, 0, 1.35); } // sondaki: el belde
